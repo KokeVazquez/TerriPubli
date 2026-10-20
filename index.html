@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=17" />
+  <link rel="stylesheet" href="css/styles.css?v=18" />
 </head>
 
 <body>
@@ -49,6 +49,31 @@
           <button id="btnUbicacion">📍 Mi Ubicación</button>
           <button id="btnCopiaSeguridad" style="display:none;">💾 Copia de seguridad</button>
           <button id="btnRestaurar" style="display:none;">🔄 Restaurar copia</button>
+
+          <div style="height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0;"></div>
+
+          <div style="padding: 2px 8px; font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">
+            Modo de Uso:
+          </div>
+          <div class="modo-toggle-container">
+            <button type="button" class="modo-toggle-btn active" data-modo="publicador">Publicador</button>
+            <button type="button" class="modo-toggle-btn" data-modo="capitan">Capitán</button>
+          </div>
+
+          <div id="perfilCapitanInfo" style="display:none; padding: 6px 10px; background: rgba(26, 115, 232, 0.08); border-radius: 10px; margin-top: 5px;">
+            <div style="font-size: 11px; color: #6b7280; font-weight: 600;">Capitán activo:</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-top: 1px;">
+              <span id="txtNombreCapitan" style="font-size: 13.5px; font-weight: 700; color: #1a73e8;"></span>
+              <button id="btnCambiarCapitan" type="button" style="background: none; border: none; font-size: 11.5px; color: #1a73e8; cursor: pointer; text-decoration: underline; padding: 0;">Cambiar</button>
+            </div>
+          </div>
+
+          <div id="seccionEncargado" style="display:none; margin-top: 6px;">
+            <button id="btnBuzonReportes" type="button" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; color: #92400e; font-size: 13px; font-weight: 700; cursor: pointer;">
+              <span>🔔 Aprobaciones S-13</span>
+              <span id="badgeReportesPendientes" style="background: #dc2626; color: white; border-radius: 50%; padding: 2px 7px; font-size: 11px; display:none;">0</span>
+            </button>
+          </div>
 
           <div style="height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0;"></div>
 
@@ -260,6 +285,14 @@
         <span>Notas</span>
       </button>
 
+      <!-- 5. Botón Reportar (Exclusivo Modo Capitán) -->
+      <button id="btnRegistrarTerritorio" class="pill-btn capitan-only" title="Reportar Territorio" style="display:none; background:rgba(26,115,232,0.12); color:#1a73e8;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+        </svg>
+        <span>Reportar</span>
+      </button>
+
       <button id="btnTerritoriosTerminados" style="display:none">Territorios terminados</button>
       <select id="filtroMes" style="display:none;"><option value="inicio">Mes</option></select>
     </div>
@@ -316,21 +349,23 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=17"></script>
+  <script src="js/territoriobase.js?v=18"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=17"></script>
+  <script src="js/territoriosData.js?v=18"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=17"></script>
+  <script src="js/territoriosManager.js?v=18"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=17"></script>
+  <script src="js/notas.js?v=18"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=17"></script>
+  <script src="js/terminados.js?v=18"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=17"></script>
-  <!-- 7. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=17"></script>
-  <!-- 8. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=17"></script>
+  <script src="js/backup.js?v=18"></script>
+  <!-- 7. Módulo de Capitanes y Aprobaciones S-13 -->
+  <script src="js/capitanManager.js?v=18"></script>
+  <!-- 8. Aplicación principal (interfaz, mapa, geolocalización) -->
+  <script src="js/app.js?v=18"></script>
+  <!-- 9. Registro de Service Worker (PWA) -->
+  <script src="js/pwa.js?v=18"></script>
 </body>
 
 </html>

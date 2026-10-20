@@ -384,6 +384,104 @@ path:not(.leaflet-interactive) {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
 }
 
+/* Control conmutador de Modo (Publicador vs Capitán) */
+.modo-toggle-container {
+  display: flex !important;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.modo-toggle-btn {
+  flex: 1 !important;
+  width: auto !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 8px 10px !important;
+  border-radius: 9px !important;
+  font-family: inherit;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #555 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center !important;
+  justify-content: center !important;
+  display: flex !important;
+  box-shadow: none !important;
+}
+
+.modo-toggle-btn:hover {
+  color: #111 !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+.modo-toggle-btn.active {
+  background: #ffffff !important;
+  color: #1a73e8 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Modales Modernos TerRosa */
+.terrosa-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: terrosaFadeIn 0.2s ease;
+}
+
+.terrosa-modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 22px 24px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+  animation: terrosaScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.terrosa-modal-card.terrosa-modal-large {
+  max-width: 440px;
+}
+
+@keyframes terrosaFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes terrosaScaleUp {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.top-header-badge {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  background: #1a73e8;
+  color: #ffffff;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin: 4px auto 0 auto;
+  letter-spacing: 0.2px;
+  width: fit-content;
+}
+
 /* --------------------------------------------------------------------------
    7. Etiquetas de Números de Territorio (Centrado Exacto y Halo Blanco)
    -------------------------------------------------------------------------- */

@@ -275,11 +275,15 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   menu.style.display = "block";
   _ultimoMenuAbierto = Date.now();
 
+  const esModoCapitan = (typeof window.getModoActual === "function" && window.getModoActual() === "capitan");
+  const botonReportarCapitan = esModoCapitan ? `<button onclick="ocultarMenu(true); if (typeof abrirModalRegistroTerritorio === 'function') abrirModalRegistroTerritorio('${tId}', '${pId}');" style="color:#1a73e8; font-weight:700;">📝 Reportar cuadra</button>` : "";
+
   menu.innerHTML = `
     <div class="menu-contextual-header">
       <span class="menu-contextual-title">${tituloCompleto}</span>
       <button class="menu-contextual-close" onclick="ocultarMenu(true)" title="Cerrar">✕</button>
     </div>
+    ${botonReportarCapitan}
     <button onclick="abrirUbicacionCuadra()">📍 Ubicación</button>
     <button onclick="anadirNotaPopup('${pId}', '${tId}');">➕ Añadir nota</button>
     <button onclick="verNotas('${pId}', '${tId}');">📒 Notas</button>

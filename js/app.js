@@ -625,6 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
   inicializarAreaGrande();
   inicializarEventosNotas();
   inicializarEventosTerminados();
+  if (typeof inicializarModuloCapitan === "function") inicializarModuloCapitan();
 
   // Selects personalizados
   initCustomSelect("customSelectorTerritorios", "selectorTerritorios", cambiarTerritorio);

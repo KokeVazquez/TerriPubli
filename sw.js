@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v17';
+const CACHE_NAME = 'territorios-cache-v18';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const ASSETS_TO_CACHE = [
   './js/notas.js',
   './js/terminados.js',
   './js/backup.js',
+  './js/capitanManager.js',
   './js/app.js',
   './js/pwa.js',
   './logo.png',
