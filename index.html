@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=12" />
+  <link rel="stylesheet" href="css/styles.css?v=13" />
 </head>
 
 <body>
@@ -49,36 +49,22 @@
           <button id="btnUbicacion">📍 Mi Ubicación (GPS)</button>
           <button id="btnCopiaSeguridad">💾 Copia de seguridad</button>
           <button id="btnRestaurar">🔄 Restaurar copia</button>
-          <!-- Selector de mes para consulta -->
-          <div class="menu-panel-item" style="padding: 6px 14px; font-size: 13px; color: #555;">
-            Filtrar mes:
+
+          <div style="height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0;"></div>
+
+          <div style="padding: 2px 8px; font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">
+            Versión de Territorios:
           </div>
-          <!-- Select personalizado de mes -->
-          <div class="custom-select" id="customFiltroMes" style="width: 100%; min-width: auto;">
-            <div class="selected" style="padding: 8px 14px; font-size: 13px;">Mes</div>
-            <ul class="options">
-              <li data-value="inicio">Mes</li>
-              <li data-value="todos">Todos los meses</li>
-              <li data-value="01">Enero</li>
-              <li data-value="02">Febrero</li>
-              <li data-value="03">Marzo</li>
-              <li data-value="04">Abril</li>
-              <li data-value="05">Mayo</li>
-              <li data-value="06">Junio</li>
-              <li data-value="07">Julio</li>
-              <li data-value="08">Agosto</li>
-              <li data-value="09">Septiembre</li>
-              <li data-value="10">Octubre</li>
-              <li data-value="11">Noviembre</li>
-              <li data-value="12">Diciembre</li>
-            </ul>
+          <div class="version-toggle-container">
+            <button type="button" class="version-toggle-btn" data-version="anterior">Anterior</button>
+            <button type="button" class="version-toggle-btn" data-version="nueva">Nueva</button>
           </div>
         </div>
       </div>
 
       <!-- 2. Selector de Territorios (Elemento Central Principal) -->
       <div class="custom-select" id="customSelectorTerritorios">
-        <div class="selected">-- Territorio --</div>
+        <div class="selected">Territorio</div>
         <ul class="options">
           <li data-value="territorio1">Territorio 1</li>
           <li data-value="territorio2">Territorio 2</li>
@@ -170,7 +156,7 @@
 
       <!-- Select original oculto sincronizado -->
       <select id="selectorTerritorios" style="display:none;">
-        <option value="">-- Selecciona un territorio --</option>
+        <option value="">Territorio</option>
         <option value="territorio1">Territorio 1</option>
         <option value="territorio2">Territorio 2</option>
         <option value="territorio3">Territorio 3</option>
@@ -330,21 +316,21 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=12"></script>
+  <script src="js/territoriobase.js?v=13"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=12"></script>
+  <script src="js/territoriosData.js?v=13"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=12"></script>
+  <script src="js/territoriosManager.js?v=13"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=12"></script>
+  <script src="js/notas.js?v=13"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=12"></script>
+  <script src="js/terminados.js?v=13"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=12"></script>
+  <script src="js/backup.js?v=13"></script>
   <!-- 7. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=12"></script>
+  <script src="js/app.js?v=13"></script>
   <!-- 8. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=12"></script>
+  <script src="js/pwa.js?v=13"></script>
 </body>
 
 </html>

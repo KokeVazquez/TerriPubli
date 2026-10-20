@@ -461,7 +461,7 @@ function inicializarAreaGrande() {
     const customSelectTerr = document.getElementById("customSelectorTerritorios");
     if (customSelectTerr) {
       const selectedTerr = customSelectTerr.querySelector(".selected");
-      if (selectedTerr) selectedTerr.textContent = "-- Selecciona un territorio --";
+      if (selectedTerr) selectedTerr.textContent = "Territorio";
       customSelectTerr.classList.remove("active");
     }
   });
@@ -627,15 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
   inicializarEventosTerminados();
 
   // Selects personalizados
-  initCustomSelect("customFiltroMes", "filtroMes", filtrarPorMes);
   initCustomSelect("customSelectorTerritorios", "selectorTerritorios", cambiarTerritorio);
-
-  // Filtro de mes eventos nativos
-  const filtroMes = document.getElementById("filtroMes");
-  if (filtroMes) {
-    filtroMes.addEventListener("input", filtrarPorMes);
-    filtroMes.addEventListener("change", filtrarPorMes);
-  }
 
   // Menú hamburguesa
   const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -643,6 +635,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const backupBtnMenu = document.getElementById('btnCopiaSeguridad');
   const restoreBtnMenu = document.getElementById('btnRestaurar');
   const btnUbicacionMenu = document.getElementById('btnUbicacion');
+
+  // Control de Selección de Versión (Anterior / Nueva)
+  const versionActual = localStorage.getItem("territorios_version") || "anterior";
+  const versionBtns = document.querySelectorAll(".version-toggle-btn");
+  versionBtns.forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.version === versionActual);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const nuevaVersion = btn.dataset.version;
+      const actual = localStorage.getItem("territorios_version") || "anterior";
+      if (nuevaVersion !== actual) {
+        localStorage.setItem("territorios_version", nuevaVersion);
+        mostrarLoader();
+        setTimeout(() => {
+          location.reload();
+        }, 120);
+      }
+    });
+  });
 
   if (hamburgerBtn && menuPanel) {
     hamburgerBtn.addEventListener('click', (e) => {

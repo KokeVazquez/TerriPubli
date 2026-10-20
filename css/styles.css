@@ -333,6 +333,47 @@ path:not(.leaflet-interactive) {
   transform: translateX(0);
 }
 
+/* Control conmutador de Versión (Segmented Control) */
+.version-toggle-container {
+  display: flex !important;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.version-toggle-btn {
+  flex: 1 !important;
+  width: auto !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 8px 10px !important;
+  border-radius: 9px !important;
+  font-family: inherit;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #555 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center !important;
+  justify-content: center !important;
+  display: flex !important;
+  box-shadow: none !important;
+}
+
+.version-toggle-btn:hover {
+  color: #111 !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+.version-toggle-btn.active {
+  background: #ffffff !important;
+  color: #1a73e8 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
 /* --------------------------------------------------------------------------
    7. Etiquetas de Números de Territorio (Centrado Exacto y Halo Blanco)
    -------------------------------------------------------------------------- */
