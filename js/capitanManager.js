@@ -6,6 +6,7 @@
   "use strict";
 
   const PIN_ENCARGADO_DEFAULT = "1234";
+  const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbyhRDCZr-5QQ6eiABdHIFIwcsZsYL2kT26DETnTosx_leabCp6xkYghbUPjVqa_d9U/exec";
 
   // 1. Obtener estado actual
   window.getModoActual = function () {
@@ -23,6 +24,10 @@
     vincularBotonRegistrar();
     vincularBuzonEncargado();
     inicializarFiltroFechaBarra();
+    // Sincronizar en segundo plano con la base de datos en Google Sheets
+    if (typeof window.sincronizarConNube === "function") {
+      window.sincronizarConNube();
+    }
   };
 
   // 3. Actualizar interfaz según el modo (Publicador vs Capitán)
@@ -394,6 +399,15 @@
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
       window.actualizarColoresCuadrasCapitan();
     }
+
+    // Sincronizar nuevo reporte en la nube con Google Sheets
+    if (URL_API_GOOGLE_SHEETS) {
+      fetch(URL_API_GOOGLE_SHEETS, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ accion: "nuevo_reporte", reporte: reporte })
+      }).catch(err => console.warn("Error enviando reporte a Google Sheets:", err));
+    }
   }
 
   function actualizarContadorPendientes() {
@@ -531,7 +545,10 @@
       <div class="terrosa-modal-card terrosa-modal-large">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
           <h3 style="margin:0; color:#1e293b; font-size:17.5px; font-weight:800;">🔔 Aprobaciones S-13 (${pendientes.length})</h3>
-          <button id="btnCerrarBuzon" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; padding:4px;">✖</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btnSyncNubeModal" title="Sincronizar con Google Sheets" style="background:#e0f2fe; border:none; border-radius:8px; padding:6px 11px; font-size:12px; font-weight:700; color:#0284c7; cursor:pointer;">🔄 Sincronizar</button>
+            <button id="btnCerrarBuzon" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; padding:4px;">✖</button>
+          </div>
         </div>
 
         <div id="listaItemsBuzon" style="max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
@@ -548,6 +565,20 @@
     };
 
     modal.querySelector("#btnCerrarBuzon").onclick = cerrar;
+
+    const btnSync = modal.querySelector("#btnSyncNubeModal");
+    if (btnSync) {
+      btnSync.onclick = () => {
+        btnSync.textContent = "Sincronizando...";
+        btnSync.disabled = true;
+        window.sincronizarConNube(true).then(() => {
+          btnSync.textContent = "🔄 Sincronizar";
+          btnSync.disabled = false;
+          cerrar();
+          abrirModalBuzonAprobaciones();
+        });
+      };
+    }
 
     const cont = modal.querySelector("#listaItemsBuzon");
     pendientes.forEach(rep => {
@@ -629,6 +660,15 @@
       window.actualizarColoresCuadrasCapitan();
     }
     mostrarToastDiscreto("Aprobado ✅");
+
+    // Sincronizar aprobación con Google Sheets (llena la hoja oficial S-13 en Drive)
+    if (URL_API_GOOGLE_SHEETS) {
+      fetch(URL_API_GOOGLE_SHEETS, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ accion: "aprobar_reporte", id: id })
+      }).catch(err => console.warn("Error enviando aprobación a Google Sheets:", err));
+    }
   }
 
   function descartarReporte(id) {
@@ -658,6 +698,15 @@
     actualizarContadorPendientes();
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
       window.actualizarColoresCuadrasCapitan();
+    }
+
+    // Sincronizar descarte con Google Sheets
+    if (URL_API_GOOGLE_SHEETS) {
+      fetch(URL_API_GOOGLE_SHEETS, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ accion: "descartar_reporte", id: id })
+      }).catch(err => console.warn("Error enviando descarte a Google Sheets:", err));
     }
   }
 
@@ -895,6 +944,59 @@
       });
     }
   }
+
+  // 15. Sincronización en la Nube con Google Sheets
+  window.sincronizarConNube = async function (mostrarFeedback = false) {
+    if (!URL_API_GOOGLE_SHEETS) return;
+    try {
+      if (mostrarFeedback) mostrarToastDiscreto("Sincronizando con Google Sheets... ⏳");
+
+      const res = await fetch(URL_API_GOOGLE_SHEETS, { method: "GET" });
+      const data = await res.json();
+
+      if (data && data.exito && Array.isArray(data.reportes)) {
+        // Normalizar fechas y guardar en localStorage
+        const reportesNormalizados = data.reportes.map(r => {
+          let f = r.fecha || "";
+          if (f && f.length > 10 && !/^\d{4}-\d{2}-\d{2}$/.test(f)) {
+            const d = new Date(f);
+            if (!isNaN(d.getTime())) {
+              const anio = d.getFullYear();
+              const mes = ("0" + (d.getMonth() + 1)).slice(-2);
+              const dia = ("0" + d.getDate()).slice(-2);
+              f = `${anio}-${mes}-${dia}`;
+            }
+          }
+          r.fecha = f;
+          return r;
+        });
+
+        localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(reportesNormalizados));
+
+        // Marcar cuadras en el estado local del territorio para que se pinten en gris
+        reportesNormalizados.forEach(rep => {
+          if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO") && rep.territorioId && Array.isArray(rep.cuadras)) {
+            const estadoT = JSON.parse(localStorage.getItem(rep.territorioId + "_estado") || "{}");
+            rep.cuadras.forEach(cId => {
+              estadoT[cId] = true;
+            });
+            localStorage.setItem(rep.territorioId + "_estado", JSON.stringify(estadoT));
+          }
+        });
+
+        actualizarContadorPendientes();
+
+        if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+          window.actualizarColoresCuadrasCapitan();
+        }
+
+        if (mostrarFeedback) mostrarToastDiscreto("Sincronizado con éxito ✅");
+      }
+    } catch (err) {
+      console.warn("Modo offline o error al sincronizar con Google Sheets:", err);
+      if (mostrarFeedback) mostrarToastDiscreto("Sin conexión a la nube ⚠️");
+    }
+  };
 
 })();
 
