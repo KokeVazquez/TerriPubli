@@ -26,10 +26,15 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=12" />
 </head>
 
 <body>
+  <!-- Barra Superior de Título (Unifica y aprovecha el área del notch/status bar) -->
+  <header class="top-header-bar">
+    <h1 class="top-header-title">Mapa Congregación Rosario</h1>
+  </header>
+
   <!-- Barra Flotante Inferior Tipo Píldora (Dock Bottom) -->
   <div class="bottom-bar-container">
     <div class="bottom-bar-pill">
@@ -325,21 +330,21 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=11"></script>
+  <script src="js/territoriobase.js?v=12"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=11"></script>
+  <script src="js/territoriosData.js?v=12"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=11"></script>
+  <script src="js/territoriosManager.js?v=12"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=11"></script>
+  <script src="js/notas.js?v=12"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=11"></script>
+  <script src="js/terminados.js?v=12"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=11"></script>
+  <script src="js/backup.js?v=12"></script>
   <!-- 7. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=11"></script>
+  <script src="js/app.js?v=12"></script>
   <!-- 8. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=11"></script>
+  <script src="js/pwa.js?v=12"></script>
 </body>
 
 </html>
