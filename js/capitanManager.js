@@ -577,6 +577,8 @@
         return (polData && polData.label) ? polData.label : val.replace(/^[a-zA-Z0-9]+_c/, '');
       });
 
+      const totalCuadras = (itemT && itemT.datos.poligonos) ? itemT.datos.poligonos.length : chks.length;
+
       // Crear objeto de reporte pendiente
       const nuevoReporte = {
         id: "rep_" + Date.now(),
@@ -586,6 +588,7 @@
         cuadras: cuadrasIds,
         cuadrasLabels: cuadrasLabels,
         cuadrasTotal: chks.length,
+        totalCuadrasTerritorio: totalCuadras,
         capitan: capitan,
         comentario: comentario,
         visitaSC: visitaSC,
