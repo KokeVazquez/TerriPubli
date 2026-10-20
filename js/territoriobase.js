@@ -3,46 +3,78 @@
 // =============================
 
 function vincularMenuCuadra(pol, territorioId) {
-  pol._territorioId = territorioId || pol._territorioId || "territorio";
+  const tId = territorioId || pol._territorioId || "territorio";
+  pol._territorioId = tId;
 
-  // Limpiar eventos previos para evitar duplicados
+  // 1. Clic o tap simple en la cuadra (abre el menú al tocar)
+  pol.off('click');
+  pol.on('click', function (e) {
+    if (e && e.originalEvent) {
+      L.DomEvent.stopPropagation(e);
+    }
+    mostrarMenu(e, pol, null, tId);
+  });
+
+  // 2. Clic derecho en PC
   pol.off('contextmenu');
-  pol.off('touchstart');
-  pol.off('touchmove');
-  pol.off('touchend');
-  pol.off('touchcancel');
-
-  // 1. Clic derecho en PC
   pol.on('contextmenu', function (e) {
-    if (e.originalEvent) {
+    if (e && e.originalEvent) {
       e.originalEvent.preventDefault();
       e.originalEvent.stopPropagation();
     }
-    mostrarMenu(e, pol, null, pol._territorioId);
+    mostrarMenu(e, pol, null, tId);
   });
 
-  // 2. Dejar presionado en móvil (Pulsación prolongada / Long-press)
-  let pressTimer = null;
-  let hasMoved = false;
+  // 3. Dejar presionado en pantalla táctil (Touch Long-Press sobre el elemento SVG nativo)
+  function setupDomTouch() {
+    const el = pol.getElement ? pol.getElement() : pol._path;
+    if (!el || el._hasTouchEvents) return;
+    el._hasTouchEvents = true;
 
-  pol.on('touchstart', function (e) {
-    hasMoved = false;
-    clearTimeout(pressTimer);
-    pressTimer = setTimeout(() => {
-      if (!hasMoved) {
-        mostrarMenu(e, pol, null, pol._territorioId);
+    let pressTimer = null;
+    let startX = 0;
+    let startY = 0;
+    let hasMoved = false;
+
+    el.addEventListener('touchstart', function (e) {
+      hasMoved = false;
+      if (e.touches && e.touches[0]) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
       }
-    }, 450); // 450 ms
-  });
+      clearTimeout(pressTimer);
+      pressTimer = setTimeout(() => {
+        if (!hasMoved) {
+          mostrarMenu(e, pol, null, tId);
+        }
+      }, 350); // 350 ms de dejar picado
+    }, { passive: true });
 
-  pol.on('touchmove', function () {
-    hasMoved = true;
-    clearTimeout(pressTimer);
-  });
+    el.addEventListener('touchmove', function (e) {
+      if (e.touches && e.touches[0]) {
+        let dx = Math.abs(e.touches[0].clientX - startX);
+        let dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 8 || dy > 8) {
+          hasMoved = true;
+          clearTimeout(pressTimer);
+        }
+      }
+    }, { passive: true });
 
-  pol.on('touchend touchcancel', function () {
-    clearTimeout(pressTimer);
-  });
+    el.addEventListener('touchend', function () {
+      clearTimeout(pressTimer);
+    }, { passive: true });
+
+    el.addEventListener('touchcancel', function () {
+      clearTimeout(pressTimer);
+    }, { passive: true });
+  }
+
+  if (pol.getElement && pol.getElement()) {
+    setupDomTouch();
+  } else {
+    pol.on('add', setupDomTouch);
+  }
 }
 
 function crearTerritorio(datosTerritorio) {
@@ -50,7 +82,7 @@ function crearTerritorio(datosTerritorio) {
   // 1. Crear grupo
   // ------------------------------
   var grupo = L.featureGroup().addTo(map);
-  grupo._id = datosTerritorio.id; // id del grupo
+  grupo._id = datosTerritorio.id;
 
   // ------------------------------
   // 2. Estado y notas guardadas
@@ -89,7 +121,7 @@ function crearTerritorio(datosTerritorio) {
     // Etiqueta
     if (d.label) pol._label = d.label;
 
-    // Vincular menú contextual (clic derecho y dejar presionado en móvil)
+    // Vincular menú para clic simple, clic derecho y pulsación prolongada
     vincularMenuCuadra(pol, datosTerritorio.id);
   });
 
@@ -106,6 +138,17 @@ function crearTerritorio(datosTerritorio) {
 // === Menú contextual ===
 // =============================
 
+window.abrirUbicacionCuadra = function () {
+  const menu = document.getElementById("menuContextual");
+  const link = menu ? menu.getAttribute("data-link") : "";
+  if (link && link.trim() !== "" && link !== "undefined") {
+    window.open(link, "_blank");
+  } else {
+    alert("Ubicación de Google Maps no disponible para esta cuadra.");
+  }
+  ocultarMenu();
+};
+
 function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   ocultarMenu();
   const menu = document.getElementById("menuContextual");
@@ -114,6 +157,9 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   const tId = territorioId || pol._territorioId || "territorio";
   const link = pol._link || "";
   const pId = pol._id || "";
+
+  // Guardar link en atributo data-link seguro
+  menu.setAttribute("data-link", link);
 
   let x = window.innerWidth / 2;
   let y = window.innerHeight / 2;
@@ -134,23 +180,26 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
         x = oe.changedTouches[0].clientX;
         y = oe.changedTouches[0].clientY;
       }
+    } else if (e.touches && e.touches.length > 0) {
+      x = e.touches[0].clientX;
+      y = e.touches[0].clientY;
     }
   }
 
-  // Prevenir que el menú se salga de los bordes de la pantalla en móviles
+  // Prevenir que el menú se salga de los bordes de la pantalla
   const menuWidth = 170;
   const menuHeight = 150;
-  if (x + menuWidth > window.innerWidth - 12) x = window.innerWidth - menuWidth - 12;
-  if (x < 12) x = 12;
-  if (y + menuHeight > window.innerHeight - 12) y = window.innerHeight - menuHeight - 12;
-  if (y < 12) y = 12;
+  if (x + menuWidth > window.innerWidth - 14) x = window.innerWidth - menuWidth - 14;
+  if (x < 14) x = 14;
+  if (y + menuHeight > window.innerHeight - 14) y = window.innerHeight - menuHeight - 14;
+  if (y < 14) y = 14;
 
   menu.style.left = x + "px";
   menu.style.top = y + "px";
   menu.style.display = "block";
 
   menu.innerHTML = `
-    <button onclick="if('${link}') window.open('${link}', '_blank'); else alert('Ubicación no disponible para esta cuadra'); ocultarMenu();">📍 Ubicación</button>
+    <button onclick="abrirUbicacionCuadra()">📍 Ubicación</button>
     <button onclick="anadirNotaPopup('${pId}', '${tId}');">➕ Añadir nota</button>
     <button onclick="verNotas('${pId}', '${tId}');">📒 Notas</button>
   `;

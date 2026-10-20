@@ -4,9 +4,11 @@
   "description": "Mapa Interactivo de Territorios de Congregación Rosario",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
   "orientation": "portrait-primary",
   "background_color": "#e5e3df",
+  "theme_color": "#e5e3df",
   "icons": [
     {
       "src": "icon-192.png",
