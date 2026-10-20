@@ -186,6 +186,18 @@ window.abrirUbicacionCuadra = function () {
   ocultarMenu(true);
 };
 
+window.compartirWhatsAppCuadra = function () {
+  const menu = document.getElementById("menuContextual");
+  const link = menu ? menu.getAttribute("data-link") : "";
+  const titulo = menu ? menu.getAttribute("data-titulo") : "Cuadra de Territorio";
+
+  const mensaje = `📍 *${titulo}*\n\n🗺️ Abrir ubicación en Google Maps:\n${link || 'Ubicación no disponible'}`;
+  const urlWhatsapp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`;
+
+  window.open(urlWhatsapp, "_blank");
+  ocultarMenu(true);
+};
+
 function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   const menu = document.getElementById("menuContextual");
   if (!menu) return;
@@ -194,8 +206,21 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   const link = pol._link || "";
   const pId = pol._id || "";
 
-  // Guardar link en atributo data-link seguro
+  // Formato exacto: "Territorio X, Cuadra Y"
+  let nombreTerritorio = "Territorio";
+  const numMatch = tId.match(/(\d+)/);
+  if (numMatch) {
+    nombreTerritorio = `Territorio ${numMatch[1]}`;
+  } else if (tId.toLowerCase().includes("negocios")) {
+    nombreTerritorio = "Negocios";
+  }
+
+  const nombreCuadra = pol._label ? `Cuadra ${pol._label}` : (pol._id || "Cuadra");
+  const tituloCompleto = `${nombreTerritorio}, ${nombreCuadra}`;
+
+  // Guardar datos en atributos para uso de botones
   menu.setAttribute("data-link", link);
+  menu.setAttribute("data-titulo", tituloCompleto);
 
   let x = window.innerWidth / 2;
   let y = window.innerHeight / 2;
@@ -238,8 +263,8 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   }
 
   // Prevenir que el menú se salga de los bordes de la pantalla
-  const menuWidth = 180;
-  const menuHeight = 160;
+  const menuWidth = 200;
+  const menuHeight = 210;
   if (x + menuWidth > window.innerWidth - 12) x = window.innerWidth - menuWidth - 12;
   if (x < 12) x = 12;
   if (y + menuHeight > window.innerHeight - 12) y = window.innerHeight - menuHeight - 12;
@@ -250,16 +275,15 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   menu.style.display = "block";
   _ultimoMenuAbierto = Date.now();
 
-  const tituloCuadra = pol._label ? `Cuadra ${pol._label}` : "Opciones";
-
   menu.innerHTML = `
     <div class="menu-contextual-header">
-      <span class="menu-contextual-title">${tituloCuadra}</span>
+      <span class="menu-contextual-title">${tituloCompleto}</span>
       <button class="menu-contextual-close" onclick="ocultarMenu(true)" title="Cerrar">✕</button>
     </div>
     <button onclick="abrirUbicacionCuadra()">📍 Ubicación</button>
     <button onclick="anadirNotaPopup('${pId}', '${tId}');">➕ Añadir nota</button>
     <button onclick="verNotas('${pId}', '${tId}');">📒 Notas</button>
+    <button class="btn-whatsapp" onclick="compartirWhatsAppCuadra()">💬 WhatsApp</button>
   `;
 }
 

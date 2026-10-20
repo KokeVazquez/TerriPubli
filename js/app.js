@@ -13,8 +13,12 @@ var myRenderer = L.svg({ padding: 1.5 });
 var map = L.map("map", {
   renderer: myRenderer,
   maxZoom: 22,
+  minZoom: 10,
   zoomControl: false,
   doubleClickZoom: false,
+  zoomSnap: 0,              // Zoom fluido y continuo como una foto (sin saltos)
+  zoomDelta: 0.25,          // Pasos finos
+  wheelPxPerZoomLevel: 100, // Suavidad en rueda de ratón o gestos
   fadeAnimation: true,
   zoomAnimation: true
 });
