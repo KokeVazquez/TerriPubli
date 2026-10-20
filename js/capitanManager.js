@@ -208,8 +208,9 @@
             <h3 style="margin:0; font-size:18px; font-weight:800; color:#1e293b;">📋 Historial de Registros</h3>
             <span style="font-size:12px; color:#64748b;">Edita o elimina si hubo algún error</span>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <button id="btnSyncHistorialModal" title="Sincronizar" style="background:#e0f2fe; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; color:#0284c7; cursor:pointer;">🔄 Sincronizar</button>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button id="btnLimpiarCacheModal" title="Limpiar cuadras viejas en gris" style="background:#fef2f2; border:none; border-radius:8px; padding:6px 9px; font-size:11.5px; font-weight:700; color:#dc2626; cursor:pointer;">🧹 Limpiar</button>
+            <button id="btnSyncHistorialModal" title="Sincronizar" style="background:#e0f2fe; border:none; border-radius:8px; padding:6px 9px; font-size:11.5px; font-weight:700; color:#0284c7; cursor:pointer;">🔄 Nube</button>
             <button id="btnCerrarHistorial" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b; padding:2px;">✖</button>
           </div>
         </div>
@@ -227,6 +228,17 @@
     };
 
     modal.querySelector("#btnCerrarHistorial").onclick = cerrar;
+
+    const btnLimpiar = modal.querySelector("#btnLimpiarCacheModal");
+    if (btnLimpiar) {
+      btnLimpiar.onclick = () => {
+        if (confirm("¿Limpiar cuadras en gris huérfanas y sincronizar mapa con el historial?")) {
+          window.limpiarCacheCuadrasFantasma();
+          cerrar();
+          window.abrirModalHistorialRegistros();
+        }
+      };
+    }
 
     const btnSync = modal.querySelector("#btnSyncHistorialModal");
     if (btnSync) {
@@ -961,6 +973,29 @@
     }, 1800);
   }
 
+  // 12.5. Limpieza de caché huérfana de cuadras marcadas en gris
+  window.limpiarCacheCuadrasFantasma = function () {
+    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const validKeys = new Set();
+    reportes.forEach(r => {
+      if (r.territorioId) {
+        validKeys.add(r.territorioId + "_estado");
+      }
+    });
+
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.endsWith("_estado") && !validKeys.has(k)) {
+        localStorage.removeItem(k);
+      }
+    }
+
+    if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+      window.actualizarColoresCuadrasCapitan();
+    }
+    mostrarToastDiscreto("Caché limpiada y mapa restaurado ✅");
+  };
+
   // 13. Pintar cuadras en gris (trabajadas / reportadas) y restaurar originales
   window.actualizarColoresCuadrasCapitan = function () {
     if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return;
@@ -988,12 +1023,19 @@
     window.todosLosTerritorios.forEach(grupo => {
       const tId = grupo._id;
       const setReportadas = cuadrasReportadasPorTerritorio[tId] || new Set();
-      const estadoLocal = JSON.parse(localStorage.getItem(tId + "_estado") || "{}");
+
+      // Limpiar y alinear el estado local estrictamente con los reportes existentes
+      const nuevoEstadoLocal = {};
+      setReportadas.forEach(cId => {
+        nuevoEstadoLocal[cId] = true;
+      });
+      localStorage.setItem(tId + "_estado", JSON.stringify(nuevoEstadoLocal));
 
       grupo.eachLayer(pol => {
         if (!pol._originalStyle) return;
 
-        const esGris = setReportadas.has(pol._id) || Boolean(estadoLocal[pol._id]);
+        // La cuadra es gris ÚNICAMENTE si existe en un reporte activo (pendiente o aprobado)
+        const esGris = setReportadas.has(pol._id);
         if (esGris) {
           pol._selected = true;
           pol.setStyle({
