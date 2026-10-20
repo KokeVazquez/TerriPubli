@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v5';
+const CACHE_NAME = 'territorios-cache-v6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -17,7 +17,6 @@ const ASSETS_TO_CACHE = [
   './js/app.js',
   './js/pwa.js',
   './logo.png',
-  './JW_Logo.png',
   './icon-192.png',
   './icon-512.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',

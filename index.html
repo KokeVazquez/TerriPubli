@@ -302,9 +302,17 @@
   <!-- Menú Contextual (Click derecho en polígonos) -->
   <div id="menuContextual" class="menu-contextual" style="display:none; position:fixed; z-index:999999;"></div>
 
-  <!-- Pantalla de Carga (Loader) -->
+  <!-- Pantalla de Carga (Loader Moderno y Original) -->
   <div id="loader">
-    <img src="JW_Logo.png" alt="Cargando..." />
+    <div class="loader-card">
+      <div class="loader-icon-box">
+        <svg class="loader-svg" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="27" cy="27" r="23" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="6 4" class="loader-spin" />
+          <path d="M27 12C20.92 12 16 16.92 16 23C16 30.5 27 39 27 39C27 39 38 30.5 38 23C38 16.92 33.08 12 27 12ZM27 27C24.79 27 23 25.21 23 23C23 20.79 24.79 19 27 19C29.21 19 31 20.79 31 23C31 25.21 29.21 27 27 27Z" fill="#2563eb"/>
+        </svg>
+      </div>
+      <div class="loader-label">Cargando territorio...</div>
+    </div>
   </div>
 
   <!-- ================= Librerías Externas ================= -->
@@ -315,21 +323,21 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=5"></script>
+  <script src="js/territoriobase.js?v=6"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=5"></script>
+  <script src="js/territoriosData.js?v=6"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=5"></script>
+  <script src="js/territoriosManager.js?v=6"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=5"></script>
+  <script src="js/notas.js?v=6"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=5"></script>
+  <script src="js/terminados.js?v=6"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=5"></script>
+  <script src="js/backup.js?v=6"></script>
   <!-- 7. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=5"></script>
+  <script src="js/app.js?v=6"></script>
   <!-- 8. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=5"></script>
+  <script src="js/pwa.js?v=6"></script>
 </body>
 
 </html>

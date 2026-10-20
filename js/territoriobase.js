@@ -8,16 +8,21 @@ function vincularMenuCuadra(pol, territorioId) {
   const tId = territorioId || pol._territorioId || "territorio";
   pol._territorioId = tId;
 
-  // 1. Clic para computadoras y ratón (Leaflet event)
+  // 1. Clic para computadoras y ratón (Leaflet event en PC)
   pol.off('click');
   pol.on('click', function (e) {
     if (e && e.originalEvent) {
       e.originalEvent.stopPropagation();
     }
-    mostrarMenu(e, pol, null, tId);
+    // Si no hay territorio enfocado o se hace clic en un territorio distinto, enfocar ese territorio
+    if (!window.territorioActivo || window.territorioActivo._id !== tId) {
+      if (typeof window.seleccionarTerritorioDirecto === 'function') {
+        window.seleccionarTerritorioDirecto(tId);
+      }
+    }
   });
 
-  // 2. Clic derecho en PC (Leaflet event)
+  // 2. Clic derecho en PC (Leaflet event) -> Abre el menú de la cuadra
   pol.off('contextmenu');
   pol.on('contextmenu', function (e) {
     if (e && e.originalEvent) {
@@ -27,7 +32,7 @@ function vincularMenuCuadra(pol, territorioId) {
     mostrarMenu(e, pol, null, tId);
   });
 
-  // 3. Toque y pulsación nativa directa en móvil (Touch & Tap garantizado)
+  // 3. Toque y pulsación nativa directa en móvil
   function attachPathTouch() {
     const el = pol.getElement ? pol.getElement() : pol._path;
     if (!el) return;
@@ -51,11 +56,12 @@ function vincularMenuCuadra(pol, territorioId) {
         startY = t.clientY;
       }
       clearTimeout(pressTimer);
+      // Pulsación prolongada: 1 segundo (1000ms) para abrir el menú
       pressTimer = setTimeout(() => {
         if (!hasMoved) {
           mostrarMenu({ clientX: startX, clientY: startY }, pol, null, tId);
         }
-      }, 350); // Dejar presionado 350ms
+      }, 1000);
     }
 
     function onTouchMove(e) {
@@ -73,11 +79,14 @@ function vincularMenuCuadra(pol, territorioId) {
     function onTouchEnd(e) {
       clearTimeout(pressTimer);
       const touchDuration = Date.now() - startTime;
-      // Si fue un toque o tap rápido y no se desplazó arrastrando el mapa
-      if (!hasMoved && touchDuration < 350) {
-        const t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
-        const pt = t ? { clientX: t.clientX, clientY: t.clientY } : { clientX: startX, clientY: startY };
-        mostrarMenu(pt, pol, null, tId);
+      // Si fue un toque rápido (menos de 600ms) sin arrastrar el mapa:
+      if (!hasMoved && touchDuration < 600) {
+        // Si no hay territorio activo o tocamos un territorio distinto, cambiar y enfocarlo de una
+        if (!window.territorioActivo || window.territorioActivo._id !== tId) {
+          if (typeof window.seleccionarTerritorioDirecto === 'function') {
+            window.seleccionarTerritorioDirecto(tId);
+          }
+        }
       }
     }
 

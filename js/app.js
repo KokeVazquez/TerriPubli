@@ -10,15 +10,22 @@ const TOTAL_CUADRAS = 389; // número total de polígonos/cuadras
 var map = L.map("map", {
   maxZoom: 22,
   zoomControl: false,
-  doubleClickZoom: false
+  doubleClickZoom: false,
+  fadeAnimation: true,
+  zoomAnimation: true
 });
 
-var boundsIniciales = L.latLngBounds([[28.600, -106.075], [28.618, -106.070]]);
-map.fitBounds(boundsIniciales, { padding: [5, 5] });
+var boundsIniciales = L.latLngBounds([[28.601, -106.088], [28.620, -106.052]]);
+map.fitBounds(boundsIniciales, { padding: [30, 30] });
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap",
-  maxZoom: 22
+  maxZoom: 22,
+  maxNativeZoom: 19,
+  subdomains: ["a", "b", "c"],
+  keepBuffer: 8,
+  updateWhenIdle: false,
+  updateWhenZooming: true
 }).addTo(map);
 
 // ==============================================================================================================================
@@ -44,10 +51,9 @@ function ocultarLoader() {
 
 function flyWithLoader(bounds, callback) {
   mostrarLoader();
-  map.flyToBounds(bounds, { padding: [20, 20] });
+  map.flyToBounds(bounds, { padding: [30, 30], duration: 0.7 });
 
   map.once('moveend', function () {
-    map.setZoom(map.getZoom() + 1.0);
     ocultarLoader();
     if (callback) callback();
   });
@@ -258,6 +264,7 @@ function filtrarPorMes() {
 // ==============================================================================================================================
 function enfocarTerritorio(grupo) {
   territorioActivo = grupo;
+  window.territorioActivo = grupo;
 
   window.todosLosTerritorios.forEach(t => {
     t.eachLayer(pol => {
@@ -330,20 +337,58 @@ function mostrarEtiquetas() {
   });
 }
 
+// Selección directa de territorio desde cualquier cuadra
+window.seleccionarTerritorioDirecto = function (territorioId) {
+  if (!territorioId) return;
+
+  const match = territorioId.match(/^territorio(\d+)$/);
+  let grupo = null;
+  let nombreVisible = "";
+
+  if (match) {
+    grupo = window["territorio" + match[1]];
+    nombreVisible = "Territorio " + match[1];
+  } else if (territorioId === "territorionegocios") {
+    grupo = window.territorionegocios;
+    nombreVisible = "Territorio Negocios";
+  }
+
+  if (!grupo || grupo.getLayers().length === 0) return;
+
+  const selector = document.getElementById("selectorTerritorios");
+  if (selector) selector.value = territorioId;
+
+  const customSelect = document.getElementById("customSelectorTerritorios");
+  if (customSelect) {
+    const selected = customSelect.querySelector(".selected");
+    if (selected) {
+      const opt = customSelect.querySelector(`li[data-value="${territorioId}"]`);
+      selected.textContent = opt ? opt.textContent : nombreVisible;
+    }
+  }
+
+  if (typeof ocultarMenu === "function") {
+    ocultarMenu(true);
+  }
+
+  flyWithLoader(grupo.getBounds(), function () {
+    enfocarTerritorio(grupo);
+  });
+};
+
 function cambiarTerritorio() {
   map.closePopup();
   var selector = document.getElementById("selectorTerritorios");
   var valor = selector.value;
   selector.blur();
 
-  ocultarMenu();
+  if (typeof ocultarMenu === "function") ocultarMenu(true);
   etiquetasActivas.forEach(m => map.removeLayer(m));
   etiquetasActivas = [];
 
   if (valor === "areaGrande") {
-    selector.value = "";
-    territorioActivo = null;
-    flyWithLoader(boundsIniciales);
+    const btnArea = document.getElementById("btnAreaGrande");
+    if (btnArea) btnArea.click();
     return;
   }
 
@@ -375,7 +420,7 @@ function inicializarAreaGrande() {
   btnArea.addEventListener("click", function () {
     map.closePopup();
     document.getElementById("selectorTerritorios").value = "";
-    ocultarMenu();
+    if (typeof ocultarMenu === "function") ocultarMenu(true);
 
     if (overlayGris) {
       map.removeLayer(overlayGris);
@@ -392,7 +437,17 @@ function inicializarAreaGrande() {
     });
 
     territorioActivo = null;
-    flyWithLoader(boundsIniciales);
+    window.territorioActivo = null;
+
+    // Volar suavemente al área general con padding amplio para que quede holgada y no muy cerca
+    mostrarLoader();
+    const bounds = (window.areaGrande && window.areaGrande.getBounds)
+      ? window.areaGrande.getBounds()
+      : boundsIniciales;
+    map.flyToBounds(bounds, { padding: [35, 35], duration: 0.7 });
+    map.once('moveend', function () {
+      ocultarLoader();
+    });
 
     const customSelectTerr = document.getElementById("customSelectorTerritorios");
     if (customSelectTerr) {
