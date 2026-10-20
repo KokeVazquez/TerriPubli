@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=15" />
+  <link rel="stylesheet" href="css/styles.css?v=16" />
 </head>
 
 <body>
@@ -46,9 +46,9 @@
           </svg>
         </button>
         <div id="menu-panel" class="menu-panel">
-          <button id="btnUbicacion">📍 Mi Ubicación (GPS)</button>
-          <button id="btnCopiaSeguridad">💾 Copia de seguridad</button>
-          <button id="btnRestaurar">🔄 Restaurar copia</button>
+          <button id="btnUbicacion">📍 Mi Ubicación</button>
+          <button id="btnCopiaSeguridad" style="display:none;">💾 Copia de seguridad</button>
+          <button id="btnRestaurar" style="display:none;">🔄 Restaurar copia</button>
 
           <div style="height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0;"></div>
 
@@ -316,21 +316,21 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=15"></script>
+  <script src="js/territoriobase.js?v=16"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=15"></script>
+  <script src="js/territoriosData.js?v=16"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=15"></script>
+  <script src="js/territoriosManager.js?v=16"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=15"></script>
+  <script src="js/notas.js?v=16"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=15"></script>
+  <script src="js/terminados.js?v=16"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=15"></script>
+  <script src="js/backup.js?v=16"></script>
   <!-- 7. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=15"></script>
+  <script src="js/app.js?v=16"></script>
   <!-- 8. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=15"></script>
+  <script src="js/pwa.js?v=16"></script>
 </body>
 
 </html>

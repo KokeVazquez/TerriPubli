@@ -75,7 +75,7 @@ path:not(.leaflet-interactive) {
 }
 
 .leaflet-bottom {
-  bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -131,7 +131,7 @@ path:not(.leaflet-interactive) {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 22px 22px 0 0; /* Parte superior redondeada estilo Maps */
   box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.12);
-  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)) 16px; /* Se sube más hacia arriba */
+  padding: 13px 16px calc(26px + env(safe-area-inset-bottom, 0px)) 16px; /* Elevado sobre la barra de navegación */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -631,7 +631,7 @@ path:not(.leaflet-interactive) {
     right: 0 !important;
     bottom: 0 !important;
     border-radius: 22px 22px 0 0 !important;
-    padding: 12px 12px calc(14px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    padding: 12px 12px calc(26px + env(safe-area-inset-bottom, 0px)) 12px !important;
     box-sizing: border-box !important;
   }
 
