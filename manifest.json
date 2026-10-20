@@ -1,7 +1,7 @@
 {
-  "name": "Territorios Rosario — Publicadores",
-  "short_name": "Territorios",
-  "description": "Mapa Interactivo de Territorios de Congregación Rosario",
+  "name": "TerRosa",
+  "short_name": "TerRosa",
+  "description": "TerRosa — Mapa de Territorios Congregación Rosario",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
