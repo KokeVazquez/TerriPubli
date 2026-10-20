@@ -28,6 +28,10 @@
   function actualizarInterfazSegunModo() {
     const modo = window.getModoActual();
     const nombreCapitan = window.getCapitanNombre();
+    const esCapitan = (modo === "capitan");
+
+    // Marcar clase en body para adaptar la barra inferior y superior
+    document.body.classList.toggle("modo-capitan", esCapitan);
 
     // Actualizar botones del selector de modo
     document.querySelectorAll(".modo-toggle-btn").forEach(btn => {
@@ -35,47 +39,31 @@
     });
 
     // Elementos exclusivos de Capitán
-    const esCapitan = (modo === "capitan");
     const capitanOnlyElements = document.querySelectorAll(".capitan-only");
     capitanOnlyElements.forEach(el => {
       el.style.display = esCapitan ? "inline-flex" : "none";
     });
 
-    // Panel de info del capitán en el menú
-    const perfilInfo = document.getElementById("perfilCapitanInfo");
-    const txtNombre = document.getElementById("txtNombreCapitan");
-    const seccionEncargado = document.getElementById("seccionEncargado");
-
-    if (perfilInfo && txtNombre) {
+    // Badge con solo el nombre del capitán en la cabecera superior (ej: "Koke")
+    const badgeCapitanHeader = document.getElementById("badgeCapitanHeader");
+    if (badgeCapitanHeader) {
       if (esCapitan && nombreCapitan) {
-        txtNombre.textContent = nombreCapitan;
-        perfilInfo.style.display = "block";
+        badgeCapitanHeader.textContent = nombreCapitan;
+        badgeCapitanHeader.style.display = "inline-flex";
       } else {
-        perfilInfo.style.display = "none";
+        badgeCapitanHeader.style.display = "none";
       }
     }
 
+    const seccionEncargado = document.getElementById("seccionEncargado");
     if (seccionEncargado) {
       seccionEncargado.style.display = esCapitan ? "block" : "none";
       actualizarContadorPendientes();
     }
 
-    // Cabecera superior (subtítulo o badge sutil)
-    const headerTitle = document.querySelector(".top-header-title");
-    if (headerTitle) {
-      let badge = document.getElementById("badgeModoActivo");
-      if (esCapitan && nombreCapitan) {
-        if (!badge) {
-          badge = document.createElement("div");
-          badge.id = "badgeModoActivo";
-          badge.className = "top-header-badge";
-          headerTitle.appendChild(badge);
-        }
-        badge.textContent = `Capitán: ${nombreCapitan}`;
-        badge.style.display = "block";
-      } else if (badge) {
-        badge.style.display = "none";
-      }
+    // Sincronizar colores en gris de cuadras reportadas/aprobadas
+    if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+      window.actualizarColoresCuadrasCapitan();
     }
   }
 
@@ -105,7 +93,18 @@
       });
     });
 
-    // Botón para cambiar nombre de capitán
+    // Tocar el badge con el nombre en la cabecera permite cambiar el perfil del capitán
+    const badgeHeader = document.getElementById("badgeCapitanHeader");
+    if (badgeHeader) {
+      badgeHeader.addEventListener("click", (e) => {
+        e.stopPropagation();
+        abrirModalCrearPerfilCapitan(() => {
+          actualizarInterfazSegunModo();
+        });
+      });
+    }
+
+    // Botón para cambiar nombre de capitán (si existiera en menús)
     const btnCambiar = document.getElementById("btnCambiarCapitan");
     if (btnCambiar) {
       btnCambiar.addEventListener("click", (e) => {
@@ -372,7 +371,20 @@
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     lista.push(reporte);
     localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
+
+    // Marcar en estado local del territorio para que se pinte en gris
+    if (reporte.territorioId && Array.isArray(reporte.cuadras)) {
+      const estadoT = JSON.parse(localStorage.getItem(reporte.territorioId + "_estado") || "{}");
+      reporte.cuadras.forEach(cId => {
+        estadoT[cId] = true;
+      });
+      localStorage.setItem(reporte.territorioId + "_estado", JSON.stringify(estadoT));
+    }
+
     actualizarContadorPendientes();
+    if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+      window.actualizarColoresCuadrasCapitan();
+    }
   }
 
   function actualizarContadorPendientes() {
@@ -527,23 +539,97 @@
 
     // Guardar en la estructura de capitanes del territorio
     const registrosT = JSON.parse(localStorage.getItem(`${rep.territorioId}_capitanes`) || "{}");
+    const estadoT = JSON.parse(localStorage.getItem(`${rep.territorioId}_estado`) || "{}");
+
     rep.cuadras.forEach(cuadraId => {
       if (!registrosT[cuadraId]) registrosT[cuadraId] = [];
       let texto = `Trabajado por: ${rep.capitan} | Fecha: ${rep.fecha}`;
       if (rep.visitaSC) texto += ` | VisitaSC: ${rep.fecha.slice(0, 7)}`;
       registrosT[cuadraId].push(texto);
+      estadoT[cuadraId] = true; // Se mantiene en gris tras la aprobación
     });
     localStorage.setItem(`${rep.territorioId}_capitanes`, JSON.stringify(registrosT));
+    localStorage.setItem(`${rep.territorioId}_estado`, JSON.stringify(estadoT));
 
     actualizarContadorPendientes();
+    if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+      window.actualizarColoresCuadrasCapitan();
+    }
     alert(`Reporte de Territorio ${rep.territorioNumero} aprobado con éxito ✅`);
   }
 
   function descartarReporte(id) {
     let lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const rep = lista.find(r => r.id === id);
     lista = lista.filter(r => r.id !== id);
     localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
+
+    // Si se descarta, verificar si sus cuadras deben regresar a su color original
+    if (rep && rep.territorioId && Array.isArray(rep.cuadras)) {
+      const estadoT = JSON.parse(localStorage.getItem(rep.territorioId + "_estado") || "{}");
+      rep.cuadras.forEach(cId => {
+        // Solo revertir si no existe en ningún otro reporte pendiente o aprobado
+        const existeEnOtro = lista.some(otro =>
+          (otro.estado === "PENDIENTE" || otro.estado === "APROBADO") &&
+          otro.territorioId === rep.territorioId &&
+          Array.isArray(otro.cuadras) &&
+          otro.cuadras.includes(cId)
+        );
+        if (!existeEnOtro) {
+          delete estadoT[cId];
+        }
+      });
+      localStorage.setItem(rep.territorioId + "_estado", JSON.stringify(estadoT));
+    }
+
     actualizarContadorPendientes();
+    if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+      window.actualizarColoresCuadrasCapitan();
+    }
   }
 
+  // 12. Pintar cuadras en gris (trabajadas / reportadas) y restaurar originales
+  window.actualizarColoresCuadrasCapitan = function () {
+    if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return;
+
+    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const cuadrasReportadasPorTerritorio = {};
+
+    reportes.forEach(rep => {
+      if (rep.estado === "PENDIENTE" || rep.estado === "APROBADO") {
+        if (!cuadrasReportadasPorTerritorio[rep.territorioId]) {
+          cuadrasReportadasPorTerritorio[rep.territorioId] = new Set();
+        }
+        if (Array.isArray(rep.cuadras)) {
+          rep.cuadras.forEach(cId => cuadrasReportadasPorTerritorio[rep.territorioId].add(cId));
+        }
+      }
+    });
+
+    window.todosLosTerritorios.forEach(grupo => {
+      const tId = grupo._id;
+      const setReportadas = cuadrasReportadasPorTerritorio[tId] || new Set();
+      const estadoLocal = JSON.parse(localStorage.getItem(tId + "_estado") || "{}");
+
+      grupo.eachLayer(pol => {
+        if (!pol._originalStyle) return;
+
+        const esGris = setReportadas.has(pol._id) || Boolean(estadoLocal[pol._id]);
+        if (esGris) {
+          pol._selected = true;
+          pol.setStyle({
+            color: "#475569",
+            fillColor: "#64748b",
+            fillOpacity: 0.85,
+            weight: 2
+          });
+        } else {
+          pol._selected = false;
+          pol.setStyle(pol._originalStyle);
+        }
+      });
+    });
+  };
+
 })();
+

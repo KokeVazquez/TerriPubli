@@ -26,13 +26,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=18" />
+  <link rel="stylesheet" href="css/styles.css?v=19" />
 </head>
 
 <body>
   <!-- Barra Superior de Título (Unifica y aprovecha el área del notch/status bar) -->
   <header class="top-header-bar">
     <h1 class="top-header-title">Mapa Congregación Rosario</h1>
+    <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para cambiar de perfil">Koke</button>
   </header>
 
   <!-- Barra Flotante Inferior Tipo Píldora (Dock Bottom) -->
@@ -58,14 +59,6 @@
           <div class="modo-toggle-container">
             <button type="button" class="modo-toggle-btn active" data-modo="publicador">Publicador</button>
             <button type="button" class="modo-toggle-btn" data-modo="capitan">Capitán</button>
-          </div>
-
-          <div id="perfilCapitanInfo" style="display:none; padding: 6px 10px; background: rgba(26, 115, 232, 0.08); border-radius: 10px; margin-top: 5px;">
-            <div style="font-size: 11px; color: #6b7280; font-weight: 600;">Capitán activo:</div>
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-top: 1px;">
-              <span id="txtNombreCapitan" style="font-size: 13.5px; font-weight: 700; color: #1a73e8;"></span>
-              <button id="btnCambiarCapitan" type="button" style="background: none; border: none; font-size: 11.5px; color: #1a73e8; cursor: pointer; text-decoration: underline; padding: 0;">Cambiar</button>
-            </div>
           </div>
 
           <div id="seccionEncargado" style="display:none; margin-top: 6px;">
@@ -349,23 +342,23 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=18"></script>
+  <script src="js/territoriobase.js?v=19"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=18"></script>
+  <script src="js/territoriosData.js?v=19"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=18"></script>
+  <script src="js/territoriosManager.js?v=19"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=18"></script>
+  <script src="js/notas.js?v=19"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=18"></script>
+  <script src="js/terminados.js?v=19"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=18"></script>
+  <script src="js/backup.js?v=19"></script>
   <!-- 7. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=18"></script>
+  <script src="js/capitanManager.js?v=19"></script>
   <!-- 8. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=18"></script>
+  <script src="js/app.js?v=19"></script>
   <!-- 9. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=18"></script>
+  <script src="js/pwa.js?v=19"></script>
 </body>
 
 </html>

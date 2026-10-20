@@ -115,6 +115,91 @@ path:not(.leaflet-interactive) {
   line-height: 1.25;
 }
 
+/* Badge de Perfil Capitán en Cabecera Superior */
+.capitan-header-badge {
+  background: #1a73e8;
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50px;
+  padding: 5px 15px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  box-shadow: 0 3px 10px rgba(26, 115, 232, 0.35);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: auto !important;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capitan-header-badge:hover {
+  background: #1557b0;
+}
+
+.capitan-header-badge:active {
+  transform: scale(0.93);
+  background: #0d47a1;
+}
+
+body.modo-capitan .top-header-bar {
+  justify-content: space-between !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+
+body.modo-capitan .top-header-title {
+  font-size: clamp(15px, 4.2vw, 20px) !important;
+  text-align: left !important;
+}
+
+/* Ajustes de botones en la Barra Inferior cuando está en Modo Capitán */
+body.modo-capitan .bottom-bar-pill {
+  gap: 6px;
+}
+
+body.modo-capitan .bottom-bar-pill .custom-select {
+  flex: 2 1 auto;
+  min-width: 110px;
+}
+
+body.modo-capitan #btnAreaGrande span,
+body.modo-capitan #btnMostrarTodasNotas span {
+  display: none;
+}
+
+body.modo-capitan #btnAreaGrande,
+body.modo-capitan #btnMostrarTodasNotas {
+  padding: 0 11px;
+  width: 44px;
+  min-width: 44px;
+  justify-content: center;
+}
+
+body.modo-capitan #btnRegistrarTerritorio {
+  padding: 0 13px;
+  font-size: 13.5px;
+  font-weight: 700;
+  gap: 6px;
+  flex-shrink: 0;
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(26, 115, 232, 0.3);
+}
+
+body.modo-capitan #btnRegistrarTerritorio:active {
+  background: #1557b0 !important;
+  transform: scale(0.93);
+}
+
 /* --------------------------------------------------------------------------
    3. Barra Inferior Estilo Maps (Full Width con Parte Superior Redondeada)
    -------------------------------------------------------------------------- */
@@ -769,5 +854,55 @@ path:not(.leaflet-interactive) {
     right: -80px !important;
     bottom: calc(100% + 12px) !important;
     max-height: min(340px, 42vh) !important;
+  }
+
+  /* Adaptación precisa para Modo Capitán en pantallas móviles */
+  body.modo-capitan .bottom-bar-pill {
+    gap: 4px !important;
+  }
+
+  body.modo-capitan .bottom-bar-pill .custom-select {
+    flex: 2 1 auto !important;
+    min-width: 105px !important;
+  }
+
+  body.modo-capitan .bottom-bar-pill .custom-select .selected {
+    height: 46px !important;
+    font-size: 13.5px !important;
+    padding: 0 10px !important;
+    padding-right: 24px !important;
+  }
+
+  body.modo-capitan .pill-btn {
+    height: 46px !important;
+  }
+
+  body.modo-capitan #hamburger-btn {
+    width: 44px !important;
+    min-width: 44px !important;
+  }
+
+  body.modo-capitan #btnAreaGrande,
+  body.modo-capitan #btnMostrarTodasNotas {
+    width: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+  }
+
+  body.modo-capitan #btnRegistrarTerritorio {
+    padding: 0 10px !important;
+    font-size: 12.5px !important;
+    gap: 4px !important;
+  }
+}
+
+@media (max-width: 365px) {
+  body.modo-capitan #btnRegistrarTerritorio span {
+    display: none !important;
+  }
+  body.modo-capitan #btnRegistrarTerritorio {
+    width: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
   }
 }
