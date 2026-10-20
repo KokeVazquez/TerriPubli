@@ -18,12 +18,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Evita selección de texto accidental en Safari móvil */
 * {
+  box-sizing: border-box;
+}
+
+button, .custom-select, .hamburger-icon {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-  box-sizing: border-box;
 }
 
 /* Permitir selección de texto dentro de inputs y textareas */
@@ -314,7 +316,8 @@ button:active,
 /* --------------------------------------------------------------------------
    7. Etiquetas de Números de Territorio (Centrado Exacto y Halo Blanco)
    -------------------------------------------------------------------------- */
-.etiquetaTerritorio {
+.etiquetaTerritorio,
+.leaflet-marker-icon.etiquetaTerritorio {
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -327,7 +330,7 @@ button:active,
   font-size: 18px;
   color: #111;
   text-align: center;
-  pointer-events: none;
+  pointer-events: none !important;
   user-select: none;
   line-height: 1;
   /* Halo blanco nítido para que el número resalte sobre cualquier color del territorio */
@@ -344,7 +347,8 @@ button:active,
 }
 
 /* Etiquetas individuales de cuadras/polígonos al enfocar */
-.etiqueta-poligono {
+.etiqueta-poligono,
+.leaflet-marker-icon.etiqueta-poligono {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -357,7 +361,7 @@ button:active,
   color: #111;
   text-align: center;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  pointer-events: none;
+  pointer-events: none !important;
   white-space: nowrap;
 }
 

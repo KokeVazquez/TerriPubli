@@ -56,13 +56,12 @@ function flyWithLoader(bounds, callback) {
 // ==============================================================================================================================
 // 4. Menú Contextual en Mapa
 // ==============================================================================================================================
-function ocultarMenu() {
-  const menu = document.getElementById("menuContextual");
-  if (menu) menu.style.display = "none";
-}
-
-// Menú contextual delegado a territoriobase.js (mostrarMenu, ocultarMenu, vincularMenuCuadra)
-map.on("click", ocultarMenu);
+// Se utiliza la función protegida ocultarMenu() definida en territoriobase.js
+map.on("click", function () {
+  if (typeof ocultarMenu === "function") {
+    ocultarMenu(false);
+  }
+});
 
 // ==============================================================================================================================
 // 5. Registrar Capitán
