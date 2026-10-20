@@ -7,7 +7,11 @@
 // ==============================================================================================================================
 const TOTAL_CUADRAS = 389; // número total de polígonos/cuadras
 
+// Renderer SVG con padding extendido para evitar recortes al arrastrar o hacer zoom
+var myRenderer = L.svg({ padding: 1.5 });
+
 var map = L.map("map", {
+  renderer: myRenderer,
   maxZoom: 22,
   zoomControl: false,
   doubleClickZoom: false,
@@ -15,15 +19,19 @@ var map = L.map("map", {
   zoomAnimation: true
 });
 
+// Centro y zoom equilibrados para vista general de Área Grande
+var CENTRO_AREA_GRANDE = [28.6107, -106.0699];
+var ZOOM_AREA_GRANDE = 14.5;
 var boundsIniciales = L.latLngBounds([[28.601, -106.088], [28.620, -106.052]]);
-map.fitBounds(boundsIniciales, { padding: [30, 30] });
+
+map.setView(CENTRO_AREA_GRANDE, ZOOM_AREA_GRANDE);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap",
   maxZoom: 22,
   maxNativeZoom: 19,
   subdomains: ["a", "b", "c"],
-  keepBuffer: 8,
+  keepBuffer: 10,
   updateWhenIdle: false,
   updateWhenZooming: true
 }).addTo(map);
@@ -285,7 +293,7 @@ function enfocarTerritorio(grupo) {
 
   if (overlayGris) map.removeLayer(overlayGris);
 
-  var mundo = [[90, -180], [90, 180], [-90, 180], [-90, -180], [90, -180]];
+  var mundo = [[85, -179.9], [85, 179.9], [-85, 179.9], [-85, -179.9]];
   var huecos = [];
   territorioActivo.eachLayer(pol => {
     if (pol.getLatLngs) huecos.push(pol.getLatLngs()[0].map(ll => [ll.lat, ll.lng]));
@@ -439,12 +447,9 @@ function inicializarAreaGrande() {
     territorioActivo = null;
     window.territorioActivo = null;
 
-    // Volar suavemente al área general con padding amplio para que quede holgada y no muy cerca
+    // Volar suavemente al centro del área grande con el zoom ideal equilibrado
     mostrarLoader();
-    const bounds = (window.areaGrande && window.areaGrande.getBounds)
-      ? window.areaGrande.getBounds()
-      : boundsIniciales;
-    map.flyToBounds(bounds, { padding: [35, 35], duration: 0.7 });
+    map.flyTo(CENTRO_AREA_GRANDE, ZOOM_AREA_GRANDE, { duration: 0.7 });
     map.once('moveend', function () {
       ocultarLoader();
     });

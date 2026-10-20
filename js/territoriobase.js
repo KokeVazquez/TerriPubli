@@ -250,7 +250,13 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   menu.style.display = "block";
   _ultimoMenuAbierto = Date.now();
 
+  const tituloCuadra = pol._label ? `Cuadra ${pol._label}` : "Opciones";
+
   menu.innerHTML = `
+    <div class="menu-contextual-header">
+      <span class="menu-contextual-title">${tituloCuadra}</span>
+      <button class="menu-contextual-close" onclick="ocultarMenu(true)" title="Cerrar">✕</button>
+    </div>
     <button onclick="abrirUbicacionCuadra()">📍 Ubicación</button>
     <button onclick="anadirNotaPopup('${pId}', '${tId}');">➕ Añadir nota</button>
     <button onclick="verNotas('${pId}', '${tId}');">📒 Notas</button>

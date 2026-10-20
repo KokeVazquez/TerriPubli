@@ -21,7 +21,7 @@ function inicializarTerritorios() {
     ]
   ];
 
-  window.mundo = [[[-90, -180], [-90, 180], [90, 180], [90, -180]], window.coordsAreaGrande];
+  window.mundo = [[[-85, -179.9], [-85, 179.9], [85, 179.9], [85, -179.9]], window.coordsAreaGrande];
   L.polygon(window.mundo, { color: "gray", weight: 5, fillOpacity: 0.8, interactive: false }).addTo(map);
 
   window.areaGrande = L.polygon(window.coordsAreaGrande, {
