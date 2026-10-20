@@ -6,7 +6,7 @@
   "use strict";
 
   const PIN_ENCARGADO_DEFAULT = "1234";
-  const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbyhRDCZr-5QQ6eiABdHIFIwcsZsYL2kT26DETnTosx_leabCp6xkYghbUPjVqa_d9U/exec";
+  const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbysLvd2KoADFWNsFflNolxQjrHVFn7rW9oDdewPyt7MfPoPbZ3w6qEALYoypQVJTerCmg/exec";
 
   // 1. Obtener estado actual
   window.getModoActual = function () {
