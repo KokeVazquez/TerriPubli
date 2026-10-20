@@ -2,6 +2,49 @@
 // === Territorio Base ===
 // =============================
 
+function vincularMenuCuadra(pol, territorioId) {
+  pol._territorioId = territorioId || pol._territorioId || "territorio";
+
+  // Limpiar eventos previos para evitar duplicados
+  pol.off('contextmenu');
+  pol.off('touchstart');
+  pol.off('touchmove');
+  pol.off('touchend');
+  pol.off('touchcancel');
+
+  // 1. Clic derecho en PC
+  pol.on('contextmenu', function (e) {
+    if (e.originalEvent) {
+      e.originalEvent.preventDefault();
+      e.originalEvent.stopPropagation();
+    }
+    mostrarMenu(e, pol, null, pol._territorioId);
+  });
+
+  // 2. Dejar presionado en móvil (Pulsación prolongada / Long-press)
+  let pressTimer = null;
+  let hasMoved = false;
+
+  pol.on('touchstart', function (e) {
+    hasMoved = false;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => {
+      if (!hasMoved) {
+        mostrarMenu(e, pol, null, pol._territorioId);
+      }
+    }, 450); // 450 ms
+  });
+
+  pol.on('touchmove', function () {
+    hasMoved = true;
+    clearTimeout(pressTimer);
+  });
+
+  pol.on('touchend touchcancel', function () {
+    clearTimeout(pressTimer);
+  });
+}
+
 function crearTerritorio(datosTerritorio) {
   // ------------------------------
   // 1. Crear grupo
@@ -26,7 +69,7 @@ function crearTerritorio(datosTerritorio) {
     }).addTo(grupo);
 
     pol._id = d.id;
-    pol._territorioId = datosTerritorio.id; // <-- esto es lo nuevo
+    pol._territorioId = datosTerritorio.id;
     pol._link = d.link;
 
     // Guardamos estilo original
@@ -45,6 +88,9 @@ function crearTerritorio(datosTerritorio) {
 
     // Etiqueta
     if (d.label) pol._label = d.label;
+
+    // Vincular menú contextual (clic derecho y dejar presionado en móvil)
+    vincularMenuCuadra(pol, datosTerritorio.id);
   });
 
   // ------------------------------
@@ -62,24 +108,52 @@ function crearTerritorio(datosTerritorio) {
 
 function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   ocultarMenu();
-  var menu = document.getElementById("menuContextual");
+  const menu = document.getElementById("menuContextual");
   if (!menu) return;
 
-  var x = e.originalEvent.clientX || (e.originalEvent.touches && e.originalEvent.touches[0].clientX);
-  var y = e.originalEvent.clientY || (e.originalEvent.touches && e.originalEvent.touches[0].clientY);
+  const tId = territorioId || pol._territorioId || "territorio";
+  const link = pol._link || "";
+  const pId = pol._id || "";
+
+  let x = window.innerWidth / 2;
+  let y = window.innerHeight / 2;
+
+  if (e) {
+    if (e.containerPoint) {
+      x = e.containerPoint.x;
+      y = e.containerPoint.y;
+    } else if (e.originalEvent) {
+      const oe = e.originalEvent;
+      if (oe.clientX !== undefined && oe.clientX !== null && oe.clientX > 0) {
+        x = oe.clientX;
+        y = oe.clientY;
+      } else if (oe.touches && oe.touches.length > 0) {
+        x = oe.touches[0].clientX;
+        y = oe.touches[0].clientY;
+      } else if (oe.changedTouches && oe.changedTouches.length > 0) {
+        x = oe.changedTouches[0].clientX;
+        y = oe.changedTouches[0].clientY;
+      }
+    }
+  }
+
+  // Prevenir que el menú se salga de los bordes de la pantalla en móviles
+  const menuWidth = 170;
+  const menuHeight = 150;
+  if (x + menuWidth > window.innerWidth - 12) x = window.innerWidth - menuWidth - 12;
+  if (x < 12) x = 12;
+  if (y + menuHeight > window.innerHeight - 12) y = window.innerHeight - menuHeight - 12;
+  if (y < 12) y = 12;
 
   menu.style.left = x + "px";
   menu.style.top = y + "px";
   menu.style.display = "block";
 
   menu.innerHTML = `
-    <button onclick="window.open('${pol._link}', '_blank'); ocultarMenu();">📍 Ubicación</button>
-    <button onclick="anadirNotaPopup('${pol._id}', '${territorioId}');">➕ Añadir nota</button>
-    <button onclick="verNotas('${pol._id}', '${territorioId}');">📒 Notas</button>
+    <button onclick="if('${link}') window.open('${link}', '_blank'); else alert('Ubicación no disponible para esta cuadra'); ocultarMenu();">📍 Ubicación</button>
+    <button onclick="anadirNotaPopup('${pId}', '${tId}');">➕ Añadir nota</button>
+    <button onclick="verNotas('${pId}', '${tId}');">📒 Notas</button>
   `;
-
-  //<button onclick="mostrarCapitanes('${territorioId}');">🧭 Capitanes</button>
-
 }
 
 function ocultarMenu() {
@@ -95,7 +169,6 @@ function anadirNotaPopup(id, territorioId) {
   ocultarMenu();
   var notasPoligonos = JSON.parse(localStorage.getItem(territorioId + "_notas") || "{}");
 
-  // Crear fondo modal
   const modalFondo = document.createElement("div");
   modalFondo.id = "modalAñadirNota";
   modalFondo.style.position = "fixed";
@@ -107,74 +180,69 @@ function anadirNotaPopup(id, territorioId) {
   modalFondo.style.display = "flex";
   modalFondo.style.alignItems = "center";
   modalFondo.style.justifyContent = "center";
-  modalFondo.style.zIndex = "99999"; // sobre todo
+  modalFondo.style.zIndex = "99999";
   modalFondo.style.backdropFilter = "blur(4px)";
 
-  // Contenido del popup
   modalFondo.innerHTML = `
     <div style="
-      background: rgba(24,23,23,0.07);
-      backdrop-filter: blur(6px) saturate(180%);
-      -webkit-backdrop-filter: blur(6px) saturate(180%);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-radius: 20px;
       padding: 20px;
-      color: white;
-      font-family: 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #111;
+      font-family: inherit;
       font-weight: 500;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
       min-width: 300px;
       max-width: 90%;
     ">
-      <b>Añadir nota:</b><br>
+      <b style="font-size:16px;">Añadir nota:</b><br>
       <textarea id="inputNota" rows="4" cols="30" placeholder='Escribe tu nota aquí...' style="
         width: 100%;
-        padding: 8px;
+        padding: 10px;
         border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.3);
-        background: rgba(255,255,255,0.1);
-        color: white;
+        border: 1px solid rgba(0,0,0,0.15);
+        background: #f8f8f8;
+        color: #111;
         font-family: inherit;
         font-size: 14px;
-        margin-top: 5px;
-        margin-bottom: 10px;
+        margin-top: 8px;
+        margin-bottom: 12px;
         resize: none;
+        box-sizing: border-box;
       "></textarea><br>
       <div style="display:flex; gap:8px;">
         <button id="guardarNota" style="
           flex:1;
-          background: rgba(76, 175, 80, 0.25);
-          border: 1px solid rgba(255,255,255,0.3);
+          background: #4caf50;
+          border: none;
           border-radius: 50px;
           color: white;
           font-weight: 600;
-          padding: 8px 15px;
+          padding: 10px 15px;
           cursor: pointer;
-          transition: all 0.25s ease;
         ">💾 Guardar</button>
         <button id="cancelarNota" style="
           flex:1;
-          background: rgba(244, 67, 54, 0.25);
-          border: 1px solid rgba(255,255,255,0.3);
+          background: #f44336;
+          border: none;
           border-radius: 50px;
           color: white;
           font-weight: 600;
-          padding: 8px 15px;
+          padding: 10px 15px;
           cursor: pointer;
-          transition: all 0.25s ease;
         ">❌ Cancelar</button>
       </div>
     </div>
   `;
 
-  // Agregar al body
   document.body.appendChild(modalFondo);
 
-  // Función para cerrar
   document.getElementById("cancelarNota").onclick = () => {
     document.body.removeChild(modalFondo);
   };
 
-  // Función para guardar
   document.getElementById("guardarNota").onclick = () => {
     const texto = document.getElementById("inputNota").value.trim();
     if (!texto) return;
@@ -194,12 +262,13 @@ function verNotas(id, territorioId) {
 function mostrarNotasPopup(id, notasPoligonos, territorioId) {
   map.closePopup();
   var notas = notasPoligonos[id] || [];
-  notas = notas.filter(n => !n.startsWith("Trabajado por:"));
+  notas = notas.filter(n => typeof n === "string" ? !n.startsWith("Trabajado por:") : true);
 
   var contenido = "<b>Notas:</b><br><br>";
   if (notas.length === 0) contenido += "No hay notas aún.";
   else notas.forEach((nota, i) => {
-    contenido += `${i + 1}. ${nota} 
+    const textoNota = typeof nota === "string" ? nota : (nota.texto || JSON.stringify(nota));
+    contenido += `${i + 1}. ${textoNota} 
       <button onclick="confirmarEliminarNotaPopup('${id}', ${i}, '${territorioId}')">❌</button><br>`;
   });
 
@@ -221,46 +290,3 @@ function eliminarNota(id, index, territorioId) {
   localStorage.setItem(territorioId + "_notas", JSON.stringify(notasPoligonos));
   map.closePopup();
 }
-
-
-
-
-
-
-// =============================
-// === Eventos del territorio activo ===
-// =============================
-
-function registrarEventosTerritorioActivo(territorio, notasPoligonos, territorioId) {
-  territorio.eachLayer(function (pol) {
-    // Resetear eventos
-    pol.off("click");
-    pol.off("contextmenu");
-
-    // Click → seleccionar en gris + abrir popup de capitán
-    pol.on("click", function () {
-      pol._selected = !pol._selected;
-
-      if (pol._selected) {
-        pol.setStyle({ color: "gray", fillColor: "gray", fillOpacity: 0.9 });
-        abrirPopupTrabajado(pol._id, notasPoligonos, territorioId);
-      } else {
-        pol.setStyle(pol._originalStyle);
-      }
-
-      var estadoGuardado = JSON.parse(localStorage.getItem(territorioId + "_estado") || "{}");
-      estadoGuardado[pol._id] = pol._selected;
-      localStorage.setItem(territorioId + "_estado", JSON.stringify(estadoGuardado));
-    });
-
-    // Clic derecho → menú contextual
-    pol.on("contextmenu", function (e) {
-      mostrarMenu(e, pol, notasPoligonos, territorioId);
-    });
-  });
-}
-
-
-
-
-

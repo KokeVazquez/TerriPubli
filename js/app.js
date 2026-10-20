@@ -61,25 +61,7 @@ function ocultarMenu() {
   if (menu) menu.style.display = "none";
 }
 
-function mostrarMenu(e, pol) {
-  ocultarMenu();
-  const menu = document.getElementById("menuContextual");
-  if (!menu) return;
-
-  var x = e.originalEvent.clientX || (e.originalEvent.touches && e.originalEvent.touches[0].clientX);
-  var y = e.originalEvent.clientY || (e.originalEvent.touches && e.originalEvent.touches[0].clientY);
-
-  menu.style.left = x + "px";
-  menu.style.top = y + "px";
-  menu.style.display = "block";
-
-  menu.innerHTML = `
-    <button onclick="window.open('${pol._link}', '_blank'); ocultarMenu();">📍 Ubicación</button>
-    <button onclick="anadirNotaPopup('${pol._id}', '${pol._territorioId || "territorio"}');">➕ Añadir nota</button>
-    <button onclick="verNotas('${pol._id}', '${pol._territorioId || "territorio"}');">📒 Notas</button>
-  `;
-}
-
+// Menú contextual delegado a territoriobase.js (mostrarMenu, ocultarMenu, vincularMenuCuadra)
 map.on("click", ocultarMenu);
 
 // ==============================================================================================================================
@@ -280,8 +262,6 @@ function enfocarTerritorio(grupo) {
 
   window.todosLosTerritorios.forEach(t => {
     t.eachLayer(pol => {
-      pol.off('click');
-      pol.off('contextmenu');
       pol.setStyle(pol._originalStyle);
     });
   });
@@ -294,9 +274,7 @@ function enfocarTerritorio(grupo) {
       : pol._originalStyle
     );
 
-    pol.on('contextmenu', function (e) {
-      mostrarMenu(e, pol);
-    });
+    vincularMenuCuadra(pol, grupo._id);
   });
 
   if (overlayGris) map.removeLayer(overlayGris);
