@@ -24,22 +24,15 @@ function inicializarTerritorios() {
     window[datos.id] = grupo;
     window[item.varName] = datos;
 
-    // Localizar el polígono de referencia para la etiqueta numérica
-    let polFijo = null;
-    if (item.marcadorTargetId) {
-      polFijo = datos.poligonos.find(p => p.id === item.marcadorTargetId);
-    }
-    if (!polFijo && datos.poligonos && datos.poligonos.length > 0) {
-      polFijo = datos.poligonos[1] || datos.poligonos[0];
-    }
-
-    if (polFijo && polFijo.coords) {
-      const centro = L.polygon(polFijo.coords).getBounds().getCenter();
+    // Calcular el centro geométrico real de TODO el territorio combinado
+    if (grupo.getLayers().length > 0) {
+      const centro = grupo.getBounds().getCenter();
       const marcador = L.marker(centro, {
         icon: L.divIcon({
           className: "etiquetaTerritorio",
-          html: `<b>${datos.numeroTerritorio !== undefined ? datos.numeroTerritorio : ""}</b>`,
-          iconSize: [20, 20]
+          html: `<span>${datos.numeroTerritorio !== undefined ? datos.numeroTerritorio : ""}</span>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
         })
       }).addTo(map);
 
