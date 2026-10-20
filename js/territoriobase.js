@@ -8,7 +8,7 @@ function vincularMenuCuadra(pol, territorioId) {
   const tId = territorioId || pol._territorioId || "territorio";
   pol._territorioId = tId;
 
-  // 1. Clic o tap simple en la cuadra (abre el menú al tocar)
+  // 1. Clic para computadoras y ratón (Leaflet event)
   pol.off('click');
   pol.on('click', function (e) {
     if (e && e.originalEvent) {
@@ -17,7 +17,7 @@ function vincularMenuCuadra(pol, territorioId) {
     mostrarMenu(e, pol, null, tId);
   });
 
-  // 2. Clic derecho en PC / contextmenu nativo en móvil
+  // 2. Clic derecho en PC (Leaflet event)
   pol.off('contextmenu');
   pol.on('contextmenu', function (e) {
     if (e && e.originalEvent) {
@@ -27,56 +27,81 @@ function vincularMenuCuadra(pol, territorioId) {
     mostrarMenu(e, pol, null, tId);
   });
 
-  // 3. Dejar presionado en pantalla táctil (Touch Long-Press garantizado)
-  function setupDomTouch() {
+  // 3. Toque y pulsación nativa directa en móvil (Touch & Tap garantizado)
+  function attachPathTouch() {
     const el = pol.getElement ? pol.getElement() : pol._path;
-    if (!el || el._hasTouchEvents) return;
-    el._hasTouchEvents = true;
+    if (!el) return;
 
     let pressTimer = null;
-    let touchCoord = null;
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
     let hasMoved = false;
 
-    el.addEventListener('touchstart', function (e) {
+    if (el._touchCleanup) {
+      el._touchCleanup();
+    }
+
+    function onTouchStart(e) {
       hasMoved = false;
-      if (e.touches && e.touches[0]) {
-        touchCoord = {
-          clientX: e.touches[0].clientX,
-          clientY: e.touches[0].clientY
-        };
+      startTime = Date.now();
+      const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+      if (t) {
+        startX = t.clientX;
+        startY = t.clientY;
       }
       clearTimeout(pressTimer);
       pressTimer = setTimeout(() => {
         if (!hasMoved) {
-          mostrarMenu(touchCoord || e, pol, null, tId);
+          mostrarMenu({ clientX: startX, clientY: startY }, pol, null, tId);
         }
-      }, 300); // 300 ms de dejar picado
-    }, { passive: true });
+      }, 350); // Dejar presionado 350ms
+    }
 
-    el.addEventListener('touchmove', function (e) {
-      if (e.touches && e.touches[0] && touchCoord) {
-        let dx = Math.abs(e.touches[0].clientX - touchCoord.clientX);
-        let dy = Math.abs(e.touches[0].clientY - touchCoord.clientY);
-        if (dx > 10 || dy > 10) {
+    function onTouchMove(e) {
+      const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+      if (t) {
+        let dx = Math.abs(t.clientX - startX);
+        let dy = Math.abs(t.clientY - startY);
+        if (dx > 12 || dy > 12) {
           hasMoved = true;
           clearTimeout(pressTimer);
         }
       }
-    }, { passive: true });
+    }
 
-    el.addEventListener('touchend', function () {
+    function onTouchEnd(e) {
       clearTimeout(pressTimer);
-    }, { passive: true });
+      const touchDuration = Date.now() - startTime;
+      // Si fue un toque o tap rápido y no se desplazó arrastrando el mapa
+      if (!hasMoved && touchDuration < 350) {
+        const t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+        const pt = t ? { clientX: t.clientX, clientY: t.clientY } : { clientX: startX, clientY: startY };
+        mostrarMenu(pt, pol, null, tId);
+      }
+    }
 
-    el.addEventListener('touchcancel', function () {
+    function onTouchCancel() {
       clearTimeout(pressTimer);
-    }, { passive: true });
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchCancel, { passive: true });
+
+    el._touchCleanup = function () {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchCancel);
+    };
   }
 
   if (pol.getElement && pol.getElement()) {
-    setupDomTouch();
+    attachPathTouch();
   } else {
-    pol.on('add', setupDomTouch);
+    pol.on('add', attachPathTouch);
   }
 }
 

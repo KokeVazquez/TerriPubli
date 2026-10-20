@@ -292,6 +292,11 @@ function enfocarTerritorio(grupo) {
     interactive: false
   }).addTo(map);
 
+  // Traer los polígonos del territorio enfocado AL FRENTE del mapa SVG
+  if (territorioActivo && territorioActivo.bringToFront) {
+    territorioActivo.bringToFront();
+  }
+
   mostrarEtiquetas();
 }
 
