@@ -278,20 +278,24 @@ function enfocarTerritorio(grupo) {
   territorioActivo = grupo;
   window.territorioActivo = grupo;
 
-  window.todosLosTerritorios.forEach(t => {
-    t.eachLayer(pol => {
-      pol.setStyle(pol._originalStyle);
+  // Asegurar que todos los territorios completados (dentro y fuera del enfoque) permanezcan en gris
+  if (typeof window.ejecutarFiltroFecha === "function" && window.hayFiltroFechaActivo && window.hayFiltroFechaActivo()) {
+    window.ejecutarFiltroFecha();
+  } else if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+    window.actualizarColoresCuadrasCapitan();
+  } else {
+    window.todosLosTerritorios.forEach(t => {
+      t.eachLayer(pol => {
+        pol.setStyle(pol._selected
+          ? { color: "gray", fillColor: "gray", fillOpacity: 0.9 }
+          : pol._originalStyle
+        );
+      });
     });
-  });
+  }
 
   territorioActivo.eachLayer(pol => {
     pol._territorioId = grupo._id || "territorio";
-
-    pol.setStyle(pol._selected
-      ? { color: "gray", fillColor: "gray", fillOpacity: 0.9 }
-      : pol._originalStyle
-    );
-
     vincularMenuCuadra(pol, grupo._id);
   });
 

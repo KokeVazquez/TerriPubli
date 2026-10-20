@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=21" />
+  <link rel="stylesheet" href="css/styles.css?v=22" />
 </head>
 
 <body>
@@ -37,40 +37,13 @@
       <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para cambiar de perfil">Koke</button>
     </div>
 
-    <!-- Selector de Filtro de Fecha (Año, Mes 1 y Mes 2 opcional) -->
+    <!-- Selector de Filtro de Fecha (Año y Selector de Meses Múltiples) -->
     <div id="filtroFechaBarra" class="top-header-filter-row">
       <select id="selectFiltroAnio" class="filtro-fecha-select anio" title="Filtrar por año"></select>
-      <select id="selectFiltroMes1" class="filtro-fecha-select mes" title="Seleccionar mes">
-        <option value="">Mes: Todos</option>
-        <option value="01">Enero</option>
-        <option value="02">Febrero</option>
-        <option value="03">Marzo</option>
-        <option value="04">Abril</option>
-        <option value="05">Mayo</option>
-        <option value="06">Junio</option>
-        <option value="07">Julio</option>
-        <option value="08">Agosto</option>
-        <option value="09">Septiembre</option>
-        <option value="10">Octubre</option>
-        <option value="11">Noviembre</option>
-        <option value="12">Diciembre</option>
-      </select>
-      <select id="selectFiltroMes2" class="filtro-fecha-select mes2" title="Segundo mes opcional">
-        <option value="">+ 2do Mes</option>
-        <option value="01">Enero</option>
-        <option value="02">Febrero</option>
-        <option value="03">Marzo</option>
-        <option value="04">Abril</option>
-        <option value="05">Mayo</option>
-        <option value="06">Junio</option>
-        <option value="07">Julio</option>
-        <option value="08">Agosto</option>
-        <option value="09">Septiembre</option>
-        <option value="10">Octubre</option>
-        <option value="11">Noviembre</option>
-        <option value="12">Diciembre</option>
-      </select>
-      <button id="btnLimpiarFiltroFecha" class="filtro-fecha-btn-limpiar" title="Limpiar filtro de fecha" style="display:none;">✕</button>
+      <button type="button" id="btnModalFiltroMeses" class="filtro-fecha-btn-meses" title="Filtrar por uno o varios meses">
+        <span id="txtFiltroMesesLabel">Mes: Todos</span> ▾
+      </button>
+      <button type="button" id="btnLimpiarFiltroFecha" class="filtro-fecha-btn-limpiar" title="Limpiar filtro de fecha" style="display:none;">✕</button>
     </div>
   </header>
 
@@ -308,12 +281,20 @@
         <span>Área</span>
       </button>
 
-      <!-- 4. Botón Notas -->
-      <button id="btnMostrarTodasNotas" class="pill-btn" title="Todas las notas">
+      <!-- 4. Botón Notas (Modo Publicador) -->
+      <button id="btnMostrarTodasNotas" class="pill-btn publicador-only" title="Todas las notas">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
           <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
         </svg>
         <span>Notas</span>
+      </button>
+
+      <!-- 4.1. Botón Historial de Registros (Modo Capitán) -->
+      <button id="btnHistorialCapitan" class="pill-btn capitan-only" title="Historial y Edición de Registros" style="display:none;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+        </svg>
+        <span>Historial</span>
       </button>
 
       <!-- 5. Botón Reportar (Exclusivo Modo Capitán) -->
@@ -380,23 +361,23 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=21"></script>
+  <script src="js/territoriobase.js?v=22"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=21"></script>
+  <script src="js/territoriosData.js?v=22"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=21"></script>
+  <script src="js/territoriosManager.js?v=22"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=21"></script>
+  <script src="js/notas.js?v=22"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=21"></script>
+  <script src="js/terminados.js?v=22"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=21"></script>
+  <script src="js/backup.js?v=22"></script>
   <!-- 7. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=21"></script>
+  <script src="js/capitanManager.js?v=22"></script>
   <!-- 8. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=21"></script>
+  <script src="js/app.js?v=22"></script>
   <!-- 9. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=21"></script>
+  <script src="js/pwa.js?v=22"></script>
 </body>
 
 </html>

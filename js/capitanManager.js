@@ -22,6 +22,7 @@
     actualizarInterfazSegunModo();
     vincularEventosModo();
     vincularBotonRegistrar();
+    vincularBotonHistorial();
     vincularBuzonEncargado();
     inicializarFiltroFechaBarra();
     // Sincronizar en segundo plano con la base de datos en Google Sheets
@@ -44,10 +45,16 @@
       btn.classList.toggle("active", btn.dataset.modo === modo);
     });
 
-    // Elementos exclusivos de Capitán
+    // Elementos exclusivos de Capitán (ej: botón Reportar, botón Historial)
     const capitanOnlyElements = document.querySelectorAll(".capitan-only");
     capitanOnlyElements.forEach(el => {
       el.style.display = esCapitan ? "inline-flex" : "none";
+    });
+
+    // Elementos exclusivos de Publicador (ej: botón Notas personal)
+    const publicadorOnlyElements = document.querySelectorAll(".publicador-only");
+    publicadorOnlyElements.forEach(el => {
+      el.style.display = esCapitan ? "none" : "inline-flex";
     });
 
     // Badge con solo el nombre del capitán en la cabecera superior (ej: "Koke")
@@ -168,7 +175,7 @@
     };
   }
 
-  // 6. Botón Registrar Territorio en Barra Inferior
+  // 6. Botón Registrar Territorio e Historial en Barra Inferior
   function vincularBotonRegistrar() {
     const btnRegistrar = document.getElementById("btnRegistrarTerritorio");
     if (btnRegistrar) {
@@ -176,6 +183,207 @@
         abrirModalRegistroTerritorio();
       });
     }
+  }
+
+  function vincularBotonHistorial() {
+    const btnHistorial = document.getElementById("btnHistorialCapitan");
+    if (btnHistorial) {
+      btnHistorial.addEventListener("click", () => {
+        window.abrirModalHistorialRegistros();
+      });
+    }
+  }
+
+  // 6.1. Modal de Historial de Registros y Edición
+  window.abrirModalHistorialRegistros = function () {
+    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const listaOrdenada = [...reportes].reverse();
+
+    const modal = document.createElement("div");
+    modal.className = "terrosa-modal-overlay";
+    modal.innerHTML = `
+      <div class="terrosa-modal-card terrosa-modal-large" style="max-height:85vh; display:flex; flex-direction:column; padding:18px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
+          <div>
+            <h3 style="margin:0; font-size:18px; font-weight:800; color:#1e293b;">📋 Historial de Registros</h3>
+            <span style="font-size:12px; color:#64748b;">Edita o elimina si hubo algún error</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btnSyncHistorialModal" title="Sincronizar" style="background:#e0f2fe; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; color:#0284c7; cursor:pointer;">🔄 Sincronizar</button>
+            <button id="btnCerrarHistorial" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b; padding:2px;">✖</button>
+          </div>
+        </div>
+
+        <div id="listaItemsHistorial" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:2px;">
+          ${listaOrdenada.length === 0 ? '<div style="text-align:center; color:#94a3b8; padding:30px;">No hay registros guardados aún.</div>' : ''}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cerrar = () => {
+      if (document.body.contains(modal)) document.body.removeChild(modal);
+    };
+
+    modal.querySelector("#btnCerrarHistorial").onclick = cerrar;
+
+    const btnSync = modal.querySelector("#btnSyncHistorialModal");
+    if (btnSync) {
+      btnSync.onclick = () => {
+        btnSync.textContent = "Sincronizando...";
+        window.sincronizarConNube(true).then(() => {
+          cerrar();
+          window.abrirModalHistorialRegistros();
+        });
+      };
+    }
+
+    const cont = modal.querySelector("#listaItemsHistorial");
+    listaOrdenada.forEach(rep => {
+      const card = document.createElement("div");
+      card.style.cssText = "background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px;";
+      
+      const esAprobado = (rep.estado === "APROBADO");
+      const badgeEstado = esAprobado 
+        ? '<span style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:800; padding:2px 7px; border-radius:12px;">✅ Aprobado</span>'
+        : '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:800; padding:2px 7px; border-radius:12px;">🟡 Pendiente</span>';
+
+      const labelsCuadras = (rep.cuadrasLabels && rep.cuadrasLabels.length > 0)
+        ? rep.cuadrasLabels.join(", ")
+        : (Array.isArray(rep.cuadras) ? rep.cuadras.map(c => c.replace(/^[a-zA-Z0-9]+_c/, '')).join(", ") : "");
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:800; color:#1e293b; font-size:15px;">Territorio ${rep.territorioNumero}</span>
+          ${badgeEstado}
+        </div>
+        <div style="font-size:13px; color:#334155; line-height:1.4;">
+          <div><b>Capitán:</b> <span class="txt-capitan-val">${rep.capitan}</span></div>
+          <div><b>Fecha:</b> <span class="txt-fecha-val">${rep.fecha}</span></div>
+          <div><b>Cuadras:</b> ${labelsCuadras || rep.cuadrasTotal}</div>
+        </div>
+        ${rep.comentario ? `<div style="font-size:12px; color:#64748b; background:#f1f5f9; padding:4px 8px; border-radius:6px;">💬 ${rep.comentario}</div>` : ''}
+        
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+          <button class="btn-editar-historial" data-id="${rep.id}" style="padding:6px 12px; background:#e0f2fe; color:#0369a1; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer;">
+            ✏️ Editar
+          </button>
+          <button class="btn-eliminar-historial" data-id="${rep.id}" style="padding:6px 12px; background:#fee2e2; color:#b91c1c; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer;">
+            🗑️ Eliminar
+          </button>
+        </div>
+      `;
+      cont.appendChild(card);
+    });
+
+    cont.querySelectorAll(".btn-editar-historial").forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        abrirModalEditarRegistro(id, () => {
+          cerrar();
+          window.abrirModalHistorialRegistros();
+        });
+      };
+    });
+
+    cont.querySelectorAll(".btn-eliminar-historial").forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        if (confirm("¿Estás seguro de eliminar este registro del historial?")) {
+          descartarReporte(id);
+          cardElementRemove(btn);
+        }
+      };
+    });
+
+    function cardElementRemove(btn) {
+      const card = btn.closest("div[style*='border']");
+      if (card) card.remove();
+      const remaining = cont.querySelectorAll(".btn-editar-historial").length;
+      if (remaining === 0) {
+        cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:30px;">No hay registros guardados aún.</div>';
+      }
+    }
+  };
+
+  // 6.2. Modal para Editar un Registro existente
+  function abrirModalEditarRegistro(id, callback) {
+    const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const rep = lista.find(r => r.id === id);
+    if (!rep) return;
+
+    const modal = document.createElement("div");
+    modal.className = "terrosa-modal-overlay";
+    modal.innerHTML = `
+      <div class="terrosa-modal-card" style="max-width:320px; padding:20px 18px 16px;">
+        <h3 style="margin:0 0 4px 0; color:#1e293b; font-size:17.5px; font-weight:800;">✏️ Editar Registro</h3>
+        <div style="font-size:13px; font-weight:700; color:#1a73e8; margin-bottom:12px;">Territorio ${rep.territorioNumero}</div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
+            <input type="text" id="editCapitanNombre" value="${rep.capitan}" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:600; box-sizing:border-box; margin-top:3px;"/>
+          </div>
+
+          <div>
+            <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Fecha</label>
+            <input type="date" id="editFecha" value="${rep.fecha}" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:600; box-sizing:border-box; margin-top:3px;"/>
+          </div>
+
+          <div>
+            <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Comentario</label>
+            <input type="text" id="editComentario" value="${rep.comentario || ''}" placeholder="Opcional" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13px; box-sizing:border-box; margin-top:3px;"/>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button id="btnCancelarEdicion" style="flex:1; padding:11px; background:#f1f5f9; border:none; border-radius:10px; font-weight:600; color:#475569; cursor:pointer; font-size:13.5px;">Cancelar</button>
+          <button id="btnGuardarEdicion" style="flex:1; padding:11px; background:#1a73e8; border:none; border-radius:10px; font-weight:700; color:white; cursor:pointer; font-size:13.5px;">Guardar</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cerrar = () => {
+      if (document.body.contains(modal)) document.body.removeChild(modal);
+    };
+
+    modal.querySelector("#btnCancelarEdicion").onclick = cerrar;
+
+    modal.querySelector("#btnGuardarEdicion").onclick = () => {
+      const nuevoCapitan = modal.querySelector("#editCapitanNombre").value.trim();
+      const nuevaFecha = modal.querySelector("#editFecha").value;
+      const nuevoComentario = modal.querySelector("#editComentario").value.trim();
+
+      if (!nuevoCapitan) return alert("Por favor ingresa el nombre del capitán.");
+      if (!nuevaFecha) return alert("Por favor ingresa una fecha.");
+
+      rep.capitan = nuevoCapitan;
+      rep.fecha = nuevaFecha;
+      rep.comentario = nuevoComentario;
+
+      localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
+
+      // Sincronizar en la nube con Google Sheets
+      if (URL_API_GOOGLE_SHEETS) {
+        fetch(URL_API_GOOGLE_SHEETS, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ accion: "editar_reporte", reporte: rep })
+        }).catch(err => console.warn("Error enviando edición a Google Sheets:", err));
+      }
+
+      // Si hay filtros o colores, refrescar
+      if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+        window.actualizarColoresCuadrasCapitan();
+      }
+
+      mostrarToastDiscreto("Registro actualizado ✅");
+      cerrar();
+      if (callback) callback();
+    };
   }
 
   // 7. Modal de Registro de Territorio / Cuadras
@@ -802,30 +1010,140 @@
     });
   };
 
-  // 14. Filtro de Fecha en Barra Superior (Año, Mes 1 y Mes 2 opcional)
+  // 14. Filtro de Fecha en Barra Superior (Año y Selector Múltiple de Meses)
+  const NOMBRES_MESES = [
+    { num: "01", nombre: "Enero", abrev: "Ene" },
+    { num: "02", nombre: "Febrero", abrev: "Feb" },
+    { num: "03", nombre: "Marzo", abrev: "Mar" },
+    { num: "04", nombre: "Abril", abrev: "Abr" },
+    { num: "05", nombre: "Mayo", abrev: "May" },
+    { num: "06", nombre: "Junio", abrev: "Jun" },
+    { num: "07", nombre: "Julio", abrev: "Jul" },
+    { num: "08", nombre: "Agosto", abrev: "Ago" },
+    { num: "09", nombre: "Septiembre", abrev: "Sep" },
+    { num: "10", nombre: "Octubre", abrev: "Oct" },
+    { num: "11", nombre: "Noviembre", abrev: "Nov" },
+    { num: "12", nombre: "Diciembre", abrev: "Dic" }
+  ];
+
+  let mesesFiltroActivos = new Set();
+
   window.hayFiltroFechaActivo = function () {
-    const mes1 = document.getElementById("selectFiltroMes1")?.value || "";
-    const mes2 = document.getElementById("selectFiltroMes2")?.value || "";
-    return Boolean(mes1 || mes2);
+    return mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12;
   };
+
+  function abrirModalSeleccionarMeses() {
+    const modal = document.createElement("div");
+    modal.className = "terrosa-modal-overlay";
+
+    let itemsHtml = "";
+    NOMBRES_MESES.forEach(m => {
+      const isChecked = mesesFiltroActivos.has(m.num);
+      itemsHtml += `
+        <label style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; background:${isChecked ? 'rgba(26,115,232,0.1)' : 'transparent'};">
+          <input type="checkbox" value="${m.num}" class="chk-mes-filtro" ${isChecked ? 'checked' : ''} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer;"/>
+          <span style="font-weight:600; font-size:14px; color:#1e293b;">${m.nombre}</span>
+        </label>
+      `;
+    });
+
+    modal.innerHTML = `
+      <div class="terrosa-modal-card" style="max-width:320px; padding:20px 18px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h3 style="margin:0; font-size:17.5px; font-weight:800; color:#1e293b;">Seleccionar Meses</h3>
+          <button id="btnCerrarModalMeses" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; padding:2px;">✖</button>
+        </div>
+        <p style="margin:0 0 10px 0; font-size:12.5px; color:#64748b;">Elige uno o varios meses para filtrar lo trabajado:</p>
+        
+        <div id="listaMesesCheck" style="max-height:250px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; border:1px solid #e2e8f0; border-radius:10px; padding:6px; margin-bottom:12px;">
+          ${itemsHtml}
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <button id="btnToggleTodosMeses" style="background:#f1f5f9; border:none; border-radius:8px; padding:10px 14px; font-size:13px; font-weight:700; color:#475569; cursor:pointer;">
+            ${mesesFiltroActivos.size === 12 ? 'Limpiar' : 'Todos'}
+          </button>
+          <button id="btnAplicarMeses" style="flex:1; background:#1a73e8; border:none; border-radius:8px; padding:10px; font-size:14px; font-weight:700; color:white; cursor:pointer;">
+            Aplicar Filtro
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cerrar = () => {
+      if (document.body.contains(modal)) document.body.removeChild(modal);
+    };
+
+    modal.querySelector("#btnCerrarModalMeses").onclick = cerrar;
+
+    const listaCheck = modal.querySelector("#listaMesesCheck");
+    const chks = listaCheck.querySelectorAll(".chk-mes-filtro");
+
+    modal.querySelector("#btnToggleTodosMeses").onclick = () => {
+      const todos = Array.from(chks).every(c => c.checked);
+      chks.forEach(c => {
+        c.checked = !todos;
+        c.closest("label").style.background = !todos ? 'rgba(26,115,232,0.1)' : 'transparent';
+      });
+      modal.querySelector("#btnToggleTodosMeses").textContent = !todos ? 'Limpiar' : 'Todos';
+    };
+
+    chks.forEach(c => {
+      c.onchange = () => {
+        c.closest("label").style.background = c.checked ? 'rgba(26,115,232,0.1)' : 'transparent';
+      };
+    });
+
+    modal.querySelector("#btnAplicarMeses").onclick = () => {
+      mesesFiltroActivos.clear();
+      chks.forEach(c => {
+        if (c.checked) mesesFiltroActivos.add(c.value);
+      });
+      actualizarEtiquetaBotonMeses();
+      window.ejecutarFiltroFecha();
+      cerrar();
+    };
+  }
+
+  function actualizarEtiquetaBotonMeses() {
+    const lbl = document.getElementById("txtFiltroMesesLabel");
+    const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
+    if (!lbl) return;
+
+    if (mesesFiltroActivos.size === 0 || mesesFiltroActivos.size === 12) {
+      lbl.textContent = "Mes: Todos";
+      if (btnLimpiar) btnLimpiar.style.display = "none";
+    } else if (mesesFiltroActivos.size === 1) {
+      const num = Array.from(mesesFiltroActivos)[0];
+      const mObj = NOMBRES_MESES.find(m => m.num === num);
+      lbl.textContent = `Mes: ${mObj ? mObj.nombre : num}`;
+      if (btnLimpiar) btnLimpiar.style.display = "inline-flex";
+    } else if (mesesFiltroActivos.size === 2) {
+      const arr = Array.from(mesesFiltroActivos).map(num => {
+        const mObj = NOMBRES_MESES.find(m => m.num === num);
+        return mObj ? mObj.abrev : num;
+      });
+      lbl.textContent = `Mes: ${arr.join(", ")}`;
+      if (btnLimpiar) btnLimpiar.style.display = "inline-flex";
+    } else {
+      lbl.textContent = `Mes (${mesesFiltroActivos.size})`;
+      if (btnLimpiar) btnLimpiar.style.display = "inline-flex";
+    }
+  }
 
   window.ejecutarFiltroFecha = function () {
     if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return;
 
     const anioElem = document.getElementById("selectFiltroAnio");
-    const mes1Elem = document.getElementById("selectFiltroMes1");
-    const mes2Elem = document.getElementById("selectFiltroMes2");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
-
     const anio = anioElem ? anioElem.value : String(new Date().getFullYear());
-    const mes1 = mes1Elem ? mes1Elem.value : "";
-    const mes2 = mes2Elem ? mes2Elem.value : "";
 
-    const activo = Boolean(mes1 || mes2);
+    const activo = window.hayFiltroFechaActivo();
     if (btnLimpiar) btnLimpiar.style.display = activo ? "inline-flex" : "none";
 
     if (!activo) {
-      // Sin filtro de fecha -> volver a la visualización normal de cuadras trabajadas
       const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
       const cuadrasReportadas = {};
       reportes.forEach(rep => {
@@ -854,13 +1172,10 @@
     }
 
     // Prefijos seleccionados (ej: ["2026-10", "2026-11"])
-    const prefijos = [];
-    if (mes1) prefijos.push(`${anio}-${mes1}`);
-    if (mes2 && mes2 !== mes1) prefijos.push(`${anio}-${mes2}`);
+    const prefijos = Array.from(mesesFiltroActivos).map(m => `${anio}-${m}`);
 
-    // Consultar reportes registrados en la app
     const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const cuadrasCoincidentes = {}; // { [territorioId]: Set<cuadraId> }
+    const cuadrasCoincidentes = {};
 
     reportes.forEach(rep => {
       if (!rep.fecha) return;
@@ -871,7 +1186,6 @@
       }
     });
 
-    // Consultar también registros históricos de capitanes
     window.todosLosTerritorios.forEach(grupo => {
       const tId = grupo._id;
       const registros = JSON.parse(localStorage.getItem(tId + "_capitanes") || "{}");
@@ -889,7 +1203,6 @@
       });
     });
 
-    // Aplicar estilos a todos los territorios en tiempo real
     window.todosLosTerritorios.forEach(grupo => {
       const tId = grupo._id;
       const setMatch = cuadrasCoincidentes[tId] || new Set();
@@ -913,8 +1226,7 @@
 
   function inicializarFiltroFechaBarra() {
     const anioElem = document.getElementById("selectFiltroAnio");
-    const mes1Elem = document.getElementById("selectFiltroMes1");
-    const mes2Elem = document.getElementById("selectFiltroMes2");
+    const btnMeses = document.getElementById("btnModalFiltroMeses");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
 
     if (anioElem && anioElem.options.length === 0) {
@@ -928,18 +1240,22 @@
       });
     }
 
-    [anioElem, mes1Elem, mes2Elem].forEach(el => {
-      if (el) {
-        el.addEventListener("change", () => {
-          window.ejecutarFiltroFecha();
-        });
-      }
-    });
+    if (anioElem) {
+      anioElem.addEventListener("change", () => {
+        window.ejecutarFiltroFecha();
+      });
+    }
+
+    if (btnMeses) {
+      btnMeses.addEventListener("click", () => {
+        abrirModalSeleccionarMeses();
+      });
+    }
 
     if (btnLimpiar) {
       btnLimpiar.addEventListener("click", () => {
-        if (mes1Elem) mes1Elem.value = "";
-        if (mes2Elem) mes2Elem.value = "";
+        mesesFiltroActivos.clear();
+        actualizarEtiquetaBotonMeses();
         window.ejecutarFiltroFecha();
       });
     }
