@@ -26,14 +26,52 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=19" />
+  <link rel="stylesheet" href="css/styles.css?v=20" />
 </head>
 
 <body>
   <!-- Barra Superior de Título (Unifica y aprovecha el área del notch/status bar) -->
   <header class="top-header-bar">
-    <h1 class="top-header-title">Mapa Congregación Rosario</h1>
-    <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para cambiar de perfil">Koke</button>
+    <div class="top-header-main-row">
+      <h1 class="top-header-title">Mapa Congregación Rosario</h1>
+      <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para cambiar de perfil">Koke</button>
+    </div>
+
+    <!-- Selector de Filtro de Fecha (Año, Mes 1 y Mes 2 opcional) -->
+    <div id="filtroFechaBarra" class="top-header-filter-row">
+      <select id="selectFiltroAnio" class="filtro-fecha-select anio" title="Filtrar por año"></select>
+      <select id="selectFiltroMes1" class="filtro-fecha-select mes" title="Seleccionar mes">
+        <option value="">Mes: Todos</option>
+        <option value="01">Enero</option>
+        <option value="02">Febrero</option>
+        <option value="03">Marzo</option>
+        <option value="04">Abril</option>
+        <option value="05">Mayo</option>
+        <option value="06">Junio</option>
+        <option value="07">Julio</option>
+        <option value="08">Agosto</option>
+        <option value="09">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+      <select id="selectFiltroMes2" class="filtro-fecha-select mes2" title="Segundo mes opcional">
+        <option value="">+ 2do Mes</option>
+        <option value="01">Enero</option>
+        <option value="02">Febrero</option>
+        <option value="03">Marzo</option>
+        <option value="04">Abril</option>
+        <option value="05">Mayo</option>
+        <option value="06">Junio</option>
+        <option value="07">Julio</option>
+        <option value="08">Agosto</option>
+        <option value="09">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+      <button id="btnLimpiarFiltroFecha" class="filtro-fecha-btn-limpiar" title="Limpiar filtro de fecha" style="display:none;">✕</button>
+    </div>
   </header>
 
   <!-- Barra Flotante Inferior Tipo Píldora (Dock Bottom) -->
@@ -342,23 +380,23 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=19"></script>
+  <script src="js/territoriobase.js?v=20"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=19"></script>
+  <script src="js/territoriosData.js?v=20"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=19"></script>
+  <script src="js/territoriosManager.js?v=20"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=19"></script>
+  <script src="js/notas.js?v=20"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=19"></script>
+  <script src="js/terminados.js?v=20"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=19"></script>
+  <script src="js/backup.js?v=20"></script>
   <!-- 7. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=19"></script>
+  <script src="js/capitanManager.js?v=20"></script>
   <!-- 8. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=19"></script>
+  <script src="js/app.js?v=20"></script>
   <!-- 9. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=19"></script>
+  <script src="js/pwa.js?v=20"></script>
 </body>
 
 </html>

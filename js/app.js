@@ -442,11 +442,18 @@ function inicializarAreaGrande() {
     etiquetasActivas.forEach(m => map.removeLayer(m));
     etiquetasActivas = [];
 
-    window.todosLosTerritorios.forEach(territorio => {
-      territorio.eachLayer(pol => {
-        pol.setStyle(pol._originalStyle);
+    // Mantener estado en gris en tiempo real en Área Grande (o filtro de fecha activo)
+    if (typeof window.ejecutarFiltroFecha === "function" && window.hayFiltroFechaActivo && window.hayFiltroFechaActivo()) {
+      window.ejecutarFiltroFecha();
+    } else if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+      window.actualizarColoresCuadrasCapitan();
+    } else {
+      window.todosLosTerritorios.forEach(territorio => {
+        territorio.eachLayer(pol => {
+          if (pol._originalStyle) pol.setStyle(pol._originalStyle);
+        });
       });
-    });
+    }
 
     territorioActivo = null;
     window.territorioActivo = null;

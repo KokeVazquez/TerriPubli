@@ -88,24 +88,38 @@ path:not(.leaflet-interactive) {
   right: 0;
   width: 100%;
   background-color: #e5e3df; /* Mismo color exacto que el notch/barra de estado */
-  padding-top: calc(max(env(safe-area-inset-top, 0px), 10px) + 6px);
-  padding-bottom: 18px; /* Se baja más hacia el mapa */
-  padding-left: 16px;
-  padding-right: 16px;
-  border-radius: 0 0 16px 16px; /* Bordes redondeados abajo, poquito nomás */
+  padding-top: calc(max(env(safe-area-inset-top, 0px), 10px) + 5px);
+  padding-bottom: 10px;
+  padding-left: 14px;
+  padding-right: 14px;
+  border-radius: 0 0 16px 16px; /* Bordes redondeados abajo */
   z-index: 1000;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   pointer-events: none; /* No obstruye toques accidentales en mapa */
 }
 
+.top-header-main-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+body.modo-capitan .top-header-main-row {
+  justify-content: space-between;
+}
+
 .top-header-title {
   margin: 0;
   padding: 0;
-  font-size: clamp(18px, 4.8vw, 22px);
+  font-size: clamp(17px, 4.4vw, 21px);
   font-weight: 800;
   color: #1e293b;
   text-align: center;
@@ -121,8 +135,8 @@ path:not(.leaflet-interactive) {
   color: #ffffff;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   border-radius: 50px;
-  padding: 5px 15px;
-  font-size: 15px;
+  padding: 4px 14px;
+  font-size: 14.5px;
   font-weight: 800;
   letter-spacing: -0.2px;
   box-shadow: 0 3px 10px rgba(26, 115, 232, 0.35);
@@ -150,15 +164,72 @@ path:not(.leaflet-interactive) {
   background: #0d47a1;
 }
 
-body.modo-capitan .top-header-bar {
-  justify-content: space-between !important;
-  padding-left: 18px !important;
-  padding-right: 18px !important;
+body.modo-capitan .top-header-title {
+  font-size: clamp(15px, 4vw, 19px) !important;
+  text-align: left !important;
 }
 
-body.modo-capitan .top-header-title {
-  font-size: clamp(15px, 4.2vw, 20px) !important;
-  text-align: left !important;
+/* Fila de Filtro de Fecha (Año y Meses) */
+.top-header-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 440px;
+  pointer-events: auto !important;
+}
+
+.filtro-fecha-select {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+  pointer-events: auto !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  height: 28px;
+}
+
+.filtro-fecha-select.anio {
+  width: 74px;
+  flex-shrink: 0;
+}
+
+.filtro-fecha-select.mes,
+.filtro-fecha-select.mes2 {
+  flex: 1;
+  min-width: 95px;
+  max-width: 135px;
+}
+
+.filtro-fecha-btn-limpiar {
+  background: #f1f5f9;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+  cursor: pointer;
+  pointer-events: auto !important;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.filtro-fecha-btn-limpiar:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
 }
 
 /* Ajustes de botones en la Barra Inferior cuando está en Modo Capitán */
