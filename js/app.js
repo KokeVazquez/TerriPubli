@@ -648,24 +648,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const restoreBtnMenu = document.getElementById('btnRestaurar');
   const btnUbicacionMenu = document.getElementById('btnUbicacion');
 
-  // Control de Selección de Versión (Anterior / Nueva)
-  const versionActual = localStorage.getItem("territorios_version") || "anterior";
-  const versionBtns = document.querySelectorAll(".version-toggle-btn");
-  versionBtns.forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.version === versionActual);
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const nuevaVersion = btn.dataset.version;
-      const actual = localStorage.getItem("territorios_version") || "anterior";
-      if (nuevaVersion !== actual) {
-        localStorage.setItem("territorios_version", nuevaVersion);
-        mostrarLoader();
-        setTimeout(() => {
-          location.reload();
-        }, 120);
-      }
-    });
-  });
+  // Fijar exclusivamente a numeración original (viejita)
+  localStorage.setItem("territorios_version", "anterior");
+  window.TERRITORIO_VERSION_ACTIVA = "anterior";
 
   if (hamburgerBtn && menuPanel) {
     hamburgerBtn.addEventListener('click', (e) => {

@@ -11219,13 +11219,10 @@ window.TERRITORIOS_DATA_NUEVA = [
 ];
 
 // Versión activa: 'anterior' (por defecto) o 'nueva'
-window.TERRITORIO_VERSION_ACTIVA = localStorage.getItem("territorios_version") || "anterior";
+window.TERRITORIO_VERSION_ACTIVA = "anterior";
+localStorage.setItem("territorios_version", "anterior");
+window.TERRITORIOS_DATA = window.TERRITORIOS_DATA_ANTERIOR;
 
-window.TERRITORIOS_DATA = (window.TERRITORIO_VERSION_ACTIVA === "nueva")
-  ? window.TERRITORIOS_DATA_NUEVA
-  : window.TERRITORIOS_DATA_ANTERIOR;
-
-// Compatibilidad con variables globales individuales (datosTerritorio1, etc.)
 window.TERRITORIOS_DATA.forEach(item => {
   window[item.varName] = item.datos;
 });

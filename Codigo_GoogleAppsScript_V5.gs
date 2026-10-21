@@ -1,27 +1,17 @@
-// ==========================================
-// GOOGLE APPS SCRIPT - TERROSA V5 (DEFINITIVO)
-// Soporta S-13 Oficial (2 filas por territorio),
-// conteos exactos sin áreas no predicables (Escuelas, Alsuper, Parques, etc.)
-// y separación entre Numeración Anterior (65) y Numeración Nueva (51).
-// ==========================================
+// =========================================================================================
+// GOOGLE APPS SCRIPT - TERROSA (NUMERACIÓN TRADICIONAL / ORIGINAL)
+// Soporta Hoja S-13 Oficial (2 filas por territorio, 4 columnas de asignación),
+// conteo exacto de cuadras predicables (sin escuelas ni baldíos) y sincronización con la app.
+// =========================================================================================
 
-const CUADRAS_ANTERIOR = {
-  "1": 3, "2": 4, "3": 4, "4": 2, "5": 3, "6": 2, "7": 2, "8": 3, "9": 4, "10": 6,
-  "11": 4, "12": 3, "13": 5, "14": 4, "15": 4, "16": 2, "17": 2, "18": 3, "19": 3, "20": 4,
-  "21": 2, "22": 2, "23": 3, "24": 3, "25": 2, "26": 6, "27": 4, "28": 4, "29": 4, "30": 3,
-  "31": 4, "32": 4, "33": 2, "34": 4, "35": 2, "36": 4, "37": 2, "38": 3, "39": 4, "40": 3,
-  "41": 2, "42": 4, "43": 5, "44": 6, "45": 4, "46": 4, "47": 2, "48": 3, "49": 3, "50": 5,
-  "51": 5, "52": 7, "53": 3, "54": 5, "55": 4, "56": 3, "57": 4, "58": 3, "59": 5, "60": 5,
-  "61": 5, "62": 8, "63": 10, "64": 8, "65": 3
-};
-
-const CUADRAS_NUEVA = {
-  "1": 4, "2": 6, "3": 6, "4": 4, "5": 4, "6": 5, "7": 5, "8": 4, "9": 3, "10": 5,
-  "11": 7, "12": 6, "13": 5, "14": 6, "15": 5, "16": 4, "17": 4, "18": 5, "19": 3, "20": 4,
-  "21": 4, "22": 4, "23": 3, "24": 6, "25": 4, "26": 4, "27": 4, "28": 3, "29": 4, "30": 4,
-  "31": 2, "32": 4, "33": 2, "34": 4, "35": 2, "36": 2, "37": 3, "38": 4, "39": 3, "40": 2,
-  "41": 4, "42": 5, "43": 6, "44": 4, "45": 5, "46": 4, "47": 5, "48": 5, "49": 8, "50": 10,
-  "51": 11
+const CUADRAS_MAP = {
+  "1": 3, "2": 3, "3": 5, "4": 6, "5": 6, "6": 4, "7": 4, "8": 4, "9": 5, "10": 4,
+  "11": 4, "12": 4, "13": 4, "14": 2, "15": 6, "16": 4, "17": 4, "18": 4, "19": 4, "20": 4,
+  "21": 4, "22": 4, "23": 4, "24": 3, "25": 4, "26": 4, "27": 4, "28": 4, "29": 2, "30": 4,
+  "31": 3, "32": 4, "33": 4, "34": 4, "35": 4, "36": 3, "37": 5, "38": 3, "39": 4, "40": 7,
+  "41": 5, "42": 4, "43": 4, "44": 5, "45": 5, "46": 4, "47": 3, "48": 5, "49": 5, "50": 7,
+  "51": 4, "52": 4, "53": 3, "54": 3, "55": 3, "56": 5, "57": 6, "58": 8, "59": 6, "60": 5,
+  "61": 5, "62": 6, "63": 6, "64": 4, "65": 4
 };
 
 function doPost(e) {
@@ -175,9 +165,9 @@ function doGet(e) {
   }
 }
 
-// ==========================================
+// =========================================================================================
 // RECONSTRUCCIÓN AUTOMÁTICA DEL S-13 OFICIAL
-// ==========================================
+// =========================================================================================
 function reconstruirHojaS13(ss) {
   if (!ss) {
     ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -185,9 +175,7 @@ function reconstruirHojaS13(ss) {
   var sheetCuadras = obtenerOCrearHojaCuadras(ss);
   var filas = sheetCuadras.getDataRange().getValues();
 
-  // Separamos reportes aprobados por versión (Anterior vs Nueva)
-  var aprobadosAnterior = [];
-  var aprobadosNueva = [];
+  var listaAprobados = [];
 
   for (var i = 1; i < filas.length; i++) {
     var f = filas[i];
@@ -207,37 +195,21 @@ function reconstruirHojaS13(ss) {
     var cuadrasArr = cuadrasStr ? cuadrasStr.split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
     if (cuadrasArr.length === 0) continue;
 
-    var item = {
+    listaAprobados.push({
       fecha: formatearFecha(f[1]),
-      numTerr: numTerr,
+      numTerr: String(parseInt(numTerr, 10)),
       cuadras: cuadrasArr,
       totalReportado: Number(f[5] || 0),
       capitan: String(f[6] || "").trim()
-    };
-
-    if (terrId.indexOf("nueva_") === 0) {
-      aprobadosNueva.push(item);
-    } else {
-      aprobadosAnterior.push(item);
-    }
+    });
   }
 
-  // Actualizar hoja principal S-13 Registro (Numeración Anterior 1..65)
-  actualizarTablaS13(ss, "S-13 Registro", 65, CUADRAS_ANTERIOR, aprobadosAnterior);
-
-  // Si existen reportes de la Numeración Nueva, actualiza/crea también "S-13 Nueva" (1..51)
-  if (aprobadosNueva.length > 0 || ss.getSheetByName("S-13 Nueva")) {
-    actualizarTablaS13(ss, "S-13 Nueva", 51, CUADRAS_NUEVA, aprobadosNueva);
-  }
-}
-
-function actualizarTablaS13(ss, nombreHoja, maxTerritorios, mapaCuadras, listaAprobados) {
   // Ordenar cronológicamente por fecha ascendente
   listaAprobados.sort(function(a, b) {
     return a.fecha.localeCompare(b.fecha);
   });
 
-  // Agrupar ciclos completados por territorio
+  var maxTerritorios = 65;
   var ciclosPorTerritorio = {};
   var acumulador = {};
 
@@ -251,8 +223,8 @@ function actualizarTablaS13(ss, nombreHoja, maxTerritorios, mapaCuadras, listaAp
     };
   }
 
-  for (var i = 0; i < listaAprobados.length; i++) {
-    var rep = listaAprobados[i];
+  for (var k = 0; k < listaAprobados.length; k++) {
+    var rep = listaAprobados[k];
     var num = rep.numTerr;
     if (!acumulador[num]) continue;
 
@@ -268,17 +240,21 @@ function actualizarTablaS13(ss, nombreHoja, maxTerritorios, mapaCuadras, listaAp
       acc.cuadrasSet[rep.cuadras[c]] = true;
     }
 
-    var totalNecesario = mapaCuadras[num] || rep.totalReportado || 1;
+    // Usar la cantidad exacta de cuadras reportadas o el mapa oficial
+    var totalNecesario = (rep.totalReportado && rep.totalReportado > 0)
+      ? rep.totalReportado
+      : (CUADRAS_MAP[num] || 1);
+
     var cuadrasUnicas = Object.keys(acc.cuadrasSet).length;
 
-    // Solo cuando se completan TODAS las cuadras predicables del territorio:
+    // Cuando se cubren todas las cuadras reales del territorio, se cierra el ciclo
     if (cuadrasUnicas >= totalNecesario) {
       ciclosPorTerritorio[num].push({
         capitan: acc.ultimoCapitan || "Sin capitán",
         fechaInicio: acc.fechaInicio,
         fechaFin: rep.fecha
       });
-      // Reiniciar acumulador para el siguiente ciclo de ese territorio
+      // Reiniciar acumulador para el siguiente ciclo
       acumulador[num] = {
         cuadrasSet: {},
         fechaInicio: null,
@@ -287,13 +263,13 @@ function actualizarTablaS13(ss, nombreHoja, maxTerritorios, mapaCuadras, listaAp
     }
   }
 
-  var sheetS13 = obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios);
+  var sheetS13 = obtenerOCrearPlantillaS13(ss, "S-13 Registro", maxTerritorios);
 
-  // Limpiar únicamente los valores de datos (filas 5 a 4 + maxTerritorios*2, columnas B a J)
+  // Limpiar solo las celdas de datos (Columnas B a J)
   var totalFilasDatos = maxTerritorios * 2;
   sheetS13.getRange(5, 2, totalFilasDatos, 9).clearContent();
 
-  // Escribir los ciclos completados en la estructura de 2 filas por territorio
+  // Escribir los ciclos en el formato S-13 oficial (2 filas por cada territorio)
   for (var terr = 1; terr <= maxTerritorios; terr++) {
     var terrKey = String(terr);
     var ciclos = ciclosPorTerritorio[terrKey] || [];
@@ -302,15 +278,13 @@ function actualizarTablaS13(ss, nombreHoja, maxTerritorios, mapaCuadras, listaAp
     var filaSup = 5 + (terr - 1) * 2; // Fila superior (Nombre del Capitán)
     var filaInf = filaSup + 1;        // Fila inferior (Fecha asignó | Fecha completó)
 
-    // Si hay más de 4 ciclos, mostramos los 4 más recientes en las 4 columnas del S-13
-    // y ponemos la última fecha completada previa en la Columna B ("Última fecha en que se completó*")
+    // Si hay más de 4 ciclos, dejamos los 4 más recientes en las 4 columnas
     var inicioIdx = 0;
     if (ciclos.length > 4) {
       inicioIdx = ciclos.length - 4;
       var cicloPrevio = ciclos[inicioIdx - 1];
       sheetS13.getRange(filaSup, 2).setValue(formatearFechaCorta(cicloPrevio.fechaFin));
     } else if (ciclos.length >= 1) {
-      // También mostramos en Columna B la fecha más reciente en que se completó
       var ultimoCiclo = ciclos[ciclos.length - 1];
       sheetS13.getRange(filaSup, 2).setValue(formatearFechaCorta(ultimoCiclo.fechaFin));
     }
@@ -328,9 +302,6 @@ function actualizarTablaS13(ss, nombreHoja, maxTerritorios, mapaCuadras, listaAp
   }
 }
 
-// ==========================================
-// CREACIÓN DE HOJAS Y UTILIDADES
-// ==========================================
 function obtenerOCrearHojaCuadras(ss) {
   var sheet = ss.getSheetByName("Cuadras_Trabajadas");
   if (!sheet) {
@@ -349,7 +320,6 @@ function obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios) {
   var totalFilasNecesarias = 4 + (maxTerritorios * 2);
 
   if (sheet && sheet.getMaxRows() >= totalFilasNecesarias) {
-    // Verificar si la fila 5 y 6 ya tienen el formato de 2 filas por territorio
     var valTerr1 = String(sheet.getRange(5, 1).getValue()).trim();
     var valTerr2 = String(sheet.getRange(7, 1).getValue()).trim();
     if (valTerr1 === "1" && valTerr2 === "2") {
@@ -363,7 +333,6 @@ function obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios) {
     sheet.clear();
   }
 
-  // Asegurar suficientes filas y columnas
   if (sheet.getMaxRows() < totalFilasNecesarias + 2) {
     sheet.insertRowsAfter(sheet.getMaxRows(), (totalFilasNecesarias + 2) - sheet.getMaxRows());
   }
@@ -371,13 +340,11 @@ function obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios) {
     sheet.insertColumnsAfter(sheet.getMaxColumns(), 10 - sheet.getMaxColumns());
   }
 
-  // Encabezado Principal
   sheet.getRange("A1:J1").merge().setValue("REGISTRO DE ASIGNACIÓN DE TERRITORIO")
     .setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
   sheet.getRange("A2:J2").merge().setValue("Año de servicio: ________________________")
     .setFontSize(11).setFontWeight("bold");
 
-  // Cabeceras de tabla (Filas 3 y 4)
   sheet.getRange("A3:A4").merge().setValue("Núm. de\nterr.").setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold").setBackground("#e5e7eb");
   sheet.getRange("B3:B4").merge().setValue("Última fecha en\nque se completó*").setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold").setBackground("#e5e7eb");
 
@@ -389,7 +356,6 @@ function obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios) {
     sheet.getRange(4, colD).setValue("Fecha en que se\ncompletó").setHorizontalAlignment("center").setFontSize(8).setBackground("#e5e7eb");
   }
 
-  // Estructura de 2 filas por cada territorio
   for (var t = 1; t <= maxTerritorios; t++) {
     var rSup = 5 + (t - 1) * 2;
     var rInf = rSup + 1;
@@ -441,4 +407,3 @@ function respuestaJSON(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
-
