@@ -8,7 +8,7 @@
   const PIN_ENCARGADO_DEFAULT = "1234";
   const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbysLvd2KoADFWNsFflNolxQjrHVFn7rW9oDdewPyt7MfPoPbZ3w6qEALYoypQVJTerCmg/exec";
 
-  // 1. Obtener estado actual
+  // 1. Obtener estado actual y versión activa (Anterior vs Nueva)
   window.getModoActual = function () {
     return localStorage.getItem("terrosa_modo") || "publicador";
   };
@@ -17,8 +17,38 @@
     return localStorage.getItem("terrosa_capitan_nombre") || "";
   };
 
+  window.getVersionTerritorioActiva = function () {
+    return window.TERRITORIO_VERSION_ACTIVA || localStorage.getItem("territorios_version") || "anterior";
+  };
+
+  function perteneceAVersionActiva(rep) {
+    if (!rep) return false;
+    const vActiva = window.getVersionTerritorioActiva();
+    const idRaw = String(rep.territorioId || "");
+    const vRep = rep.version || (idRaw.startsWith("nueva_") ? "nueva" : "anterior");
+    return vRep === vActiva;
+  }
+
+  function obtenerTerritorioIdLimpio(rep) {
+    const idRaw = String((rep && rep.territorioId) || "");
+    return idRaw.replace(/^(nueva_|anterior_)/, "");
+  }
+
+  // Purgar por completo todas las llaves viejas (_estado y _capitanes) del teléfono
+  function purgarBasuraLocalStorage() {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && (k.endsWith("_estado") || k.endsWith("_capitanes"))) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch (e) {}
+  }
+
   // 2. Inicializador del módulo
   window.inicializarModuloCapitan = function () {
+    purgarBasuraLocalStorage();
     actualizarInterfazSegunModo();
     vincularEventosModo();
     vincularBotonRegistrar();
@@ -196,8 +226,10 @@
 
   // 6.1. Modal de Historial de Registros y Edición
   window.abrirModalHistorialRegistros = function () {
-    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]")
+      .filter(r => perteneceAVersionActiva(r));
     const listaOrdenada = [...reportes].reverse();
+    const versionTxt = window.getVersionTerritorioActiva() === "nueva" ? "Numeración Nueva" : "Numeración Anterior";
 
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
@@ -205,7 +237,7 @@
       <div class="terrosa-modal-card terrosa-modal-large" style="max-height:85vh; display:flex; flex-direction:column; padding:18px 16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
           <div>
-            <h3 style="margin:0; font-size:18px; font-weight:800; color:#1e293b;">📋 Historial de Registros</h3>
+            <h3 style="margin:0; font-size:18px; font-weight:800; color:#1e293b;">📋 Historial (${versionTxt})</h3>
             <span style="font-size:12px; color:#64748b;">Edita o elimina si hubo algún error</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
@@ -509,7 +541,7 @@
     const contenedorCuadras = modal.querySelector("#regContenedorCuadras");
     const btnToggleTodas = modal.querySelector("#btnToggleTodasCuadras");
 
-    // Función para renderizar cuadras del territorio seleccionado
+    // Función para renderizar únicamente las cuadras reales predicables del territorio seleccionado
     function renderizarCuadras(tId) {
       if (!tId) {
         contenedorCuadras.innerHTML = '<div style="font-size:13px; color:#94a3b8; text-align:center; padding:10px;">Elige un territorio para ver sus cuadras</div>';
@@ -522,9 +554,16 @@
         return;
       }
 
+      // Filtrar solo cuadras predicables (ignorar Alsuper, Vacíos, Escuelas, Parques, Canchas, etc.)
+      const cuadrasPredicables = item.datos.poligonos.filter(pol =>
+        typeof window.esCuadraPredicable === "function" ? window.esCuadraPredicable(pol) : true
+      );
+
       contenedorCuadras.innerHTML = "";
-      item.datos.poligonos.forEach((pol, idx) => {
-        const cuadraNum = pol.label || (idx + 1);
+      cuadrasPredicables.forEach((pol, idx) => {
+        const cuadraNum = (pol.label !== null && pol.label !== undefined && String(pol.label).trim() !== "")
+          ? String(pol.label).trim()
+          : (idx + 1);
         const label = document.createElement("label");
         label.style.cssText = "display:flex; align-items:center; gap:8px; font-size:13.5px; color:#334155; cursor:pointer; padding:3px 0;";
         const isPreselected = (preCuadraId && pol.id === preCuadraId);
@@ -574,16 +613,22 @@
       const cuadrasLabels = chks.map(c => {
         const val = c.value;
         const polData = (itemT && itemT.datos.poligonos) ? itemT.datos.poligonos.find(p => p.id === val) : null;
-        return (polData && polData.label) ? polData.label : val.replace(/^[a-zA-Z0-9]+_c/, '');
+        return (polData && polData.label) ? String(polData.label).trim() : val.replace(/^[a-zA-Z0-9]+_c/, '');
       });
 
-      const totalCuadras = (itemT && itemT.datos.poligonos) ? itemT.datos.poligonos.length : chks.length;
+      const cuadrasRealesT = (itemT && itemT.datos.poligonos)
+        ? itemT.datos.poligonos.filter(pol => typeof window.esCuadraPredicable === "function" ? window.esCuadraPredicable(pol) : true)
+        : [];
+      const totalCuadras = cuadrasRealesT.length || chks.length;
+      const versionActiva = window.getVersionTerritorioActiva();
+      const tIdConVersion = (versionActiva === "nueva") ? `nueva_${tId}` : tId;
 
-      // Crear objeto de reporte pendiente
+      // Crear objeto de reporte pendiente asociado a la versión activa
       const nuevoReporte = {
         id: "rep_" + Date.now(),
         fecha: fecha,
-        territorioId: tId,
+        version: versionActiva,
+        territorioId: tIdConVersion,
         territorioNumero: numT,
         cuadras: cuadrasIds,
         cuadrasLabels: cuadrasLabels,
@@ -603,20 +648,11 @@
     };
   };
 
-  // 8. Almacenamiento de reportes pendientes
+  // 8. Almacenamiento de reportes pendientes (Sin archivos JSON locales de _estado o _capitanes)
   function guardarReportePendiente(reporte) {
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     lista.push(reporte);
     localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
-
-    // Marcar en estado local del territorio para que se pinte en gris
-    if (reporte.territorioId && Array.isArray(reporte.cuadras)) {
-      const estadoT = JSON.parse(localStorage.getItem(reporte.territorioId + "_estado") || "{}");
-      reporte.cuadras.forEach(cId => {
-        estadoT[cId] = true;
-      });
-      localStorage.setItem(reporte.territorioId + "_estado", JSON.stringify(estadoT));
-    }
 
     actualizarContadorPendientes();
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
@@ -635,7 +671,7 @@
 
   function actualizarContadorPendientes() {
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const pendientes = lista.filter(r => r.estado === "PENDIENTE");
+    const pendientes = lista.filter(r => r.estado === "PENDIENTE" && perteneceAVersionActiva(r));
     const badge = document.getElementById("badgeReportesPendientes");
     if (badge) {
       badge.textContent = pendientes.length;
@@ -760,14 +796,15 @@
 
   function abrirModalBuzonAprobaciones() {
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const pendientes = lista.filter(r => r.estado === "PENDIENTE");
+    const pendientes = lista.filter(r => r.estado === "PENDIENTE" && perteneceAVersionActiva(r));
+    const versionTxt = window.getVersionTerritorioActiva() === "nueva" ? "Nueva" : "Anterior";
 
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
       <div class="terrosa-modal-card terrosa-modal-large">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-          <h3 style="margin:0; color:#1e293b; font-size:17.5px; font-weight:800;">🔔 Aprobaciones S-13 (${pendientes.length})</h3>
+          <h3 style="margin:0; color:#1e293b; font-size:17px; font-weight:800;">🔔 Aprobaciones ${versionTxt} (${pendientes.length})</h3>
           <div style="display:flex; align-items:center; gap:8px;">
             <button id="btnSyncNubeModal" title="Sincronizar con Google Sheets" style="background:#e0f2fe; border:none; border-radius:8px; padding:6px 11px; font-size:12px; font-weight:700; color:#0284c7; cursor:pointer;">🔄 Sincronizar</button>
             <button id="btnCerrarBuzon" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; padding:4px;">✖</button>
@@ -882,7 +919,7 @@
     } catch (e) {}
   }
 
-  // 11. Acción de Aprobar Reporte (Registra formalmente en datos del mapa y S-13)
+  // 11. Acción de Aprobar Reporte (Sin guardar basura local en _capitanes o _estado)
   function aprobarReporte(id) {
     registrarMutacionAprobado(id);
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
@@ -891,20 +928,6 @@
 
     rep.estado = "APROBADO";
     localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
-
-    // Guardar en la estructura de capitanes del territorio
-    const registrosT = JSON.parse(localStorage.getItem(`${rep.territorioId}_capitanes`) || "{}");
-    const estadoT = JSON.parse(localStorage.getItem(`${rep.territorioId}_estado`) || "{}");
-
-    rep.cuadras.forEach(cuadraId => {
-      if (!registrosT[cuadraId]) registrosT[cuadraId] = [];
-      let texto = `Trabajado por: ${rep.capitan} | Fecha: ${rep.fecha}`;
-      if (rep.visitaSC) texto += ` | VisitaSC: ${rep.fecha.slice(0, 7)}`;
-      registrosT[cuadraId].push(texto);
-      estadoT[cuadraId] = true; // Se mantiene en gris tras la aprobación
-    });
-    localStorage.setItem(`${rep.territorioId}_capitanes`, JSON.stringify(registrosT));
-    localStorage.setItem(`${rep.territorioId}_estado`, JSON.stringify(estadoT));
 
     actualizarContadorPendientes();
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
@@ -925,27 +948,8 @@
   function descartarReporte(id) {
     registrarMutacionEliminado(id);
     let lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const rep = lista.find(r => r.id === id);
     lista = lista.filter(r => r.id !== id);
     localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
-
-    // Si se descarta, verificar si sus cuadras deben regresar a su color original
-    if (rep && rep.territorioId && Array.isArray(rep.cuadras)) {
-      const estadoT = JSON.parse(localStorage.getItem(rep.territorioId + "_estado") || "{}");
-      rep.cuadras.forEach(cId => {
-        // Solo revertir si no existe en ningún otro reporte pendiente o aprobado
-        const existeEnOtro = lista.some(otro =>
-          (otro.estado === "PENDIENTE" || otro.estado === "APROBADO") &&
-          otro.territorioId === rep.territorioId &&
-          Array.isArray(otro.cuadras) &&
-          otro.cuadras.includes(cId)
-        );
-        if (!existeEnOtro) {
-          delete estadoT[cId];
-        }
-      });
-      localStorage.setItem(rep.territorioId + "_estado", JSON.stringify(estadoT));
-    }
 
     actualizarContadorPendientes();
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
@@ -1005,30 +1009,16 @@
     }, 1800);
   }
 
-  // 12.5. Limpieza de caché huérfana de cuadras marcadas en gris
+  // 12.5. Limpieza total de caché huérfana y estados locales
   window.limpiarCacheCuadrasFantasma = function () {
-    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const validKeys = new Set();
-    reportes.forEach(r => {
-      if (r.territorioId) {
-        validKeys.add(r.territorioId + "_estado");
-      }
-    });
-
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      if (k && k.endsWith("_estado") && !validKeys.has(k)) {
-        localStorage.removeItem(k);
-      }
-    }
-
+    purgarBasuraLocalStorage();
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
       window.actualizarColoresCuadrasCapitan();
     }
     mostrarToastDiscreto("Caché limpiada y mapa restaurado ✅");
   };
 
-  // 13. Pintar cuadras en gris (trabajadas / reportadas) y restaurar originales
+  // 13. Pintar cuadras en gris (solo reportes de la versión activa) y restaurar originales
   window.actualizarColoresCuadrasCapitan = function () {
     if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return;
 
@@ -1042,12 +1032,13 @@
     const cuadrasReportadasPorTerritorio = {};
 
     reportes.forEach(rep => {
-      if (rep.estado === "PENDIENTE" || rep.estado === "APROBADO") {
-        if (!cuadrasReportadasPorTerritorio[rep.territorioId]) {
-          cuadrasReportadasPorTerritorio[rep.territorioId] = new Set();
+      if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO") && perteneceAVersionActiva(rep)) {
+        const tIdLimpio = obtenerTerritorioIdLimpio(rep);
+        if (!cuadrasReportadasPorTerritorio[tIdLimpio]) {
+          cuadrasReportadasPorTerritorio[tIdLimpio] = new Set();
         }
         if (Array.isArray(rep.cuadras)) {
-          rep.cuadras.forEach(cId => cuadrasReportadasPorTerritorio[rep.territorioId].add(cId));
+          rep.cuadras.forEach(cId => cuadrasReportadasPorTerritorio[tIdLimpio].add(cId));
         }
       }
     });
@@ -1056,18 +1047,11 @@
       const tId = grupo._id;
       const setReportadas = cuadrasReportadasPorTerritorio[tId] || new Set();
 
-      // Limpiar y alinear el estado local estrictamente con los reportes existentes
-      const nuevoEstadoLocal = {};
-      setReportadas.forEach(cId => {
-        nuevoEstadoLocal[cId] = true;
-      });
-      localStorage.setItem(tId + "_estado", JSON.stringify(nuevoEstadoLocal));
-
       grupo.eachLayer(pol => {
         if (!pol._originalStyle) return;
 
-        // La cuadra es gris ÚNICAMENTE si existe en un reporte activo (pendiente o aprobado)
-        const esGris = setReportadas.has(pol._id);
+        // Solo cuadras predicables que estén en un reporte activo de esta versión
+        const esGris = (pol._esPredicable !== false) && setReportadas.has(pol._id);
         if (esGris) {
           pol._selected = true;
           pol.setStyle({
@@ -1221,19 +1205,19 @@
       const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
       const cuadrasReportadas = {};
       reportes.forEach(rep => {
-        if (rep.estado === "PENDIENTE" || rep.estado === "APROBADO") {
-          if (!cuadrasReportadas[rep.territorioId]) cuadrasReportadas[rep.territorioId] = new Set();
-          if (Array.isArray(rep.cuadras)) rep.cuadras.forEach(cId => cuadrasReportadas[rep.territorioId].add(cId));
+        if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO") && perteneceAVersionActiva(rep)) {
+          const tIdLimpio = obtenerTerritorioIdLimpio(rep);
+          if (!cuadrasReportadas[tIdLimpio]) cuadrasReportadas[tIdLimpio] = new Set();
+          if (Array.isArray(rep.cuadras)) rep.cuadras.forEach(cId => cuadrasReportadas[tIdLimpio].add(cId));
         }
       });
 
       window.todosLosTerritorios.forEach(grupo => {
         const tId = grupo._id;
         const setRep = cuadrasReportadas[tId] || new Set();
-        const estLoc = JSON.parse(localStorage.getItem(tId + "_estado") || "{}");
         grupo.eachLayer(pol => {
           if (!pol._originalStyle) return;
-          if (setRep.has(pol._id) || Boolean(estLoc[pol._id])) {
+          if ((pol._esPredicable !== false) && setRep.has(pol._id)) {
             pol._selected = true;
             pol.setStyle({ color: "#475569", fillColor: "#64748b", fillOpacity: 0.85, weight: 2 });
           } else {
@@ -1252,29 +1236,13 @@
     const cuadrasCoincidentes = {};
 
     reportes.forEach(rep => {
-      if (!rep.fecha) return;
+      if (!rep.fecha || !perteneceAVersionActiva(rep)) return;
       const coincide = prefijos.some(p => rep.fecha.startsWith(p));
       if (coincide && Array.isArray(rep.cuadras)) {
-        if (!cuadrasCoincidentes[rep.territorioId]) cuadrasCoincidentes[rep.territorioId] = new Set();
-        rep.cuadras.forEach(cId => cuadrasCoincidentes[rep.territorioId].add(cId));
+        const tIdLimpio = obtenerTerritorioIdLimpio(rep);
+        if (!cuadrasCoincidentes[tIdLimpio]) cuadrasCoincidentes[tIdLimpio] = new Set();
+        rep.cuadras.forEach(cId => cuadrasCoincidentes[tIdLimpio].add(cId));
       }
-    });
-
-    window.todosLosTerritorios.forEach(grupo => {
-      const tId = grupo._id;
-      const registros = JSON.parse(localStorage.getItem(tId + "_capitanes") || "{}");
-
-      Object.keys(registros).forEach(polId => {
-        const lineas = registros[polId] || [];
-        const tieneFecha = lineas.some(linea => {
-          const m = linea.match(/Fecha:\s*(\d{4}-\d{2})/);
-          return m && prefijos.includes(m[1]);
-        });
-        if (tieneFecha) {
-          if (!cuadrasCoincidentes[tId]) cuadrasCoincidentes[tId] = new Set();
-          cuadrasCoincidentes[tId].add(polId);
-        }
-      });
     });
 
     window.todosLosTerritorios.forEach(grupo => {
@@ -1284,7 +1252,7 @@
       grupo.eachLayer(pol => {
         if (!pol._originalStyle) return;
 
-        if (setMatch.has(pol._id)) {
+        if ((pol._esPredicable !== false) && setMatch.has(pol._id)) {
           pol.setStyle({
             color: "#334155",
             fillColor: "#64748b",

@@ -114,6 +114,15 @@ function vincularMenuCuadra(pol, territorioId) {
   }
 }
 
+// Distingue cuadras reales predicables de baldíos, escuelas, parques o supermercados
+window.esCuadraPredicable = function (pol) {
+  if (!pol) return false;
+  const id = String(pol.id || pol._id || "");
+  const label = pol.label !== undefined ? pol.label : pol._label;
+  const lblStr = label !== null && label !== undefined ? String(label).trim() : "";
+  return id.startsWith("Cuadra") || (/^\d+$/.test(lblStr));
+};
+
 function crearTerritorio(datosTerritorio) {
   // ------------------------------
   // 1. Crear grupo
@@ -122,9 +131,8 @@ function crearTerritorio(datosTerritorio) {
   grupo._id = datosTerritorio.id;
 
   // ------------------------------
-  // 2. Estado y notas guardadas
+  // 2. Notas guardadas
   // ------------------------------
-  var estadoGuardado = JSON.parse(localStorage.getItem(datosTerritorio.id + "_estado") || "{}");
   var notasPoligonos = JSON.parse(localStorage.getItem(datosTerritorio.id + "_notas") || "{}");
 
   // ------------------------------
@@ -140,6 +148,7 @@ function crearTerritorio(datosTerritorio) {
     pol._id = d.id;
     pol._territorioId = datosTerritorio.id;
     pol._link = d.link;
+    pol._esPredicable = window.esCuadraPredicable(d);
 
     // Guardamos estilo original
     pol._originalStyle = {
@@ -149,11 +158,7 @@ function crearTerritorio(datosTerritorio) {
       weight: pol.options.weight
     };
 
-    // Estado guardado
-    pol._selected = estadoGuardado[pol._id] || false;
-    if (pol._selected) {
-      pol.setStyle({ color: "gray", fillColor: "gray", fillOpacity: 0.9 });
-    }
+    pol._selected = false;
 
     // Etiqueta
     if (d.label) pol._label = d.label;
