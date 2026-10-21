@@ -31,29 +31,32 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheetCuadras = obtenerOCrearHojaCuadras(ss);
-    var action = data.action;
+    var action = data.accion || data.action || "";
 
-    if (action === "registrarCuadras") {
-      var rep = data.reporte;
+    if (action === "nuevo_reporte" || action === "registrarCuadras") {
+      var rep = data.reporte || {};
       var estadoInicial = rep.estado || "PENDIENTE";
+      var cuadrasArr = Array.isArray(rep.cuadras) ? rep.cuadras.join(",") : String(rep.cuadras || "");
+      var totalCuadras = Number(rep.totalCuadrasTerritorio || rep.totalCuadras || rep.cuadrasTotal || 0);
+
       sheetCuadras.appendRow([
         String(rep.id),
         String(rep.fecha),
         String(rep.territorioId || ""),
         String(rep.territorioNumero || ""),
-        Array.isArray(rep.cuadras) ? rep.cuadras.join(",") : String(rep.cuadras || ""),
-        Number(rep.totalCuadras || 0),
+        cuadrasArr,
+        totalCuadras,
         String(rep.capitan || ""),
         rep.visitaSC ? "SÍ" : "NO",
         estadoInicial,
         formatearFechaHora(new Date())
       ]);
       reconstruirHojaS13(ss);
-      return respuestaJSON({ status: "success", message: "Reporte guardado" });
+      return respuestaJSON({ exito: true, status: "success", message: "Reporte guardado" });
     }
 
-    if (action === "aprobarReporte") {
-      var repId = String(data.reporteId || "").trim();
+    if (action === "aprobar_reporte" || action === "aprobarReporte") {
+      var repId = String(data.id || data.reporteId || "").trim();
       var filas = sheetCuadras.getDataRange().getValues();
       var encontrado = false;
       for (var i = 1; i < filas.length; i++) {
@@ -63,11 +66,11 @@ function doPost(e) {
         }
       }
       reconstruirHojaS13(ss);
-      return respuestaJSON({ status: "success", encontrado: encontrado });
+      return respuestaJSON({ exito: true, status: "success", encontrado: encontrado });
     }
 
-    if (action === "eliminarReporte") {
-      var delId = String(data.reporteId || "").trim();
+    if (action === "descartar_reporte" || action === "eliminarReporte" || action === "eliminar_reporte") {
+      var delId = String(data.id || data.reporteId || "").trim();
       var filasDel = sheetCuadras.getDataRange().getValues();
       for (var j = filasDel.length - 1; j >= 1; j--) {
         if (String(filasDel[j][0]).trim() === delId) {
@@ -75,7 +78,22 @@ function doPost(e) {
         }
       }
       reconstruirHojaS13(ss);
-      return respuestaJSON({ status: "success", message: "Reporte eliminado" });
+      return respuestaJSON({ exito: true, status: "success", message: "Reporte eliminado" });
+    }
+
+    if (action === "editar_reporte") {
+      var repEdit = data.reporte || {};
+      var editId = String(repEdit.id || data.id || data.reporteId || "").trim();
+      var filasE = sheetCuadras.getDataRange().getValues();
+      for (var eIdx = 1; eIdx < filasE.length; eIdx++) {
+        if (String(filasE[eIdx][0]).trim() === editId) {
+          if (repEdit.fecha) sheetCuadras.getRange(eIdx + 1, 2).setValue(repEdit.fecha);
+          if (repEdit.capitan) sheetCuadras.getRange(eIdx + 1, 7).setValue(repEdit.capitan);
+          if (repEdit.estado) sheetCuadras.getRange(eIdx + 1, 9).setValue(repEdit.estado);
+        }
+      }
+      reconstruirHojaS13(ss);
+      return respuestaJSON({ exito: true, status: "success", message: "Reporte actualizado" });
     }
 
     if (action === "sincronizarTodo") {
@@ -98,7 +116,7 @@ function doPost(e) {
             String(r.territorioId || ""),
             String(r.territorioNumero || ""),
             Array.isArray(r.cuadras) ? r.cuadras.join(",") : String(r.cuadras || ""),
-            Number(r.totalCuadras || 0),
+            Number(r.totalCuadrasTerritorio || r.totalCuadras || 0),
             String(r.capitan || ""),
             r.visitaSC ? "SÍ" : "NO",
             est,
@@ -107,12 +125,12 @@ function doPost(e) {
         }
       }
       reconstruirHojaS13(ss);
-      return respuestaJSON({ status: "success", message: "Sincronización completa" });
+      return respuestaJSON({ exito: true, status: "success", message: "Sincronización completa" });
     }
 
-    return respuestaJSON({ status: "error", message: "Acción no reconocida: " + action });
+    return respuestaJSON({ exito: false, status: "error", message: "Acción no reconocida: " + action });
   } catch (err) {
-    return respuestaJSON({ status: "error", message: err.toString() });
+    return respuestaJSON({ exito: false, status: "error", message: err.toString() });
   } finally {
     lock.releaseLock();
   }
@@ -139,6 +157,7 @@ function doGet(e) {
         territorioNumero: String(fila[3]),
         cuadras: cuadrasArr,
         totalCuadras: Number(fila[5] || 0),
+        totalCuadrasTerritorio: Number(fila[5] || 0),
         capitan: String(fila[6] || ""),
         visitaSC: String(fila[7]) === "SÍ",
         estado: String(fila[8] || "APROBADO")
@@ -146,11 +165,13 @@ function doGet(e) {
     }
 
     return respuestaJSON({
+      exito: true,
       status: "success",
+      reportes: historial,
       historial: historial
     });
   } catch (err) {
-    return respuestaJSON({ status: "error", message: err.toString() });
+    return respuestaJSON({ exito: false, status: "error", message: err.toString() });
   }
 }
 
@@ -420,3 +441,4 @@ function respuestaJSON(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+

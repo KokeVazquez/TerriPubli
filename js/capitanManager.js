@@ -415,7 +415,7 @@
         fetch(URL_API_GOOGLE_SHEETS, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ accion: "editar_reporte", reporte: rep })
+          body: JSON.stringify({ accion: "editar_reporte", action: "editar_reporte", reporte: rep, reporteId: rep.id, id: rep.id })
         }).catch(err => console.warn("Error enviando edición a Google Sheets:", err));
       }
 
@@ -441,7 +441,6 @@
       const select = document.getElementById("selectorTerritorios");
       if (select && select.value) territorioActivo = select.value;
     }
-
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
@@ -664,7 +663,11 @@
       fetch(URL_API_GOOGLE_SHEETS, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ accion: "nuevo_reporte", reporte: reporte })
+        body: JSON.stringify({
+          accion: "nuevo_reporte",
+          action: "nuevo_reporte",
+          reporte: reporte
+        })
       }).catch(err => console.warn("Error enviando reporte a Google Sheets:", err));
     }
   }
@@ -940,7 +943,12 @@
       fetch(URL_API_GOOGLE_SHEETS, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ accion: "aprobar_reporte", id: id })
+        body: JSON.stringify({
+          accion: "aprobar_reporte",
+          action: "aprobar_reporte",
+          id: id,
+          reporteId: id
+        })
       }).catch(err => console.warn("Error enviando aprobación a Google Sheets:", err));
     }
   }
@@ -961,7 +969,12 @@
       fetch(URL_API_GOOGLE_SHEETS, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ accion: "descartar_reporte", id: id })
+        body: JSON.stringify({
+          accion: "descartar_reporte",
+          action: "descartar_reporte",
+          id: id,
+          reporteId: id
+        })
       }).catch(err => console.warn("Error enviando descarte a Google Sheets:", err));
     }
   }
@@ -1312,15 +1325,19 @@
       const res = await fetch(URL_API_GOOGLE_SHEETS, { method: "GET" });
       const data = await res.json();
 
-      if (data && data.exito && Array.isArray(data.reportes)) {
+      const listaReportes = (data && Array.isArray(data.reportes))
+        ? data.reportes
+        : ((data && Array.isArray(data.historial)) ? data.historial : null);
+
+      if (data && (data.exito || data.status === "success") && listaReportes) {
         const eliminadosLocales = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_eliminadas") || "[]"));
         const aprobadosLocales = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_aprobadas") || "[]"));
 
         // Limpiar de mutaciones pendientes lo que la nube ya confirmó
-        data.reportes.forEach(r => {
+        listaReportes.forEach(r => {
           if (r.estado === "APROBADO") aprobadosLocales.delete(r.id);
         });
-        const idsNube = new Set(data.reportes.map(r => r.id));
+        const idsNube = new Set(listaReportes.map(r => r.id));
         eliminadosLocales.forEach(id => {
           if (!idsNube.has(id)) eliminadosLocales.delete(id);
         });
@@ -1328,7 +1345,7 @@
         localStorage.setItem("terrosa_mutaciones_eliminadas", JSON.stringify(Array.from(eliminadosLocales)));
 
         // Normalizar fechas y filtrar los reportes eliminados localmente
-        let reportesNormalizados = data.reportes
+        let reportesNormalizados = listaReportes
           .filter(r => !eliminadosLocales.has(r.id))
           .map(r => {
             let f = r.fecha || "";
