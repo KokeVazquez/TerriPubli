@@ -108,25 +108,74 @@ path:not(.leaflet-interactive) {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   position: relative;
+  gap: 10px;
 }
 
-body.modo-capitan .top-header-main-row {
-  justify-content: space-between;
+.top-header-titles-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .top-header-title {
   margin: 0;
   padding: 0;
-  font-size: clamp(17px, 4.4vw, 21px);
+  font-size: clamp(16px, 4.2vw, 20px);
   font-weight: 800;
   color: #1e293b;
-  text-align: center;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
   user-select: none;
   -webkit-user-select: none;
-  line-height: 1.25;
+  line-height: 1.2;
+}
+
+.top-header-subtitle {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  margin-top: 1px;
+  letter-spacing: 0.1px;
+  user-select: none;
+}
+
+body.modo-capitan .top-header-title {
+  font-size: clamp(18px, 4.6vw, 22px) !important;
+  color: #0f172a;
+}
+
+.top-header-auth-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Botón Ingresar para Capitanes (Modern Pill) */
+.btn-ingresar-pill {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 50px;
+  padding: 5px 13px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  pointer-events: auto !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.btn-ingresar-pill:active {
+  transform: scale(0.93);
+  background: #f1f5f9;
 }
 
 /* Badge de Perfil Capitán en Cabecera Superior */
@@ -135,8 +184,8 @@ body.modo-capitan .top-header-main-row {
   color: #ffffff;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   border-radius: 50px;
-  padding: 4px 14px;
-  font-size: 14.5px;
+  padding: 5px 12px;
+  font-size: 13.5px;
   font-weight: 800;
   letter-spacing: -0.2px;
   box-shadow: 0 3px 10px rgba(26, 115, 232, 0.35);
@@ -149,10 +198,16 @@ body.modo-capitan .top-header-main-row {
   transition: all 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 150px;
+}
+
+.avatar-capitan-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  display: inline-block;
+  box-shadow: 0 0 6px #4ade80;
 }
 
 .capitan-header-badge:hover {
@@ -164,47 +219,27 @@ body.modo-capitan .top-header-main-row {
   background: #0d47a1;
 }
 
-body.modo-capitan .top-header-title {
-  font-size: clamp(15px, 4vw, 19px) !important;
-  text-align: left !important;
-}
-
-/* Fila de Filtro de Fecha (Año y Meses) */
+/* Fila de Filtro de Fecha (Píldoras Año y Mes ordenadas) */
 .top-header-filter-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   max-width: 440px;
   pointer-events: auto !important;
+  margin-top: 2px;
 }
 
-.filtro-fecha-select {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 16px;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #1e293b;
-  outline: none;
-  font-family: inherit;
-  cursor: pointer;
-  pointer-events: auto !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  height: 28px;
+.filtro-pildora-wrapper {
+  position: relative;
+  display: inline-flex;
 }
 
-.filtro-fecha-select.anio {
-  width: 74px;
-  flex-shrink: 0;
-}
-
-.filtro-fecha-btn-meses {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 16px;
+.filtro-pildora-select {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 50px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 700;
@@ -213,24 +248,40 @@ body.modo-capitan .top-header-title {
   font-family: inherit;
   cursor: pointer;
   pointer-events: auto !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  height: 28px;
+  transition: all 0.15s ease;
+}
+
+.filtro-pildora-btn {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 50px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+  pointer-events: auto !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   transition: all 0.15s ease;
-  flex: 1;
-  max-width: 180px;
 }
 
-.filtro-fecha-btn-meses:active {
-  transform: scale(0.96);
-  background: #f1f5f9;
+.filtro-pildora-btn:active,
+.filtro-pildora-select:active {
+  transform: scale(0.95);
+  background: #f8fafc;
 }
 
 .filtro-fecha-btn-limpiar {
-  background: #f1f5f9;
+  background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 50%;
   width: 26px;
@@ -238,13 +289,14 @@ body.modo-capitan .top-header-title {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: #64748b;
   cursor: pointer;
   pointer-events: auto !important;
   padding: 0;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .filtro-fecha-btn-limpiar:hover {
@@ -627,17 +679,179 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 
 .terrosa-modal-card {
   background: #ffffff;
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 22px 24px;
   width: 100%;
   max-width: 380px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22);
   box-sizing: border-box;
   animation: terrosaScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .terrosa-modal-card.terrosa-modal-large {
-  max-width: 440px;
+  max-width: 460px;
+}
+
+/* Botones de acción encuadrados sin texto (minimalismo) */
+.btn-action-square {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 11px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.btn-action-square:active {
+  transform: scale(0.90);
+}
+
+.btn-action-square.btn-editar {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.btn-action-square.btn-editar:hover {
+  background: #bae6fd;
+}
+
+.btn-action-square.btn-eliminar {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.btn-action-square.btn-eliminar:hover {
+  background: #fecaca;
+}
+
+/* Botones de cabecera encuadrados minimalistas */
+.btn-icon-square {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-icon-square:active {
+  transform: scale(0.92);
+}
+
+.btn-icon-square.sync-spinning svg,
+.btn-icon-square.sync-spinning {
+  animation: spinSync 0.6s linear infinite;
+}
+
+@keyframes spinSync {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Tarjetas de registros en Historial */
+.card-historial-minimal {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-historial-minimal:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.06);
+}
+
+/* Ficha táctil de Cuadras en modal de Reportar */
+.chip-cuadra-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chip-cuadra-item:active {
+  transform: scale(0.98);
+}
+
+.chip-cuadra-item.selected {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 3px 10px rgba(59, 130, 246, 0.16);
+}
+
+.chip-cuadra-item.trabajada-mes {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.chip-badge-mes {
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+/* Comentario acordeón */
+.comentario-desplegable {
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+}
+
+.comentario-desplegable summary {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.comentario-desplegable[open] {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.comentario-desplegable textarea {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  box-sizing: border-box;
+  resize: none;
+  outline: none;
 }
 
 @keyframes terrosaFadeIn {

@@ -26,23 +26,39 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=22" />
+  <link rel="stylesheet" href="css/styles.css?v=29" />
 </head>
 
 <body>
   <!-- Barra Superior de Título (Unifica y aprovecha el área del notch/status bar) -->
   <header class="top-header-bar">
     <div class="top-header-main-row">
-      <h1 class="top-header-title">Mapa Congregación Rosario</h1>
-      <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para cambiar de perfil">Koke</button>
+      <div class="top-header-titles-box">
+        <h1 class="top-header-title" id="tituloHeaderPrincipal">Mapa Congregación Rosario</h1>
+        <div class="top-header-subtitle" id="subtituloHeader" style="display:none;">Mapa Congregación Rosario</div>
+      </div>
+      <div class="top-header-auth-box">
+        <button id="btnIngresarHeader" class="btn-ingresar-pill" title="Ingreso para Capitán">
+          <span>🔑</span> <span>Ingresar</span>
+        </button>
+        <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para cambiar de perfil o salir">
+          <span class="avatar-capitan-dot"></span>
+          <span id="txtNombreCapitanHeader">Koke</span>
+          <span style="font-size:10px; opacity:0.8;">▾</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Selector de Filtro de Fecha (Año y Selector de Meses Múltiples) -->
+    <!-- Selector de Filtro de Fecha (Dos píldoras perfectamente ordenadas: Mes y Año) -->
     <div id="filtroFechaBarra" class="top-header-filter-row">
-      <select id="selectFiltroAnio" class="filtro-fecha-select anio" title="Filtrar por año"></select>
-      <button type="button" id="btnModalFiltroMeses" class="filtro-fecha-btn-meses" title="Filtrar por uno o varios meses">
-        <span id="txtFiltroMesesLabel">Mes: Todos</span> ▾
-      </button>
+      <div class="filtro-pildora-wrapper">
+        <select id="selectFiltroAnio" class="filtro-pildora-select" title="Filtrar por año"></select>
+      </div>
+      <div class="filtro-pildora-wrapper">
+        <button type="button" id="btnModalFiltroMeses" class="filtro-pildora-btn" title="Filtrar por mes">
+          <span id="txtFiltroMesesLabel">🗓️ Mes: Todos</span> ▾
+        </button>
+      </div>
       <button type="button" id="btnLimpiarFiltroFecha" class="filtro-fecha-btn-limpiar" title="Limpiar filtro de fecha" style="display:none;">✕</button>
     </div>
   </header>
@@ -52,39 +68,13 @@
     <div class="bottom-bar-pill">
       <!-- 1. Botón Menú / Ajustes (Hamburguesa) -->
       <div class="hamburger-menu">
-        <button id="hamburger-btn" class="pill-btn icon-only" title="Menú y Ajustes">
+        <button id="hamburger-btn" class="pill-btn icon-only" title="Menú">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
           </svg>
         </button>
         <div id="menu-panel" class="menu-panel">
           <button id="btnUbicacion">📍 Mi Ubicación</button>
-          <button id="btnCopiaSeguridad" style="display:none;">💾 Copia de seguridad</button>
-          <button id="btnRestaurar" style="display:none;">🔄 Restaurar copia</button>
-
-          <div style="height: 1px; background: rgba(0,0,0,0.08); margin: 4px 0;"></div>
-
-          <div style="padding: 2px 8px; font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">
-            Modo de Uso:
-          </div>
-          <div class="modo-toggle-container">
-            <button type="button" class="modo-toggle-btn active" data-modo="publicador">Publicador</button>
-            <button type="button" class="modo-toggle-btn" data-modo="capitan">Capitán</button>
-          </div>
-
-          <div id="seccionEncargado" style="display:none; margin-top: 6px;">
-            <button id="btnBuzonReportes" type="button" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; color: #92400e; font-size: 13px; font-weight: 700; cursor: pointer;">
-              <span>🔔 Aprobaciones S-13</span>
-              <span id="badgeReportesPendientes" style="background: #dc2626; color: white; border-radius: 50%; padding: 2px 7px; font-size: 11px; display:none;">0</span>
-            </button>
-          </div>
-
-          <!-- Versión fijada a numeración original (viejita) -->
-          <div style="display: none !important;">
-            <div class="version-toggle-container">
-              <button type="button" class="version-toggle-btn active" data-version="anterior">Anterior</button>
-            </div>
-          </div>
         </div>
       </div>
 
