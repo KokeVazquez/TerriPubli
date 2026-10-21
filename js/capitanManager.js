@@ -847,16 +847,44 @@
 
     function cardElementRemove(btn) {
       const card = btn.closest("div[style*='border']");
-      if (card) card.remove();
-      const remaining = cont.querySelectorAll(".btn-aprobar-rep").length;
-      if (remaining === 0) {
-        cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:30px;">¡Todos los reportes fueron revisados! 🎉</div>';
+      if (card) {
+        card.remove();
+        const remaining = cont.querySelectorAll(".btn-aprobar-rep").length;
+        const tituloModal = modal.querySelector("h3");
+        if (tituloModal) {
+          tituloModal.textContent = `🔔 Aprobaciones S-13 (${remaining})`;
+        }
+        if (remaining === 0) {
+          cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:30px;">¡Todos los reportes fueron revisados! 🎉</div>';
+        }
       }
     }
   }
 
+  // 10.5. Seguimiento de mutaciones optimistas para evitar parpadeos con la nube
+  function registrarMutacionAprobado(id) {
+    try {
+      const set = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_aprobadas") || "[]"));
+      set.add(id);
+      localStorage.setItem("terrosa_mutaciones_aprobadas", JSON.stringify(Array.from(set)));
+    } catch (e) {}
+  }
+
+  function registrarMutacionEliminado(id) {
+    try {
+      const setElim = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_eliminadas") || "[]"));
+      setElim.add(id);
+      localStorage.setItem("terrosa_mutaciones_eliminadas", JSON.stringify(Array.from(setElim)));
+
+      const setApr = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_aprobadas") || "[]"));
+      setApr.delete(id);
+      localStorage.setItem("terrosa_mutaciones_aprobadas", JSON.stringify(Array.from(setApr)));
+    } catch (e) {}
+  }
+
   // 11. Acción de Aprobar Reporte (Registra formalmente en datos del mapa y S-13)
   function aprobarReporte(id) {
+    registrarMutacionAprobado(id);
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     const rep = lista.find(r => r.id === id);
     if (!rep) return;
@@ -895,6 +923,7 @@
   }
 
   function descartarReporte(id) {
+    registrarMutacionEliminado(id);
     let lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     const rep = lista.find(r => r.id === id);
     lista = lista.filter(r => r.id !== id);
@@ -1306,7 +1335,7 @@
     }
   }
 
-  // 15. Sincronización en la Nube con Google Sheets
+  // 15. Sincronización en la Nube con Google Sheets (Merge optimista y seguro)
   window.sincronizarConNube = async function (mostrarFeedback = false) {
     if (!URL_API_GOOGLE_SHEETS) return;
     try {
@@ -1316,34 +1345,55 @@
       const data = await res.json();
 
       if (data && data.exito && Array.isArray(data.reportes)) {
-        // Normalizar fechas y guardar en localStorage
-        const reportesNormalizados = data.reportes.map(r => {
-          let f = r.fecha || "";
-          if (f && f.length > 10 && !/^\d{4}-\d{2}-\d{2}$/.test(f)) {
-            const d = new Date(f);
-            if (!isNaN(d.getTime())) {
-              const anio = d.getFullYear();
-              const mes = ("0" + (d.getMonth() + 1)).slice(-2);
-              const dia = ("0" + d.getDate()).slice(-2);
-              f = `${anio}-${mes}-${dia}`;
+        const eliminadosLocales = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_eliminadas") || "[]"));
+        const aprobadosLocales = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_aprobadas") || "[]"));
+
+        // Limpiar de mutaciones pendientes lo que la nube ya confirmó
+        data.reportes.forEach(r => {
+          if (r.estado === "APROBADO") aprobadosLocales.delete(r.id);
+        });
+        const idsNube = new Set(data.reportes.map(r => r.id));
+        eliminadosLocales.forEach(id => {
+          if (!idsNube.has(id)) eliminadosLocales.delete(id);
+        });
+        localStorage.setItem("terrosa_mutaciones_aprobadas", JSON.stringify(Array.from(aprobadosLocales)));
+        localStorage.setItem("terrosa_mutaciones_eliminadas", JSON.stringify(Array.from(eliminadosLocales)));
+
+        // Normalizar fechas y filtrar los reportes eliminados localmente
+        let reportesNormalizados = data.reportes
+          .filter(r => !eliminadosLocales.has(r.id))
+          .map(r => {
+            let f = r.fecha || "";
+            if (f && f.length > 10 && !/^\d{4}-\d{2}-\d{2}$/.test(f)) {
+              const d = new Date(f);
+              if (!isNaN(d.getTime())) {
+                const anio = d.getFullYear();
+                const mes = ("0" + (d.getMonth() + 1)).slice(-2);
+                const dia = ("0" + d.getDate()).slice(-2);
+                f = `${anio}-${mes}-${dia}`;
+              }
+            }
+            r.fecha = f;
+
+            // Mantener como APROBADO si el usuario lo aprobó localmente y la nube aún está procesando
+            if (aprobadosLocales.has(r.id)) {
+              r.estado = "APROBADO";
+            }
+            return r;
+          });
+
+        // Preservar reportes recién creados en local que aún van subiendo a la nube
+        const listaLocal = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+        listaLocal.forEach(rLoc => {
+          if (!eliminadosLocales.has(rLoc.id)) {
+            const existeEnNube = reportesNormalizados.some(rNub => rNub.id === rLoc.id);
+            if (!existeEnNube) {
+              reportesNormalizados.push(rLoc);
             }
           }
-          r.fecha = f;
-          return r;
         });
 
         localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(reportesNormalizados));
-
-        // Marcar cuadras en el estado local del territorio para que se pinten en gris
-        reportesNormalizados.forEach(rep => {
-          if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO") && rep.territorioId && Array.isArray(rep.cuadras)) {
-            const estadoT = JSON.parse(localStorage.getItem(rep.territorioId + "_estado") || "{}");
-            rep.cuadras.forEach(cId => {
-              estadoT[cId] = true;
-            });
-            localStorage.setItem(rep.territorioId + "_estado", JSON.stringify(estadoT));
-          }
-        });
 
         actualizarContadorPendientes();
 
