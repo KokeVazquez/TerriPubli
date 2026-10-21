@@ -79,7 +79,7 @@ path:not(.leaflet-interactive) {
 }
 
 /* --------------------------------------------------------------------------
-   2.1. Barra Superior de Título (Notch & Header Bar)
+   2.1. Barra Superior de Título (Notch & Header Bar en 3 Filas)
    -------------------------------------------------------------------------- */
 .top-header-bar {
   position: fixed;
@@ -88,44 +88,48 @@ path:not(.leaflet-interactive) {
   right: 0;
   width: 100%;
   background-color: #e5e3df; /* Mismo color exacto que el notch/barra de estado */
-  padding-top: calc(max(env(safe-area-inset-top, 0px), 10px) + 5px);
-  padding-bottom: 10px;
+  padding-top: calc(max(env(safe-area-inset-top, 0px), 8px) + 4px);
+  padding-bottom: 8px;
   padding-left: 14px;
   padding-right: 14px;
-  border-radius: 0 0 16px 16px; /* Bordes redondeados abajo */
+  border-radius: 0 0 18px 18px;
   z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   pointer-events: none; /* No obstruye toques accidentales en mapa */
 }
 
-.top-header-main-row {
+/* Fila 1: Botón Ingresar / Perfil alineado a la derecha */
+.header-row-1 {
   width: 100%;
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: space-between;
-  position: relative;
-  gap: 10px;
+  min-height: 28px;
+  pointer-events: auto !important;
 }
 
-.top-header-titles-box {
+/* Fila 2: Título Centrado y Más Grande */
+.header-row-2 {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .top-header-title {
   margin: 0;
   padding: 0;
-  font-size: clamp(16px, 4.2vw, 20px);
-  font-weight: 800;
+  font-size: clamp(19px, 5vw, 24px);
+  font-weight: 850;
   color: #1e293b;
+  text-align: center;
   letter-spacing: -0.3px;
   user-select: none;
   -webkit-user-select: none;
@@ -133,24 +137,39 @@ path:not(.leaflet-interactive) {
 }
 
 .top-header-subtitle {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #64748b;
-  margin-top: 1px;
-  letter-spacing: 0.1px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1a73e8;
+  background: rgba(26, 115, 232, 0.12);
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-top: 3px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
   user-select: none;
 }
 
-body.modo-capitan .top-header-title {
-  font-size: clamp(18px, 4.6vw, 22px) !important;
-  color: #0f172a;
-}
-
-.top-header-auth-box {
+/* Fila 3: Centrado Año y Mes */
+.header-row-3 {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: auto !important;
+  margin-top: 2px;
+}
+
+/* Quitar selección azul al dejar presionado en móvil */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.pill-btn, button, .custom-select, select {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  outline: none !important;
 }
 
 /* Botón Ingresar para Capitanes (Modern Pill) */
@@ -159,7 +178,7 @@ body.modo-capitan .top-header-title {
   color: #1e293b;
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 50px;
-  padding: 5px 13px;
+  padding: 4px 13px;
   font-size: 13px;
   font-weight: 700;
   font-family: inherit;

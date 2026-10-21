@@ -394,6 +394,12 @@ function anadirNotaPopup(id, territorioId) {
     notasPoligonos[id].push(texto);
     localStorage.setItem(territorioId + "_notas", JSON.stringify(notasPoligonos));
     document.body.removeChild(modalFondo);
+    if (typeof window.refrescarIndicadoresNotas === "function") {
+      window.refrescarIndicadoresNotas();
+    }
+    if (typeof window.reproducirSonidoClick === "function") {
+      window.reproducirSonidoClick("success");
+    }
   };
 }
 
@@ -408,13 +414,21 @@ function mostrarNotasPopup(id, notasPoligonos, territorioId) {
   var notas = notasPoligonos[id] || [];
   notas = notas.filter(n => typeof n === "string" ? !n.startsWith("Trabajado por:") : true);
 
-  var contenido = "<b>Notas:</b><br><br>";
-  if (notas.length === 0) contenido += "No hay notas aún.";
-  else notas.forEach((nota, i) => {
-    const textoNota = typeof nota === "string" ? nota : (nota.texto || JSON.stringify(nota));
-    contenido += `${i + 1}. ${textoNota} 
-      <button onclick="confirmarEliminarNotaPopup('${id}', ${i}, '${territorioId}')">❌</button><br>`;
-  });
+  var contenido = "<div style='font-family:system-ui; font-size:13.5px;'><b style='font-size:15px; color:#1e293b;'>📒 Notas de esta cuadra:</b><br><br>";
+  if (notas.length === 0) {
+    contenido += "<span style='color:#64748b;'>No hay notas registradas.</span>";
+  } else {
+    notas.forEach((nota, i) => {
+      const textoNota = typeof nota === "string" ? nota : (nota.texto || JSON.stringify(nota));
+      contenido += `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f1f5f9; gap:8px;">
+          <span>${i + 1}. <b>${textoNota}</b></span>
+          <button onclick="confirmarEliminarNotaPopup('${id}', ${i}, '${territorioId}')" style="background:#fee2e2; border:none; border-radius:6px; padding:3px 7px; color:#dc2626; cursor:pointer; font-weight:bold;">🗑️</button>
+        </div>
+      `;
+    });
+  }
+  contenido += "</div>";
 
   L.popup().setLatLng(map.getCenter()).setContent(contenido).openOn(map);
 }
@@ -422,15 +436,28 @@ function mostrarNotasPopup(id, notasPoligonos, territorioId) {
 function confirmarEliminarNotaPopup(id, index, territorioId) {
   map.closePopup();
   L.popup().setLatLng(map.getCenter()).setContent(`
-    <b>¿Eliminar esta nota?</b><br>
-    <button onclick="eliminarNota('${id}', ${index}, '${territorioId}')">✅ Sí</button>
-    <button onclick="map.closePopup()">❌ No</button>
+    <div style="font-family:system-ui; padding:4px;">
+      <b style="color:#0f172a; font-size:14px;">¿Eliminar esta nota?</b><br><br>
+      <div style="display:flex; gap:8px;">
+        <button onclick="eliminarNota('${id}', ${index}, '${territorioId}')" style="background:#dc2626; color:white; border:none; border-radius:8px; padding:6px 14px; font-weight:bold; cursor:pointer;">Sí, borrar</button>
+        <button onclick="map.closePopup()" style="background:#f1f5f9; color:#475569; border:none; border-radius:8px; padding:6px 14px; font-weight:bold; cursor:pointer;">Cancelar</button>
+      </div>
+    </div>
   `).openOn(map);
 }
 
 function eliminarNota(id, index, territorioId) {
   var notasPoligonos = JSON.parse(localStorage.getItem(territorioId + "_notas") || "{}");
-  notasPoligonos[id].splice(index, 1);
+  if (notasPoligonos[id]) {
+    notasPoligonos[id].splice(index, 1);
+    if (notasPoligonos[id].length === 0) delete notasPoligonos[id];
+  }
   localStorage.setItem(territorioId + "_notas", JSON.stringify(notasPoligonos));
   map.closePopup();
+  if (typeof window.refrescarIndicadoresNotas === "function") {
+    window.refrescarIndicadoresNotas();
+  }
+  if (typeof window.reproducirSonidoClick === "function") {
+    window.reproducirSonidoClick("delete");
+  }
 }

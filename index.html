@@ -26,31 +26,32 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=29" />
+  <link rel="stylesheet" href="css/styles.css?v=30" />
 </head>
 
 <body>
-  <!-- Barra Superior de Título (Unifica y aprovecha el área del notch/status bar) -->
+  <!-- Barra Superior de Título (3 Filas Ordenadas) -->
   <header class="top-header-bar">
-    <div class="top-header-main-row">
-      <div class="top-header-titles-box">
-        <h1 class="top-header-title" id="tituloHeaderPrincipal">Mapa Congregación Rosario</h1>
-        <div class="top-header-subtitle" id="subtituloHeader" style="display:none;">Mapa Congregación Rosario</div>
-      </div>
-      <div class="top-header-auth-box">
-        <button id="btnIngresarHeader" class="btn-ingresar-pill" title="Ingreso para Capitán">
-          <span>🔑</span> <span>Ingresar</span>
-        </button>
-        <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para cambiar de perfil o salir">
-          <span class="avatar-capitan-dot"></span>
-          <span id="txtNombreCapitanHeader">Koke</span>
-          <span style="font-size:10px; opacity:0.8;">▾</span>
-        </button>
-      </div>
+    <!-- Fila 1: Lado derecho "Ingresar" o Perfil Capitán -->
+    <div class="header-row-1">
+      <button id="btnIngresarHeader" class="btn-ingresar-pill" title="Ingreso para Capitán">
+        <span>🔑</span> <span>Ingresar</span>
+      </button>
+      <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para opciones de Capitán">
+        <span class="avatar-capitan-dot"></span>
+        <span id="txtNombreCapitanHeader">Koke</span>
+        <span style="font-size:10px; opacity:0.8;">▾</span>
+      </button>
     </div>
 
-    <!-- Selector de Filtro de Fecha (Dos píldoras perfectamente ordenadas: Mes y Año) -->
-    <div id="filtroFechaBarra" class="top-header-filter-row">
+    <!-- Fila 2: Título Centrado y Más Grande -->
+    <div class="header-row-2">
+      <h1 class="top-header-title" id="tituloHeaderPrincipal">Mapa Congregación Rosario</h1>
+      <div class="top-header-subtitle" id="subtituloHeader" style="display:none;">Modo Capitán</div>
+    </div>
+
+    <!-- Fila 3: Centrado Año y Mes -->
+    <div class="header-row-3" id="filtroFechaBarra">
       <div class="filtro-pildora-wrapper">
         <select id="selectFiltroAnio" class="filtro-pildora-select" title="Filtrar por año"></select>
       </div>
@@ -348,23 +349,23 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=26"></script>
+  <script src="js/territoriobase.js?v=30"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=26"></script>
+  <script src="js/territoriosData.js?v=30"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=26"></script>
+  <script src="js/territoriosManager.js?v=30"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=26"></script>
+  <script src="js/notas.js?v=30"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=26"></script>
+  <script src="js/terminados.js?v=30"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=26"></script>
+  <script src="js/backup.js?v=30"></script>
   <!-- 7. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=26"></script>
+  <script src="js/capitanManager.js?v=30"></script>
   <!-- 8. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=26"></script>
+  <script src="js/app.js?v=30"></script>
   <!-- 9. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=26"></script>
+  <script src="js/pwa.js?v=30"></script>
 </body>
 
 </html>

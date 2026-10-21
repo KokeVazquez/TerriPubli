@@ -1,230 +1,227 @@
 // ==============================================================================================================================
 // === GESTIÓN DE NOTAS ===
-// === Indicadores en mapa, visor de notas globales y edición/eliminación ===
+// === Indicadores en mapa, visor de notas globales y edición/eliminación reactiva ===
 // ==============================================================================================================================
 
 let notasMostradas = false;
 
-// Crear modal general para ver todas las notas
-const modalNotas = document.createElement("div");
-modalNotas.id = "modalNotas";
-Object.assign(modalNotas.style, {
-  position: "fixed",
-  top: "0",
-  left: "0",
-  width: "100%",
-  height: "100%",
-  backgroundColor: "rgba(0,0,0,0.5)",
-  display: "none",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: "9999"
-});
-
-const modalContent = document.createElement("div");
-Object.assign(modalContent.style, {
-  backgroundColor: "#fff",
-  padding: "20px",
-  borderRadius: "10px",
-  maxHeight: "80%",
-  overflowY: "auto",
-  width: "80%",
-  maxWidth: "700px",
-  boxShadow: "0 0 15px rgba(0,0,0,0.3)"
-});
-modalNotas.appendChild(modalContent);
-document.body.appendChild(modalNotas);
-
-modalNotas.addEventListener("click", (e) => {
-  if (e.target === modalNotas) modalNotas.style.display = "none";
-});
-
-// Mini pop-up para editar/eliminar notas
-const miniPopup = document.createElement("div");
-Object.assign(miniPopup.style, {
-  position: "fixed",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  backgroundColor: "#fff",
-  padding: "20px",
-  borderRadius: "10px",
-  boxShadow: "0 0 15px rgba(0,0,0,0.3)",
-  zIndex: "10000",
-  display: "none"
-});
-document.body.appendChild(miniPopup);
-
-function mostrarPopup(contentHtml) {
-  miniPopup.innerHTML = contentHtml;
-  miniPopup.style.display = "block";
-}
-
-function cerrarPopup() {
-  miniPopup.style.display = "none";
-}
-
-// --------------------------------------------------------------------------------------
-// Alternar visualización de iconos de notas (📒) en el mapa
-// --------------------------------------------------------------------------------------
-function toggleIconosNotas() {
-  if (!notasMostradas) {
+// Función para refrescar indicadores en el mapa al instante
+window.refrescarIndicadoresNotas = function () {
+  if (window.indicadoresNotas && window.indicadoresNotas.length > 0) {
+    window.indicadoresNotas.forEach(m => {
+      try { map.removeLayer(m); } catch (e) {}
+    });
     window.indicadoresNotas = [];
+  }
+
+  if (notasMostradas) {
     window.todosLosTerritorios.forEach(territorio => {
       const notasTerritorio = JSON.parse(localStorage.getItem(territorio._id + "_notas") || "{}");
       territorio.eachLayer(function (pol) {
         if (notasTerritorio[pol._id] && notasTerritorio[pol._id].length > 0) {
-          const latlngs = pol.getLatLngs()[0];
-          const coords = latlngs.map(ll => [ll.lng, ll.lat]);
-          coords.push([coords[0][0], coords[0][1]]);
-          const centroide = turf.centroid(turf.polygon([coords]));
-          const cLat = centroide.geometry.coordinates[1];
-          const cLng = centroide.geometry.coordinates[0];
-          const marker = L.marker([cLat, cLng], {
-            interactive: false,
-            icon: L.divIcon({
-              className: "indicador-nota",
-              html: "📒",
-              iconSize: [20, 20],
-              iconAnchor: [10, 10]
-            })
-          }).addTo(map);
-          window.indicadoresNotas.push(marker);
+          try {
+            const latlngs = pol.getLatLngs()[0];
+            const coords = latlngs.map(ll => [ll.lng, ll.lat]);
+            coords.push([coords[0][0], coords[0][1]]);
+            const centroide = turf.centroid(turf.polygon([coords]));
+            const cLat = centroide.geometry.coordinates[1];
+            const cLng = centroide.geometry.coordinates[0];
+            const marker = L.marker([cLat, cLng], {
+              interactive: false,
+              icon: L.divIcon({
+                className: "indicador-nota",
+                html: "📒",
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+              })
+            }).addTo(map);
+            window.indicadoresNotas.push(marker);
+          } catch (e) {}
         }
       });
     });
-    notasMostradas = true;
-  } else {
-    window.indicadoresNotas.forEach(m => map.removeLayer(m));
-    window.indicadoresNotas = [];
-    notasMostradas = false;
+  }
+};
+
+// Alternar visualización de iconos de notas en el mapa
+function toggleIconosNotas() {
+  if (typeof window.reproducirSonidoClick === "function") {
+    window.reproducirSonidoClick("tap");
+  }
+  notasMostradas = !notasMostradas;
+  window.refrescarIndicadoresNotas();
+
+  const btn = document.getElementById("btnMostrarTodasNotas");
+  if (btn) {
+    btn.classList.toggle("active", notasMostradas);
   }
 }
 
 // --------------------------------------------------------------------------------------
-// Abrir modal con todas las notas registradas para editar / eliminar
+// Función para navegar y enfocar la cuadra exacta con animación de destello
 // --------------------------------------------------------------------------------------
-function abrirModalTodasNotas() {
-  let todasLasNotas = [];
-
-  window.todosLosTerritorios.forEach(territorio => {
-    const notasTerritorio = JSON.parse(localStorage.getItem(territorio._id + "_notas") || "{}");
-
-    territorio.eachLayer(function (pol) {
-      const notasPol = notasTerritorio[pol._id];
-      if (notasPol && notasPol.length > 0) {
-        notasPol.forEach((nota, index) => {
-          todasLasNotas.push({
-            territorioId: territorio._id,
-            territorio: territorio.options?.name || territorio._id,
-            cuadra: pol._id,
-            contenido: typeof nota === "string" ? nota : nota.texto || JSON.stringify(nota),
-            index: index
-          });
-        });
-      }
-    });
-  });
-
-  if (todasLasNotas.length === 0) {
-    alert("No hay notas registradas.");
-    return;
+function irACuadra(territorioId, cuadraId) {
+  if (typeof window.reproducirSonidoClick === "function") {
+    window.reproducirSonidoClick("tap");
   }
 
-  modalContent.innerHTML = "<h2 style='margin-top:0;'>Todas las Notas Registradas</h2><hr>";
+  if (typeof window.seleccionarTerritorioDirecto === "function") {
+    window.seleccionarTerritorioDirecto(territorioId);
+  }
 
-  todasLasNotas.forEach(n => {
-    const notaDiv = document.createElement("div");
-    Object.assign(notaDiv.style, {
-      marginBottom: "10px",
-      padding: "10px",
-      border: "1px solid #ccc",
-      borderRadius: "8px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
+  setTimeout(() => {
+    const terr = window.todosLosTerritorios.find(t => t._id === territorioId);
+    if (!terr) return;
+
+    terr.eachLayer(pol => {
+      if (pol._id === cuadraId) {
+        try {
+          map.flyToBounds(pol.getBounds(), { maxZoom: 18, duration: 0.7 });
+          // Efecto de pulso / destello para destacar la cuadra
+          let count = 0;
+          const origColor = pol.options.color;
+          const origFill = pol.options.fillColor;
+          const interval = setInterval(() => {
+            count++;
+            if (count % 2 === 1) {
+              pol.setStyle({ color: "#e11d48", fillColor: "#fb7185", fillOpacity: 0.95, weight: 4 });
+            } else {
+              pol.setStyle({
+                color: origColor,
+                fillColor: origFill,
+                fillOpacity: pol._originalStyle ? pol._originalStyle.fillOpacity : 0.8,
+                weight: 2
+              });
+            }
+            if (count >= 6) {
+              clearInterval(interval);
+              if (pol._originalStyle) pol.setStyle(pol._originalStyle);
+            }
+          }, 240);
+        } catch (e) {}
+      }
     });
+  }, 320);
+}
 
-    const territorioNum = n.territorio.replace(/\D/g, '');
-    const cuadraNum = n.cuadra.replace(/\D/g, '');
+// --------------------------------------------------------------------------------------
+// Modal Rediseñado de Todas las Notas (Moderno, Minimalista y con botón "Ir")
+// --------------------------------------------------------------------------------------
+function abrirModalTodasNotas() {
+  if (typeof window.reproducirSonidoClick === "function") {
+    window.reproducirSonidoClick("tap");
+  }
 
-    const textoNota = document.createElement("div");
-    textoNota.innerHTML = `<b>Territorio:</b> ${territorioNum} <br>
-                       <b>Cuadra:</b> ${cuadraNum} <br>
-                       <b>Nota:</b> <span style="color:red; font-weight:bold;" class="nota-texto">${n.contenido}</span>`;
+  const modal = document.createElement("div");
+  modal.className = "terrosa-modal-overlay";
+  modal.innerHTML = `
+    <div class="terrosa-modal-card terrosa-modal-large" style="max-height:85vh; display:flex; flex-direction:column; padding:20px 18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-shrink:0;">
+        <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">📒 Notas del Territorio</h3>
+        <button id="btnCerrarModalNotasGen" class="btn-icon-square">✕</button>
+      </div>
 
-    const botonesDiv = document.createElement("div");
-    Object.assign(botonesDiv.style, { display: "flex", gap: "5px" });
+      <div id="contenedorListaNotas" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:2px;"></div>
+    </div>
+  `;
 
-    // EDITAR
-    const btnEditar = document.createElement("button");
-    btnEditar.textContent = "Editar";
-    Object.assign(btnEditar.style, {
-      backgroundColor: "#4CAF50",
-      color: "#fff",
-      border: "none",
-      padding: "5px 10px",
-      borderRadius: "5px",
-      cursor: "pointer"
-    });
-    btnEditar.addEventListener("click", () => {
-      mostrarPopup(`
-        <h3 style="margin-top:0;">Editar Nota</h3>
-        <textarea id="editarNotaTextarea" style="width:100%; height:80px; box-sizing:border-box;">${n.contenido}</textarea><br><br>
-        <button id="guardarNotaBtn" style="background-color:#4CAF50;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">Guardar</button>
-        <button id="cancelarNotaBtn" style="background-color:#f44336;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;margin-left:5px;">Cancelar</button>
-      `);
+  document.body.appendChild(modal);
 
-      document.getElementById("guardarNotaBtn").addEventListener("click", () => {
-        const nuevoTexto = document.getElementById("editarNotaTextarea").value;
-        const notasTerritorio = JSON.parse(localStorage.getItem(n.territorioId + "_notas") || "{}");
-        notasTerritorio[n.cuadra][n.index] = nuevoTexto;
-        localStorage.setItem(n.territorioId + "_notas", JSON.stringify(notasTerritorio));
-        textoNota.querySelector(".nota-texto").textContent = nuevoTexto;
-        cerrarPopup();
+  const cerrar = () => {
+    if (typeof window.reproducirSonidoClick === "function") {
+      window.reproducirSonidoClick("tap");
+    }
+    if (document.body.contains(modal)) document.body.removeChild(modal);
+  };
+
+  modal.querySelector("#btnCerrarModalNotasGen").onclick = cerrar;
+
+  const cont = modal.querySelector("#contenedorListaNotas");
+
+  function renderizarNotas() {
+    let todas = [];
+    window.todosLosTerritorios.forEach(territorio => {
+      const notasTerritorio = JSON.parse(localStorage.getItem(territorio._id + "_notas") || "{}");
+      territorio.eachLayer(function (pol) {
+        const notasPol = notasTerritorio[pol._id];
+        if (notasPol && notasPol.length > 0) {
+          notasPol.forEach((nota, index) => {
+            const txt = typeof nota === "string" ? nota : nota.texto || JSON.stringify(nota);
+            if (!txt.startsWith("Trabajado por:")) {
+              todas.push({
+                territorioId: territorio._id,
+                territorioNum: territorio._id.replace(/\D/g, '') || "1",
+                cuadraId: pol._id,
+                cuadraNum: (pol.options && pol.options.label) ? pol.options.label : pol._id.replace(/^[a-zA-Z0-9]+_c/i, ''),
+                texto: txt,
+                index: index
+              });
+            }
+          });
+        }
       });
-
-      document.getElementById("cancelarNotaBtn").addEventListener("click", cerrarPopup);
     });
 
-    // ELIMINAR
-    const btnEliminar = document.createElement("button");
-    btnEliminar.textContent = "Eliminar";
-    Object.assign(btnEliminar.style, {
-      backgroundColor: "#f44336",
-      color: "#fff",
-      border: "none",
-      padding: "5px 10px",
-      borderRadius: "5px",
-      cursor: "pointer"
+    cont.innerHTML = "";
+
+    if (todas.length === 0) {
+      cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:36px 16px; font-size:14px; font-weight:600;">No tienes notas guardadas en este momento.</div>';
+      return;
+    }
+
+    todas.forEach(n => {
+      const card = document.createElement("div");
+      card.className = "card-historial-minimal";
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
+          <div style="background:#fef3c7; color:#b45309; font-weight:800; font-size:13.5px; border-radius:12px; padding:6px 10px; min-width:38px; text-align:center; flex-shrink:0;">
+            T-${n.territorioNum}
+          </div>
+          <div style="min-width:0; flex:1;">
+            <div style="font-weight:700; color:#1e293b; font-size:14px; line-height:1.35; word-break:break-word;">
+              ${n.texto}
+            </div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
+              Cuadra ${n.cuadraNum}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <button class="btn-action-square btn-ir-nota" title="Ir a la cuadra en el mapa" style="background:#eff6ff; color:#2563eb; font-weight:700; font-size:12.5px; padding:0 8px; width:auto; height:34px; gap:4px; border-radius:10px;">
+            <span>📍</span> <span>Ir</span>
+          </button>
+          <button class="btn-action-square btn-eliminar-nota" title="Eliminar nota" style="background:#fee2e2; color:#dc2626; width:34px; height:34px; border-radius:10px;">
+            🗑️
+          </button>
+        </div>
+      `;
+
+      card.querySelector(".btn-ir-nota").onclick = () => {
+        cerrar();
+        irACuadra(n.territorioId, n.cuadraId);
+      };
+
+      card.querySelector(".btn-eliminar-nota").onclick = () => {
+        if (confirm("¿Eliminar esta nota?")) {
+          const notasTerr = JSON.parse(localStorage.getItem(n.territorioId + "_notas") || "{}");
+          if (notasTerr[n.cuadraId]) {
+            notasTerr[n.cuadraId].splice(n.index, 1);
+            if (notasTerr[n.cuadraId].length === 0) delete notasTerr[n.cuadraId];
+            localStorage.setItem(n.territorioId + "_notas", JSON.stringify(notasTerr));
+          }
+          if (typeof window.reproducirSonidoClick === "function") {
+            window.reproducirSonidoClick("delete");
+          }
+          window.refrescarIndicadoresNotas();
+          renderizarNotas(); // Reactivo de inmediato!
+        }
+      };
+
+      cont.appendChild(card);
     });
-    btnEliminar.addEventListener("click", () => {
-      mostrarPopup(`
-        <h3 style="margin-top:0;">Confirmar Eliminación</h3>
-        <p>¿Seguro que quieres eliminar esta nota?</p>
-        <button id="confirmarEliminarBtn" style="background-color:#f44336;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">Sí</button>
-        <button id="cancelarEliminarBtn" style="background-color:#ccc;color:#000;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;margin-left:5px;">No</button>
-      `);
+  }
 
-      document.getElementById("confirmarEliminarBtn").addEventListener("click", () => {
-        const notasTerritorio = JSON.parse(localStorage.getItem(n.territorioId + "_notas") || "{}");
-        notasTerritorio[n.cuadra].splice(n.index, 1);
-        localStorage.setItem(n.territorioId + "_notas", JSON.stringify(notasTerritorio));
-        notaDiv.remove();
-        cerrarPopup();
-      });
-
-      document.getElementById("cancelarEliminarBtn").addEventListener("click", cerrarPopup);
-    });
-
-    botonesDiv.appendChild(btnEditar);
-    botonesDiv.appendChild(btnEliminar);
-    notaDiv.appendChild(textoNota);
-    notaDiv.appendChild(botonesDiv);
-    modalContent.appendChild(notaDiv);
-  });
-
-  modalNotas.style.display = "flex";
+  renderizarNotas();
 }
 
 // --------------------------------------------------------------------------------------
@@ -234,8 +231,10 @@ function inicializarEventosNotas() {
   const btnNotas = document.getElementById("btnMostrarTodasNotas");
   if (!btnNotas) return;
 
-  // Click normal: alternar iconos
-  btnNotas.addEventListener("click", toggleIconosNotas);
+  // Click normal: alternar iconos en el mapa
+  btnNotas.addEventListener("click", () => {
+    toggleIconosNotas();
+  });
 
   // Click derecho (PC): abrir modal de gestión
   btnNotas.addEventListener("contextmenu", function (e) {
@@ -245,22 +244,21 @@ function inicializarEventosNotas() {
 
   // Mantener presionado (móvil y táctil)
   let pressTimer;
-  function iniciarPresion() {
+  function iniciarPresion(e) {
     clearTimeout(pressTimer);
     pressTimer = setTimeout(() => {
-      btnNotas.dispatchEvent(new Event('contextmenu'));
-    }, 800);
+      abrirModalTodasNotas();
+    }, 550);
   }
 
   function cancelarPresion() {
     clearTimeout(pressTimer);
   }
 
+  btnNotas.addEventListener("touchstart", iniciarPresion, { passive: true });
+  btnNotas.addEventListener("touchend", cancelarPresion, { passive: true });
+  btnNotas.addEventListener("touchcancel", cancelarPresion, { passive: true });
   btnNotas.addEventListener("mousedown", iniciarPresion);
   btnNotas.addEventListener("mouseup", cancelarPresion);
   btnNotas.addEventListener("mouseleave", cancelarPresion);
-  btnNotas.addEventListener("touchstart", iniciarPresion);
-  btnNotas.addEventListener("touchend", cancelarPresion);
-  btnNotas.addEventListener("touchcancel", cancelarPresion);
 }
-

@@ -71,6 +71,64 @@
     } catch (e) {}
   };
 
+  // Helper unificado y robusto para parsear fechas de cualquier origen (ISO YYYY-MM-DD, DD/MM/YYYY, etc.)
+  function parsearFechaReporte(fechaStr) {
+    if (!fechaStr) return { anio: "", mes: "", dia: "", fechaISO: "", fechaDisplay: "" };
+    const str = String(fechaStr).trim();
+
+    // Caso 1: YYYY-MM-DD o YYYY/MM/DD
+    const mISO = str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if (mISO) {
+      const anio = mISO[1];
+      const mes = mISO[2].padStart(2, "0");
+      const dia = mISO[3].padStart(2, "0");
+      return {
+        anio,
+        mes,
+        dia,
+        fechaISO: `${anio}-${mes}-${dia}`,
+        fechaDisplay: `${dia}/${mes}/${anio}`
+      };
+    }
+
+    // Caso 2: DD/MM/YYYY o DD-MM-YYYY
+    const mDMY = str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+    if (mDMY) {
+      const dia = mDMY[1].padStart(2, "0");
+      const mes = mDMY[2].padStart(2, "0");
+      const anio = mDMY[3];
+      return {
+        anio,
+        mes,
+        dia,
+        fechaISO: `${anio}-${mes}-${dia}`,
+        fechaDisplay: `${dia}/${mes}/${anio}`
+      };
+    }
+
+    // Caso 3: Objeto Date nativo
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const anio = String(d.getFullYear());
+      const mes = String(d.getMonth() + 1).padStart(2, "0");
+      const dia = String(d.getDate()).padStart(2, "0");
+      return {
+        anio,
+        mes,
+        dia,
+        fechaISO: `${anio}-${mes}-${dia}`,
+        fechaDisplay: `${dia}/${mes}/${anio}`
+      };
+    }
+
+    return { anio: "", mes: "", dia: "", fechaISO: str, fechaDisplay: str };
+  }
+
+  function formatearFechaCorta(fechaStr) {
+    const p = parsearFechaReporte(fechaStr);
+    return p.fechaDisplay || fechaStr;
+  }
+
   // 1. Obtener estado actual y versión activa (Anterior vs Nueva)
   window.getModoActual = function () {
     return localStorage.getItem("terrosa_modo") || "publicador";
@@ -310,40 +368,92 @@
     });
   }
 
-  // 5.1. Menú al tocar el Badge del Capitán
+  // 5.1. Menú al tocar el Badge del Capitán (Edición directa de nombre y acceso a S-13)
   function abrirMenuPerfilCapitan() {
     const nombre = window.getCapitanNombre();
+    const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const pendientes = lista.filter(r => r.estado === "PENDIENTE" && perteneceAVersionActiva(r));
+
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
-      <div class="terrosa-modal-card" style="max-width:320px;">
-        <h3 style="margin:0 0 4px 0; font-size:18px; font-weight:800; color:#0f172a;">👤 ${nombre || 'Capitán'}</h3>
-        <p style="font-size:12.5px; color:#64748b; margin-bottom:16px;">Sesión activa en Modo Capitán</p>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <button id="btnCambiarNombrePerfil" style="padding:12px; background:#f1f5f9; border:none; border-radius:14px; font-weight:700; color:#1e293b; cursor:pointer; font-size:13.5px; text-align:left;">✏️ Cambiar nombre</button>
-          <button id="btnCerrarSesionModo" style="padding:12px; background:#fef2f2; border:none; border-radius:14px; font-weight:700; color:#dc2626; cursor:pointer; font-size:13.5px; text-align:left;">🔒 Salir a Modo Publicador</button>
-          <button id="btnCancelarMenuPerfil" style="padding:10px; background:none; border:none; color:#64748b; font-weight:600; cursor:pointer; font-size:13px; margin-top:4px;">Cancelar</button>
+      <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👤 Perfil de Capitán</h3>
+          <button id="btnCerrarMenuPerfilX" class="btn-icon-square">✕</button>
+        </div>
+
+        <!-- Edición directa del nombre al tocarlo -->
+        <div style="margin-bottom:16px;">
+          <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Nombre</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="inputPerfilNombreDirecto" value="${nombre || 'Capitán'}" placeholder="Tu nombre..." style="
+              flex:1; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:15px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#f8fafc;
+            " />
+            <button id="btnGuardarNombreDirecto" style="
+              padding:10px 14px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer;
+            ">Guardar</button>
+          </div>
+          <span style="font-size:11px; color:#94a3b8; margin-top:3px; display:block;">Toca el texto para editar tu nombre.</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <!-- Opción de Pendientes por Aprobar S-13 -->
+          <button id="btnPerfilAprobacionesS13" style="
+            width:100%; padding:13px 14px; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:14px; font-weight:800; color:#1d4ed8; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:space-between; text-align:left;
+          ">
+            <span>🔔 Pendientes por Aprobar</span>
+            <span style="background:${pendientes.length > 0 ? '#ef4444' : '#94a3b8'}; color:white; padding:3px 9px; border-radius:12px; font-size:12px; font-weight:800;">
+              ${pendientes.length}
+            </span>
+          </button>
+
+          <!-- Salir a Modo Publicador -->
+          <button id="btnCerrarSesionModo" style="
+            padding:12px 14px; background:#fef2f2; border:1px solid #fee2e2; border-radius:14px; font-weight:700; color:#dc2626; cursor:pointer; font-size:13.5px; text-align:left;
+          ">🔒 Salir a Modo Publicador</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
 
     const cerrar = () => {
+      window.reproducirSonidoClick("tap");
       if (document.body.contains(modal)) document.body.removeChild(modal);
     };
 
-    modal.querySelector("#btnCancelarMenuPerfil").onclick = () => {
-      window.reproducirSonidoClick("tap");
-      cerrar();
-    };
+    modal.querySelector("#btnCerrarMenuPerfilX").onclick = cerrar;
 
-    modal.querySelector("#btnCambiarNombrePerfil").onclick = () => {
-      cerrar();
-      const nuevo = prompt("Ingresa el nuevo nombre del Capitán:", nombre);
-      if (nuevo && nuevo.trim()) {
-        localStorage.setItem("terrosa_capitan_nombre", nuevo.trim());
+    const inputNombre = modal.querySelector("#inputPerfilNombreDirecto");
+    const guardarNombre = () => {
+      const nuevo = inputNombre.value.trim();
+      if (nuevo) {
+        localStorage.setItem("terrosa_capitan_nombre", nuevo);
         actualizarInterfazSegunModo();
         window.reproducirSonidoClick("success");
+        mostrarToastDiscreto("Nombre actualizado ✅");
+      }
+    };
+
+    modal.querySelector("#btnGuardarNombreDirecto").onclick = guardarNombre;
+    inputNombre.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") guardarNombre();
+    });
+
+    // Acción para Pendientes por Aprobar (S-13)
+    // Si es Koke o Encargado de Servicio entra directo, otros deben ingresar el PIN 1234
+    modal.querySelector("#btnPerfilAprobacionesS13").onclick = () => {
+      window.reproducirSonidoClick("tap");
+      cerrar();
+      const capActual = (window.getCapitanNombre() || "").toLowerCase();
+      const esAdminDirecto = ["koke", "josué ramos", "josue ramos", "encargado", "auxiliar"].some(k => capActual.includes(k));
+
+      if (esAdminDirecto) {
+        abrirModalBuzonAprobaciones();
+      } else {
+        pedirPinEncargado(() => {
+          abrirModalBuzonAprobaciones();
+        });
       }
     };
 
@@ -385,8 +495,8 @@
     const aniosSet = new Set();
     const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     todosReportes.forEach(r => {
-      const f = String(r.fecha || "");
-      if (f.length >= 4) aniosSet.add(f.substring(0, 4));
+      const p = parsearFechaReporte(r.fecha);
+      if (p.anio) aniosSet.add(p.anio);
     });
     const aniosArr = Array.from(aniosSet).sort().reverse();
     if (aniosArr.length === 0) aniosArr.push(new Date().getFullYear().toString());
@@ -454,12 +564,10 @@
         .filter(r => perteneceAVersionActiva(r));
       
       const filtrados = reportes.filter(r => {
-        const f = String(r.fecha || "");
-        if (!f) return true;
-        const anioR = f.substring(0, 4);
-        const mesR = parseInt(f.substring(5, 7), 10);
-        if (filtroAnioSel !== "todos" && anioR !== filtroAnioSel) return false;
-        if (filtroMesSel !== "todos" && mesR !== parseInt(filtroMesSel, 10)) return false;
+        const p = parsearFechaReporte(r.fecha);
+        if (!p.anio) return true;
+        if (filtroAnioSel !== "todos" && p.anio !== filtroAnioSel) return false;
+        if (filtroMesSel !== "todos" && parseInt(p.mes, 10) !== parseInt(filtroMesSel, 10)) return false;
         return true;
       });
 
@@ -627,24 +735,37 @@
     };
   }
 
-  // Helper para detectar qué cuadras de un territorio ya se trabajaron en un mes específico (YYYY-MM)
-  function obtenerCuadrasTrabajadasEnMes(territorioId, territorioNumero, anioMesStr) {
-    const setCuadras = new Set();
+  // Helper para detectar qué cuadras de un territorio ya se trabajaron en un mes específico y con qué fecha
+  function obtenerInfoCuadrasTrabajadasEnMes(territorioId, territorioNumero, anioTarget, mesTarget) {
+    const mapaCuadras = new Map();
+    const listaReportesT = [];
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     lista.forEach(r => {
       if (!perteneceAVersionActiva(r)) return;
       const numR = String(r.territorioNumero || "");
       const idR = String(r.territorioId || "");
       if (numR === String(territorioNumero) || idR === String(territorioId)) {
-        const f = String(r.fecha || "");
-        if (f.startsWith(anioMesStr)) {
+        const p = parsearFechaReporte(r.fecha);
+        if (p.anio === String(anioTarget) && parseInt(p.mes, 10) === parseInt(mesTarget, 10)) {
+          listaReportesT.push({
+            fecha: p.fechaDisplay,
+            capitan: r.capitan || "Capitán",
+            cuadras: r.cuadras || []
+          });
           if (Array.isArray(r.cuadras)) {
-            r.cuadras.forEach(c => setCuadras.add(c));
+            r.cuadras.forEach(cId => {
+              if (!mapaCuadras.has(cId)) {
+                mapaCuadras.set(cId, {
+                  fechaDisplay: p.fechaDisplay,
+                  capitan: r.capitan || "Capitán"
+                });
+              }
+            });
           }
         }
       }
     });
-    return setCuadras;
+    return { mapaCuadras, listaReportesT };
   }
 
   // 7. Modal de Registro de Territorio / Cuadras — Rediseño App Nativa
@@ -803,16 +924,27 @@
       // Revisar cuáles cuadras ya se trabajaron en este mes
       const numT = item.datos.numeroTerritorio !== undefined ? item.datos.numeroTerritorio : tId;
       const fechaSeleccionada = modal.querySelector("#regFecha").value || hoy;
-      const anioMes = fechaSeleccionada.slice(0, 7); // ej "2026-10"
-      const cuadrasYaHechasMes = obtenerCuadrasTrabajadasEnMes(tId, numT, anioMes);
+      const pFecha = parsearFechaReporte(fechaSeleccionada);
+      const infoMes = obtenerInfoCuadrasTrabajadasEnMes(tId, numT, pFecha.anio, pFecha.mes);
 
       contenedorCuadras.innerHTML = "";
+
+      // Aviso si el territorio ya tiene reportes en este mes
+      if (infoMes.listaReportesT.length > 0) {
+        const ult = infoMes.listaReportesT[0];
+        const aviso = document.createElement("div");
+        aviso.style.cssText = "background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:8px 12px; margin-bottom:6px; font-size:12.5px; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:8px;";
+        aviso.innerHTML = `<span>🗓️</span> <span>Trabajado el <b>${ult.fecha}</b> (${ult.capitan})</span>`;
+        contenedorCuadras.appendChild(aviso);
+      }
+
       cuadrasPredicables.forEach((pol, idx) => {
         const cuadraNum = (pol.label !== null && pol.label !== undefined && String(pol.label).trim() !== "")
           ? String(pol.label).trim()
           : (idx + 1);
 
-        const yaTrabajada = cuadrasYaHechasMes.has(pol.id);
+        const infoCuadra = infoMes.mapaCuadras.get(pol.id);
+        const yaTrabajada = !!infoCuadra;
         const isPreselected = (preCuadraId && pol.id === preCuadraId);
         const estaMarcada = isPreselected || yaTrabajada;
 
@@ -823,7 +955,7 @@
             <input type="checkbox" value="${pol.id}" class="chk-cuadra" ${estaMarcada ? "checked" : ""} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer; pointer-events:none;"/>
             <span style="font-weight:700; font-size:14px; color:#1e293b;">Cuadra ${cuadraNum}</span>
           </div>
-          ${yaTrabajada ? '<span class="chip-badge-mes">✅ Hecha este mes</span>' : ''}
+          ${yaTrabajada ? `<span class="chip-badge-mes">🗓️ Trabajado ${infoCuadra.fechaDisplay}</span>` : ''}
         `;
 
         chip.addEventListener("click", () => {
@@ -949,6 +1081,18 @@
     if (badge) {
       badge.textContent = pendientes.length;
       badge.style.display = pendientes.length > 0 ? "inline-block" : "none";
+    }
+
+    // Indicador sutil de punto rojo en avatar si hay pendientes
+    const dot = document.querySelector(".avatar-capitan-dot");
+    if (dot) {
+      if (pendientes.length > 0) {
+        dot.style.background = "#ef4444";
+        dot.style.boxShadow = "0 0 6px rgba(239, 68, 68, 0.7)";
+      } else {
+        dot.style.background = "#22c55e";
+        dot.style.boxShadow = "none";
+      }
     }
   }
 
@@ -1120,7 +1264,7 @@
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span style="font-weight:800; color:#1e293b; font-size:15px;">Territorio ${rep.territorioNumero}</span>
-          <span style="font-size:12px; color:#64748b; font-weight:600;">${rep.fecha}</span>
+          <span style="font-size:12px; color:#64748b; font-weight:600;">📅 ${formatearFechaCorta(rep.fecha)}</span>
         </div>
         <div style="font-size:13.5px; color:#334155;">
           <b>Capitán:</b> ${rep.capitan} (${rep.cuadrasTotal} cuadras)
@@ -1301,9 +1445,23 @@
     mostrarToastDiscreto("Caché limpiada y mapa restaurado ✅");
   };
 
-  // 13. Pintar cuadras en gris (solo reportes de la versión activa) y restaurar originales
+  // 13. Pintar cuadras en gris (solo en Modo Capitán y para reportes de la versión activa)
   window.actualizarColoresCuadrasCapitan = function () {
     if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return;
+
+    // En Modo Publicador: CERO grises, todo 100% colorido con sus estilos originales
+    const modo = window.getModoActual();
+    if (modo !== "capitan") {
+      window.todosLosTerritorios.forEach(grupo => {
+        grupo.eachLayer(pol => {
+          if (pol._originalStyle) {
+            pol._selected = false;
+            pol.setStyle(pol._originalStyle);
+          }
+        });
+      });
+      return;
+    }
 
     // Si hay un filtro de fecha activo en la cabecera, respetarlo
     if (window.hayFiltroFechaActivo && window.hayFiltroFechaActivo()) {
@@ -1481,6 +1639,19 @@
   window.ejecutarFiltroFecha = function () {
     if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return;
 
+    // En Modo Publicador nunca debe haber grises
+    if (window.getModoActual() !== "capitan") {
+      window.todosLosTerritorios.forEach(grupo => {
+        grupo.eachLayer(pol => {
+          if (pol._originalStyle) {
+            pol._selected = false;
+            pol.setStyle(pol._originalStyle);
+          }
+        });
+      });
+      return;
+    }
+
     const anioElem = document.getElementById("selectFiltroAnio");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
     const anio = anioElem ? anioElem.value : String(new Date().getFullYear());
@@ -1524,7 +1695,9 @@
 
     reportes.forEach(rep => {
       if (!rep.fecha || !perteneceAVersionActiva(rep)) return;
-      const coincide = prefijos.some(p => rep.fecha.startsWith(p));
+      const p = parsearFechaReporte(rep.fecha);
+      const ym = `${p.anio}-${p.mes}`;
+      const coincide = prefijos.includes(ym);
       if (coincide && Array.isArray(rep.cuadras)) {
         const tIdLimpio = obtenerTerritorioIdLimpio(rep);
         if (!cuadrasCoincidentes[tIdLimpio]) cuadrasCoincidentes[tIdLimpio] = new Set();
