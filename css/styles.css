@@ -79,7 +79,7 @@ path:not(.leaflet-interactive) {
 }
 
 /* --------------------------------------------------------------------------
-   2.1. Barra Superior de Título (Notch & Header Bar en 3 Filas)
+   2.1. Barra Superior de Título (Notch & Header Bar)
    -------------------------------------------------------------------------- */
 .top-header-bar {
   position: fixed;
@@ -90,8 +90,8 @@ path:not(.leaflet-interactive) {
   background-color: #e5e3df; /* Mismo color exacto que el notch/barra de estado */
   padding-top: calc(max(env(safe-area-inset-top, 0px), 8px) + 4px);
   padding-bottom: 8px;
-  padding-left: 14px;
-  padding-right: 14px;
+  padding-left: 12px;
+  padding-right: 12px;
   border-radius: 0 0 18px 18px;
   z-index: 1000;
   display: flex;
@@ -101,20 +101,11 @@ path:not(.leaflet-interactive) {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   pointer-events: none; /* No obstruye toques accidentales en mapa */
+  box-sizing: border-box;
 }
 
-/* Fila 1: Botón Ingresar / Perfil alineado a la derecha */
-.header-row-1 {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  min-height: 28px;
-  pointer-events: auto !important;
-}
-
-/* Fila 2: Título Centrado y Más Grande */
-.header-row-2 {
+/* 1. Título y Modo Alineados al Centro */
+.header-title-block {
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -126,7 +117,7 @@ path:not(.leaflet-interactive) {
 .top-header-title {
   margin: 0;
   padding: 0;
-  font-size: clamp(19px, 5vw, 24px);
+  font-size: clamp(17px, 4.6vw, 22px);
   font-weight: 850;
   color: #1e293b;
   text-align: center;
@@ -139,25 +130,42 @@ path:not(.leaflet-interactive) {
 .top-header-subtitle {
   font-size: 11px;
   font-weight: 800;
-  color: #1a73e8;
-  background: rgba(26, 115, 232, 0.12);
   padding: 2px 10px;
   border-radius: 20px;
-  margin-top: 3px;
-  letter-spacing: 0.3px;
+  margin-top: 2px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
   user-select: none;
+  -webkit-user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Fila 3: Centrado Año y Mes */
-.header-row-3 {
+.top-header-subtitle.modo-publicador {
+  color: #475569;
+  background: rgba(100, 116, 139, 0.14);
+  border: 1px solid rgba(100, 116, 139, 0.18);
+}
+
+.top-header-subtitle.modo-capitan {
+  color: #1d4ed8;
+  background: rgba(29, 78, 216, 0.12);
+  border: 1px solid rgba(29, 78, 216, 0.22);
+}
+
+/* 2. Barra de Botones Alineados y Distribuidos */
+.header-buttons-toolbar {
   width: 100%;
+  max-width: 440px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   pointer-events: auto !important;
-  margin-top: 2px;
+  margin-top: 4px;
+  flex-wrap: nowrap;
 }
 
 /* Quitar selección azul al dejar presionado en móvil */
@@ -178,18 +186,22 @@ path:not(.leaflet-interactive) {
   color: #1e293b;
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 50px;
-  padding: 4px 13px;
-  font-size: 13px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px;
   font-weight: 700;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   cursor: pointer;
   pointer-events: auto !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .btn-ingresar-pill:active {
@@ -203,11 +215,12 @@ path:not(.leaflet-interactive) {
   color: #ffffff;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   border-radius: 50px;
-  padding: 5px 12px;
-  font-size: 13.5px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px;
   font-weight: 800;
   letter-spacing: -0.2px;
-  box-shadow: 0 3px 10px rgba(26, 115, 232, 0.35);
+  box-shadow: 0 3px 8px rgba(26, 115, 232, 0.3);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -217,7 +230,9 @@ path:not(.leaflet-interactive) {
   transition: all 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
-  max-width: 150px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  max-width: 140px;
 }
 
 .avatar-capitan-dot {
@@ -253,13 +268,14 @@ path:not(.leaflet-interactive) {
 .filtro-pildora-wrapper {
   position: relative;
   display: inline-flex;
+  align-items: center;
 }
 
 .filtro-pildora-select {
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 50px;
-  padding: 4px 12px;
+  padding: 0 10px;
   font-size: 12px;
   font-weight: 700;
   color: #1e293b;
@@ -267,16 +283,19 @@ path:not(.leaflet-interactive) {
   font-family: inherit;
   cursor: pointer;
   pointer-events: auto !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  height: 28px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  height: 30px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
   transition: all 0.15s ease;
 }
 
 .filtro-pildora-btn {
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 50px;
-  padding: 4px 14px;
+  padding: 0 12px;
   font-size: 12px;
   font-weight: 700;
   color: #1e293b;
@@ -284,13 +303,15 @@ path:not(.leaflet-interactive) {
   font-family: inherit;
   cursor: pointer;
   pointer-events: auto !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  height: 28px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  height: 30px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .filtro-pildora-btn:active,
@@ -303,12 +324,13 @@ path:not(.leaflet-interactive) {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   color: #64748b;
   cursor: pointer;

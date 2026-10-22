@@ -194,11 +194,15 @@
     const badgeCapitan = document.getElementById("badgeCapitanHeader");
     const txtNombreBadge = document.getElementById("txtNombreCapitanHeader");
 
+    if (tituloPrincipal) {
+      tituloPrincipal.textContent = "Mapa Congregación Rosario";
+    }
+
     if (esCapitan) {
-      if (tituloPrincipal) tituloPrincipal.textContent = "Modo Capitán";
       if (subtituloHeader) {
-        subtituloHeader.style.display = "block";
-        subtituloHeader.textContent = "Mapa Congregación Rosario";
+        subtituloHeader.style.display = "inline-flex";
+        subtituloHeader.textContent = "Modo Capitán";
+        subtituloHeader.className = "top-header-subtitle modo-capitan";
       }
       if (btnIngresar) btnIngresar.style.display = "none";
       if (badgeCapitan) {
@@ -206,8 +210,11 @@
         if (txtNombreBadge) txtNombreBadge.textContent = nombreCapitan || "Capitán";
       }
     } else {
-      if (tituloPrincipal) tituloPrincipal.textContent = "Mapa Congregación Rosario";
-      if (subtituloHeader) subtituloHeader.style.display = "none";
+      if (subtituloHeader) {
+        subtituloHeader.style.display = "inline-flex";
+        subtituloHeader.textContent = "Modo Publicador";
+        subtituloHeader.className = "top-header-subtitle modo-publicador";
+      }
       if (btnIngresar) btnIngresar.style.display = "inline-flex";
       if (badgeCapitan) badgeCapitan.style.display = "none";
     }
