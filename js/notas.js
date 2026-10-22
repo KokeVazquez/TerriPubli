@@ -60,9 +60,16 @@ function toggleIconosNotas() {
 // --------------------------------------------------------------------------------------
 // Función para navegar y enfocar la cuadra exacta con animación de destello
 // --------------------------------------------------------------------------------------
+let _intervaloDestello = null;
+
 function irACuadra(territorioId, cuadraId) {
   if (typeof window.reproducirSonidoClick === "function") {
     window.reproducirSonidoClick("tap");
+  }
+
+  if (_intervaloDestello) {
+    clearInterval(_intervaloDestello);
+    _intervaloDestello = null;
   }
 
   if (typeof window.seleccionarTerritorioDirecto === "function") {
@@ -76,32 +83,35 @@ function irACuadra(territorioId, cuadraId) {
     terr.eachLayer(pol => {
       if (pol._id === cuadraId) {
         try {
-          map.flyToBounds(pol.getBounds(), { maxZoom: 18, duration: 0.7 });
+          map.flyToBounds(pol.getBounds(), {
+            paddingTopLeft: [30, 100],
+            paddingBottomRight: [30, 110],
+            maxZoom: 18,
+            duration: 0.6
+          });
           // Efecto de pulso / destello para destacar la cuadra
           let count = 0;
-          const origColor = pol.options.color;
-          const origFill = pol.options.fillColor;
-          const interval = setInterval(() => {
+          _intervaloDestello = setInterval(() => {
             count++;
             if (count % 2 === 1) {
-              pol.setStyle({ color: "#e11d48", fillColor: "#fb7185", fillOpacity: 0.95, weight: 4 });
-            } else {
-              pol.setStyle({
-                color: origColor,
-                fillColor: origFill,
-                fillOpacity: pol._originalStyle ? pol._originalStyle.fillOpacity : 0.8,
-                weight: 2
-              });
+              pol.setStyle({ color: "#e11d48", fillColor: "#fb7185", fillOpacity: 0.92, weight: 4 });
+            } else if (pol._originalStyle) {
+              pol.setStyle(pol._originalStyle);
             }
             if (count >= 6) {
-              clearInterval(interval);
-              if (pol._originalStyle) pol.setStyle(pol._originalStyle);
+              clearInterval(_intervaloDestello);
+              _intervaloDestello = null;
+              if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+                window.actualizarColoresCuadrasCapitan();
+              } else if (pol._originalStyle) {
+                pol.setStyle(pol._originalStyle);
+              }
             }
           }, 240);
         } catch (e) {}
       }
     });
-  }, 320);
+  }, 750);
 }
 
 // --------------------------------------------------------------------------------------
@@ -112,7 +122,11 @@ function abrirModalTodasNotas() {
     window.reproducirSonidoClick("tap");
   }
 
+  // Evitar abrir modales duplicados si ya está abierto
+  if (document.getElementById("modalGlobalTodasNotas")) return;
+
   const modal = document.createElement("div");
+  modal.id = "modalGlobalTodasNotas";
   modal.className = "terrosa-modal-overlay";
   modal.innerHTML = `
     <div class="terrosa-modal-card terrosa-modal-large" style="max-height:85vh; display:flex; flex-direction:column; padding:20px 18px;">
@@ -128,15 +142,21 @@ function abrirModalTodasNotas() {
   document.body.appendChild(modal);
 
   const cerrar = () => {
-    if (typeof window.reproducirSonidoClick === "function") {
-      window.reproducirSonidoClick("tap");
-    }
     if (document.body.contains(modal)) document.body.removeChild(modal);
   };
 
   modal.querySelector("#btnCerrarModalNotasGen").onclick = cerrar;
 
   const cont = modal.querySelector("#contenedorListaNotas");
+
+  function escaparTexto(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
   function renderizarNotas() {
     let todas = [];
@@ -148,11 +168,13 @@ function abrirModalTodasNotas() {
           notasPol.forEach((nota, index) => {
             const txt = typeof nota === "string" ? nota : nota.texto || JSON.stringify(nota);
             if (!txt.startsWith("Trabajado por:")) {
+              const rawLbl = pol._label ? String(pol._label).trim() : "";
+              const cuadraClean = rawLbl || String(pol._id).replace(/^.*?Cuadra/i, "").replace(/^[a-zA-Z0-9]+_c/i, "");
               todas.push({
                 territorioId: territorio._id,
-                territorioNum: territorio._id.replace(/\D/g, '') || "1",
+                territorioNum: territorio._id.replace(/\D/g, "") || "Neg",
                 cuadraId: pol._id,
-                cuadraNum: (pol.options && pol.options.label) ? pol.options.label : pol._id.replace(/^[a-zA-Z0-9]+_c/i, ''),
+                cuadraNum: cuadraClean,
                 texto: txt,
                 index: index
               });
@@ -172,6 +194,8 @@ function abrirModalTodasNotas() {
     todas.forEach(n => {
       const card = document.createElement("div");
       card.className = "card-historial-minimal";
+      const etiquetaCuadra = /^cuadra/i.test(String(n.cuadraNum)) ? n.cuadraNum : `Cuadra ${n.cuadraNum}`;
+
       card.innerHTML = `
         <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
           <div style="background:#fef3c7; color:#b45309; font-weight:800; font-size:13.5px; border-radius:12px; padding:6px 10px; min-width:38px; text-align:center; flex-shrink:0;">
@@ -179,10 +203,10 @@ function abrirModalTodasNotas() {
           </div>
           <div style="min-width:0; flex:1;">
             <div style="font-weight:700; color:#1e293b; font-size:14px; line-height:1.35; word-break:break-word;">
-              ${n.texto}
+              ${escaparTexto(n.texto)}
             </div>
             <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
-              Cuadra ${n.cuadraNum}
+              ${escaparTexto(etiquetaCuadra)}
             </div>
           </div>
         </div>
@@ -213,7 +237,7 @@ function abrirModalTodasNotas() {
             window.reproducirSonidoClick("delete");
           }
           window.refrescarIndicadoresNotas();
-          renderizarNotas(); // Reactivo de inmediato!
+          renderizarNotas();
         }
       };
 
@@ -231,22 +255,33 @@ function inicializarEventosNotas() {
   const btnNotas = document.getElementById("btnMostrarTodasNotas");
   if (!btnNotas) return;
 
-  // Click normal: alternar iconos en el mapa
-  btnNotas.addEventListener("click", () => {
+  let pressTimer = null;
+  let longPressTriggered = false;
+
+  // Click normal: alternar iconos en el mapa (solo si no fue pulsación larga)
+  btnNotas.addEventListener("click", (e) => {
+    if (longPressTriggered) {
+      longPressTriggered = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     toggleIconosNotas();
   });
 
   // Click derecho (PC): abrir modal de gestión
   btnNotas.addEventListener("contextmenu", function (e) {
     e.preventDefault();
+    clearTimeout(pressTimer);
     abrirModalTodasNotas();
   });
 
   // Mantener presionado (móvil y táctil)
-  let pressTimer;
-  function iniciarPresion(e) {
+  function iniciarPresion() {
+    longPressTriggered = false;
     clearTimeout(pressTimer);
     pressTimer = setTimeout(() => {
+      longPressTriggered = true;
       abrirModalTodasNotas();
     }, 550);
   }

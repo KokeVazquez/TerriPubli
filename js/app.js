@@ -63,11 +63,28 @@ function ocultarLoader() {
 
 function flyWithLoader(bounds, callback) {
   mostrarLoader();
-  map.flyToBounds(bounds, { padding: [30, 30], duration: 0.7 });
+  let finalizado = false;
 
-  map.once('moveend', function () {
+  function concluir() {
+    if (finalizado) return;
+    finalizado = true;
     ocultarLoader();
     if (callback) callback();
+  }
+
+  // Fallback de seguridad por si el mapa ya está en esos mismos límites y Leaflet no emite 'moveend'
+  const timerSeguridad = setTimeout(concluir, 850);
+
+  map.once("moveend", function () {
+    clearTimeout(timerSeguridad);
+    concluir();
+  });
+
+  // Encuadrar respetando el espacio de la cabecera superior y la barra inferior
+  map.flyToBounds(bounds, {
+    paddingTopLeft: [20, 92],
+    paddingBottomRight: [20, 98],
+    duration: 0.7
   });
 }
 
@@ -82,203 +99,13 @@ map.on("click", function () {
 });
 
 // ==============================================================================================================================
-// 5. Registrar Capitán
-// ==============================================================================================================================
-function registrarCapitan(pol) {
-  popupRegistrarCapitan(pol);
-}
-
-function mostrarPopupConfirmacionCentro(mensaje) {
-  const popup = document.createElement("div");
-  popup.innerText = mensaje;
-  popup.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.8);
-    background: #4caf50;
-    color: white;
-    padding: 15px 25px;
-    border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    z-index: 10000;
-    font-size: 16px;
-    opacity: 0;
-    transition: opacity 0.3s, transform 0.3s;
-    text-align: center;
-    max-width: 80%;
-  `;
-  document.body.appendChild(popup);
-
-  setTimeout(() => {
-    popup.style.opacity = "1";
-    popup.style.transform = "translate(-50%, -50%) scale(1)";
-  }, 10);
-
-  setTimeout(() => {
-    popup.style.opacity = "0";
-    popup.style.transform = "translate(-50%, -50%) scale(0.8)";
-    setTimeout(() => {
-      if (document.body.contains(popup)) document.body.removeChild(popup);
-    }, 300);
-  }, 2000);
-}
-
-function popupRegistrarCapitan(pol) {
-  const territorioId = pol._territorioId || "territorio";
-
-  const modal = document.createElement("div");
-  modal.style.cssText = `
-    position: fixed; top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
-    z-index: 9999;
-  `;
-
-  modal.innerHTML = `
-    <div style="
-      background:white; padding:25px; border-radius:12px; width:300px; text-align:center;
-      box-shadow:0 5px 20px rgba(0,0,0,0.3); position:relative;
-    ">
-      <button id="cerrarPopupCapitan" style="
-        position:absolute; top:8px; right:8px; font-size:18px; border:none; background:none; cursor:pointer;">✖</button>
-      <h3 style="margin-bottom:15px; margin-top:0;">Registrar Capitán</h3>
-      <input id="inputCapitan" placeholder="Nombre del capitán" style="width:90%; padding:6px; margin-bottom:10px; box-sizing:border-box;"/>
-      <input id="inputFecha" type="date" style="width:90%; padding:6px; margin-bottom:15px; box-sizing:border-box;"/>
-      <button id="guardarCapitan" style="
-        padding:8px 15px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer;
-      ">Guardar</button>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  modal.querySelector("#cerrarPopupCapitan").addEventListener("click", () => {
-    if (document.body.contains(modal)) document.body.removeChild(modal);
-  });
-
-  modal.querySelector("#guardarCapitan").addEventListener("click", () => {
-    const capitan = modal.querySelector("#inputCapitan").value.trim();
-    const fecha = modal.querySelector("#inputFecha").value.trim();
-    if (!capitan || !fecha) return alert("Ingresa nombre y fecha");
-
-    let registros = JSON.parse(localStorage.getItem(territorioId + "_capitanes") || "{}");
-    if (!registros[pol._id]) registros[pol._id] = [];
-    registros[pol._id].push(`Capitán: ${capitan} | Fecha: ${fecha}`);
-    localStorage.setItem(territorioId + "_capitanes", JSON.stringify(registros));
-
-    if (document.body.contains(modal)) document.body.removeChild(modal);
-    mostrarPopupConfirmacionCentro("Capitán registrado con éxito!");
-
-    pol._selected = true;
-    pol.setStyle({ color: "gray", fillColor: "gray", fillOpacity: 0.9 });
-
-    filtrarPorMes();
-  });
-}
-
-// ==============================================================================================================================
-// 6. Filtrar por Mes
-// ==============================================================================================================================
-function filtrarPorMes() {
-  const filtroMesElem = document.getElementById('filtroMes');
-  const mes = filtroMesElem ? filtroMesElem.value : "";
-  const mostrarTodos = (mes === "todos");
-
-  // Limpiar iconos anteriores
-  window.indicadoresNotas.forEach(m => map.removeLayer(m));
-  window.indicadoresNotas = [];
-
-  // Limpiar overlay gris previo
-  if (window.overlayGris) {
-    map.removeLayer(window.overlayGris);
-    window.overlayGris = null;
-  }
-
-  const mundo = [[90, -180], [90, 180], [-90, 180], [-90, -180], [90, -180]];
-  let huecos = [];
-  window.poligonosSeleccionadosPorMes = [];
-
-  window.todosLosTerritorios.forEach(territorio => {
-    const registros = JSON.parse(localStorage.getItem(territorio._id + "_capitanes") || "{}");
-
-    territorio.eachLayer(pol => {
-      let trabajadoEsteMes = false;
-
-      (registros[pol._id] || []).forEach(reg => {
-        const fecha = reg.split('| Fecha:')[1]?.trim();
-        if (fecha) {
-          const mesRegistro = fecha.slice(5, 7);
-          if (mostrarTodos || mesRegistro === mes.padStart(2, '0')) {
-            trabajadoEsteMes = true;
-          }
-        }
-      });
-
-      if (trabajadoEsteMes) {
-        pol._selected = true;
-        window.poligonosSeleccionadosPorMes.push(pol._id);
-
-        pol.setStyle({
-          color: "yellow",
-          weight: 5,
-          fillColor: "gray",
-          fillOpacity: 0.7
-        });
-
-        // Crear icono de palomita
-        const latlngs = pol.getLatLngs()[0];
-        const coords = latlngs.map(ll => [ll.lng, ll.lat]);
-        coords.push([coords[0][0], coords[0][1]]);
-        const centroide = turf.centroid(turf.polygon([coords]));
-        const cLat = centroide.geometry.coordinates[1];
-        const cLng = centroide.geometry.coordinates[0];
-
-        const marker = L.marker([cLat, cLng], {
-          interactive: false,
-          icon: L.divIcon({
-            className: "indicador-nota",
-            html: "✅",
-            iconSize: [25, 25],
-            iconAnchor: [12, 12]
-          })
-        }).addTo(map);
-
-        window.indicadoresNotas.push(marker);
-
-        if (pol.getLatLngs) huecos.push(pol.getLatLngs()[0].map(ll => [ll.lat, ll.lng]));
-      } else {
-        pol._selected = false;
-        pol.setStyle(pol._originalStyle);
-      }
-    });
-  });
-
-  // Calcular porcentaje de avance
-  const cantidadPalomitas = window.indicadoresNotas.length;
-  const porcentaje = ((cantidadPalomitas / TOTAL_CUADRAS) * 100).toFixed(2);
-  const porcentajeElem = document.getElementById("porcentajeAvance");
-  if (porcentajeElem) porcentajeElem.textContent = porcentaje + "%";
-
-  // Overlay gris con ventana sobre los trabajados
-  if (huecos.length > 0) {
-    window.overlayGris = L.polygon([mundo, ...huecos], {
-      color: "#000",
-      fillColor: "#000",
-      fillOpacity: 0.6,
-      stroke: false,
-      interactive: false
-    }).addTo(map);
-  }
-}
-
-// ==============================================================================================================================
-// 7. Enfocar Territorio y Etiquetas
+// 5. Enfocar Territorio y Etiquetas
 // ==============================================================================================================================
 function enfocarTerritorio(grupo) {
   territorioActivo = grupo;
   window.territorioActivo = grupo;
 
-  // Asegurar que todos los territorios completados (dentro y fuera del enfoque) permanezcan en gris
+  // Asegurar que los colores correspondan al modo activo (colorido en Publicador, grises en Capitán)
   if (typeof window.ejecutarFiltroFecha === "function" && window.hayFiltroFechaActivo && window.hayFiltroFechaActivo()) {
     window.ejecutarFiltroFecha();
   } else if (typeof window.actualizarColoresCuadrasCapitan === "function") {
@@ -286,18 +113,10 @@ function enfocarTerritorio(grupo) {
   } else {
     window.todosLosTerritorios.forEach(t => {
       t.eachLayer(pol => {
-        pol.setStyle(pol._selected
-          ? { color: "gray", fillColor: "gray", fillOpacity: 0.9 }
-          : pol._originalStyle
-        );
+        if (pol._originalStyle) pol.setStyle(pol._originalStyle);
       });
     });
   }
-
-  territorioActivo.eachLayer(pol => {
-    pol._territorioId = grupo._id || "territorio";
-    vincularMenuCuadra(pol, grupo._id);
-  });
 
   if (overlayGris) map.removeLayer(overlayGris);
 
@@ -431,11 +250,10 @@ function inicializarAreaGrande() {
   const btnArea = document.getElementById("btnAreaGrande");
   if (!btnArea) return;
 
-  let presionadoTimeout;
-
   btnArea.addEventListener("click", function () {
     map.closePopup();
-    document.getElementById("selectorTerritorios").value = "";
+    const selTerr = document.getElementById("selectorTerritorios");
+    if (selTerr) selTerr.value = "";
     if (typeof ocultarMenu === "function") ocultarMenu(true);
 
     if (overlayGris) {
@@ -446,7 +264,7 @@ function inicializarAreaGrande() {
     etiquetasActivas.forEach(m => map.removeLayer(m));
     etiquetasActivas = [];
 
-    // Mantener estado en gris en tiempo real en Área Grande (o filtro de fecha activo)
+    // Mantener colores según el modo activo
     if (typeof window.ejecutarFiltroFecha === "function" && window.hayFiltroFechaActivo && window.hayFiltroFechaActivo()) {
       window.ejecutarFiltroFecha();
     } else if (typeof window.actualizarColoresCuadrasCapitan === "function") {
@@ -462,12 +280,20 @@ function inicializarAreaGrande() {
     territorioActivo = null;
     window.territorioActivo = null;
 
-    // Volar suavemente al centro del área grande con el zoom ideal equilibrado
+    // Volar suavemente al centro del área grande con fallback contra bloqueo del loader
     mostrarLoader();
-    map.flyTo(CENTRO_AREA_GRANDE, ZOOM_AREA_GRANDE, { duration: 0.7 });
-    map.once('moveend', function () {
+    let movConcluido = false;
+    function finVueloArea() {
+      if (movConcluido) return;
+      movConcluido = true;
       ocultarLoader();
+    }
+    const timerSeg = setTimeout(finVueloArea, 850);
+    map.once("moveend", function () {
+      clearTimeout(timerSeg);
+      finVueloArea();
     });
+    map.flyTo(CENTRO_AREA_GRANDE, ZOOM_AREA_GRANDE, { duration: 0.7 });
 
     const customSelectTerr = document.getElementById("customSelectorTerritorios");
     if (customSelectTerr) {
@@ -476,32 +302,6 @@ function inicializarAreaGrande() {
       customSelectTerr.classList.remove("active");
     }
   });
-
-  function resetFiltroMes() {
-    const filtroMes = document.getElementById("filtroMes");
-    const customSelect = document.getElementById("customFiltroMes");
-    if (filtroMes) filtroMes.value = "inicio";
-    if (customSelect) {
-      const selected = customSelect.querySelector(".selected");
-      if (selected) selected.textContent = "Mes";
-    }
-    filtrarPorMes();
-  }
-
-  btnArea.addEventListener("contextmenu", function (e) {
-    e.preventDefault();
-    resetFiltroMes();
-  });
-
-  btnArea.addEventListener("mousedown", function () {
-    presionadoTimeout = setTimeout(resetFiltroMes, 800);
-  });
-  btnArea.addEventListener("mouseup", () => clearTimeout(presionadoTimeout));
-  btnArea.addEventListener("mouseleave", () => clearTimeout(presionadoTimeout));
-  btnArea.addEventListener("touchstart", function () {
-    presionadoTimeout = setTimeout(resetFiltroMes, 800);
-  });
-  btnArea.addEventListener("touchend", () => clearTimeout(presionadoTimeout));
 }
 
 // ==============================================================================================================================
@@ -560,8 +360,8 @@ let seguimientoActivo = false;
 let watchId = null;
 
 function activarUbicacion() {
-  const btnAreaGrande = document.getElementById("btnAreaGrande");
-  const menuPanel = document.getElementById('menu-panel');
+  const menuPanel = document.getElementById("menu-panel");
+  const btnUbicacion = document.getElementById("btnUbicacion");
 
   if (!navigator.geolocation) {
     alert("Tu navegador no soporta geolocalización.");
@@ -570,35 +370,52 @@ function activarUbicacion() {
 
   if (seguimientoActivo) {
     navigator.geolocation.clearWatch(watchId);
+    watchId = null;
     seguimientoActivo = false;
     if (marcadorUbicacion) {
       map.removeLayer(marcadorUbicacion);
       marcadorUbicacion = null;
     }
-    if (btnAreaGrande) btnAreaGrande.click();
-    if (menuPanel && menuPanel.classList.contains('show')) {
-      menuPanel.classList.remove('show');
+    if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
+    if (menuPanel && menuPanel.classList.contains("show")) {
+      menuPanel.classList.remove("show");
     }
     return;
   }
 
-  let loader = document.createElement('div');
+  const prevLoader = document.getElementById("loaderUbicacion");
+  if (prevLoader) prevLoader.remove();
+
+  let loader = document.createElement("div");
   loader.id = "loaderUbicacion";
   loader.innerHTML = `
     <div style="
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
       z-index: 99999;
     ">
       <div style="
-        width: 60px; height: 60px; border: 6px solid #fff; border-top: 6px solid #3498db;
-        border-radius: 50%; animation: spinLoader 1s linear infinite;
-      "></div>
+        background: white; padding: 20px 26px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      ">
+        <div style="
+          width: 42px; height: 42px; border: 4px solid #e2e8f0; border-top: 4px solid #1a73e8;
+          border-radius: 50%; animation: spinLoader 0.9s linear infinite;
+        "></div>
+        <span style="font-size:13px; font-weight:700; color:#1e293b;">Obteniendo ubicación GPS...</span>
+      </div>
     </div>
   `;
   document.body.appendChild(loader);
 
   seguimientoActivo = true;
+  if (btnUbicacion) btnUbicacion.textContent = "📍 Detener Ubicación";
+
+  const iconoGps = L.divIcon({
+    className: "marcador-gps-usuario",
+    html: `<div style="width:18px; height:18px; background:#1a73e8; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 0 6px rgba(26,115,232,0.28), 0 2px 6px rgba(0,0,0,0.35);"></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
 
   watchId = navigator.geolocation.watchPosition(
     function (pos) {
@@ -608,20 +425,21 @@ function activarUbicacion() {
       if (marcadorUbicacion) {
         marcadorUbicacion.setLatLng([lat, lon]);
       } else {
-        marcadorUbicacion = L.marker([lat, lon]).addTo(map);
-        map.setView([lat, lon], 17);
+        marcadorUbicacion = L.marker([lat, lon], { icon: iconoGps, interactive: false }).addTo(map);
+        map.flyTo([lat, lon], 17, { duration: 0.7 });
       }
 
       const loaderActivo = document.getElementById("loaderUbicacion");
       if (loaderActivo) loaderActivo.remove();
     },
     function (err) {
-      alert("Error al obtener ubicación: " + err.message);
+      alert("No se pudo obtener la ubicación: " + err.message);
       seguimientoActivo = false;
+      if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
       const loaderActivo = document.getElementById("loaderUbicacion");
       if (loaderActivo) loaderActivo.remove();
     },
-    { enableHighAccuracy: true }
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
   );
 }
 
@@ -635,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicializar eventos de módulos
   inicializarAreaGrande();
   inicializarEventosNotas();
-  inicializarEventosTerminados();
   if (typeof inicializarModuloCapitan === "function") inicializarModuloCapitan();
 
   // Selects personalizados
@@ -644,8 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Menú hamburguesa
   const hamburgerBtn = document.getElementById('hamburger-btn');
   const menuPanel = document.getElementById('menu-panel');
-  const backupBtnMenu = document.getElementById('btnCopiaSeguridad');
-  const restoreBtnMenu = document.getElementById('btnRestaurar');
   const btnUbicacionMenu = document.getElementById('btnUbicacion');
 
   // Fijar exclusivamente a numeración original (viejita)
@@ -660,22 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function cerrarMenu() {
       if (menuPanel.classList.contains('show')) menuPanel.classList.remove('show');
-    }
-
-    if (backupBtnMenu) {
-      backupBtnMenu.addEventListener('click', (e) => {
-        cerrarMenu();
-        hacerCopiaSeguridad();
-        e.stopPropagation();
-      });
-    }
-
-    if (restoreBtnMenu) {
-      restoreBtnMenu.addEventListener('click', (e) => {
-        cerrarMenu();
-        restaurarCopia();
-        e.stopPropagation();
-      });
     }
 
     if (btnUbicacionMenu) {

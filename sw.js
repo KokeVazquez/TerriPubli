@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v32';
+const CACHE_NAME = 'territorios-cache-v33';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,8 +12,6 @@ const ASSETS_TO_CACHE = [
   './js/territoriosData.js',
   './js/territoriosManager.js',
   './js/notas.js',
-  './js/terminados.js',
-  './js/backup.js',
   './js/capitanManager.js',
   './js/app.js',
   './js/pwa.js',
@@ -24,8 +22,7 @@ const ASSETS_TO_CACHE = [
   'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js',
-  'https://unpkg.com/@turf/turf/turf.min.js',
-  'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js'
+  'https://unpkg.com/@turf/turf/turf.min.js'
 ];
 
 // Instalación: cachear archivos críticos

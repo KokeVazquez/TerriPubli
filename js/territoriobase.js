@@ -220,7 +220,10 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
     nombreTerritorio = "Negocios";
   }
 
-  const nombreCuadra = pol._label ? `Cuadra ${pol._label}` : (pol._id || "Cuadra");
+  const rawLabel = pol._label ? String(pol._label).trim() : "";
+  const nombreCuadra = rawLabel
+    ? (/^cuadra/i.test(rawLabel) ? rawLabel : `Cuadra ${rawLabel}`)
+    : (pol._id ? String(pol._id).replace(/^Cuadra/i, "Cuadra ") : "Cuadra");
   const tituloCompleto = `${nombreTerritorio}, ${nombreCuadra}`;
 
   // Guardar datos en atributos para uso de botones
@@ -267,13 +270,13 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
     } catch (err) {}
   }
 
-  // Prevenir que el menú se salga de los bordes de la pantalla
-  const menuWidth = 200;
-  const menuHeight = 210;
+  // Prevenir que el menú se salga de los bordes o quede oculto tras las barras superior/inferior
+  const menuWidth = 205;
+  const menuHeight = 225;
   if (x + menuWidth > window.innerWidth - 12) x = window.innerWidth - menuWidth - 12;
   if (x < 12) x = 12;
-  if (y + menuHeight > window.innerHeight - 12) y = window.innerHeight - menuHeight - 12;
-  if (y < 12) y = 12;
+  if (y + menuHeight > window.innerHeight - 98) y = window.innerHeight - menuHeight - 98;
+  if (y < 86) y = 86;
 
   menu.style.left = x + "px";
   menu.style.top = y + "px";
@@ -305,95 +308,94 @@ function ocultarMenu(force) {
   if (menu) menu.style.display = "none";
 }
 
+function escaparHtmlSeguro(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // =============================
 // === Notas ===
 // =============================
 
 function anadirNotaPopup(id, territorioId) {
-  ocultarMenu();
+  ocultarMenu(true);
   var notasPoligonos = JSON.parse(localStorage.getItem(territorioId + "_notas") || "{}");
 
   const modalFondo = document.createElement("div");
   modalFondo.id = "modalAñadirNota";
-  modalFondo.style.position = "fixed";
-  modalFondo.style.top = "0";
-  modalFondo.style.left = "0";
-  modalFondo.style.width = "100%";
-  modalFondo.style.height = "100%";
-  modalFondo.style.background = "rgba(0,0,0,0.5)";
-  modalFondo.style.display = "flex";
-  modalFondo.style.alignItems = "center";
-  modalFondo.style.justifyContent = "center";
-  modalFondo.style.zIndex = "99999";
-  modalFondo.style.backdropFilter = "blur(4px)";
+  modalFondo.className = "terrosa-modal-overlay";
 
   modalFondo.innerHTML = `
-    <div style="
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 20px;
-      color: #111;
-      font-family: inherit;
-      font-weight: 500;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      min-width: 300px;
-      max-width: 90%;
-    ">
-      <b style="font-size:16px;">Añadir nota:</b><br>
-      <textarea id="inputNota" rows="4" cols="30" placeholder='Escribe tu nota aquí...' style="
+    <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">➕ Añadir nota</h3>
+        <button id="cerrarModalNotaX" class="btn-icon-square">✕</button>
+      </div>
+      <textarea id="inputNota" rows="4" placeholder="Escribe tu nota aquí..." style="
         width: 100%;
-        padding: 10px;
-        border-radius: 12px;
-        border: 1px solid rgba(0,0,0,0.15);
-        background: #f8f8f8;
-        color: #111;
+        padding: 11px 14px;
+        border-radius: 14px;
+        border: 1.5px solid #cbd5e1;
+        background: #f8fafc;
+        color: #0f172a;
         font-family: inherit;
-        font-size: 14px;
-        margin-top: 8px;
-        margin-bottom: 12px;
+        font-size: 14.5px;
+        margin-bottom: 14px;
         resize: none;
         box-sizing: border-box;
-      "></textarea><br>
+        outline: none;
+      "></textarea>
       <div style="display:flex; gap:8px;">
-        <button id="guardarNota" style="
-          flex:1;
-          background: #4caf50;
-          border: none;
-          border-radius: 50px;
-          color: white;
-          font-weight: 600;
-          padding: 10px 15px;
-          cursor: pointer;
-        ">💾 Guardar</button>
         <button id="cancelarNota" style="
           flex:1;
-          background: #f44336;
+          background: #f1f5f9;
           border: none;
-          border-radius: 50px;
-          color: white;
-          font-weight: 600;
-          padding: 10px 15px;
+          border-radius: 12px;
+          color: #475569;
+          font-weight: 700;
+          padding: 11px 15px;
+          font-size: 13.5px;
           cursor: pointer;
-        ">❌ Cancelar</button>
+        ">Cancelar</button>
+        <button id="guardarNota" style="
+          flex:1;
+          background: linear-gradient(135deg, #1a73e8, #1557b0);
+          border: none;
+          border-radius: 12px;
+          color: white;
+          font-weight: 800;
+          padding: 11px 15px;
+          font-size: 13.5px;
+          cursor: pointer;
+          box-shadow: 0 3px 10px rgba(26,115,232,0.3);
+        ">Guardar ✅</button>
       </div>
     </div>
   `;
 
   document.body.appendChild(modalFondo);
 
-  document.getElementById("cancelarNota").onclick = () => {
-    document.body.removeChild(modalFondo);
+  const cerrar = () => {
+    if (document.body.contains(modalFondo)) document.body.removeChild(modalFondo);
   };
 
-  document.getElementById("guardarNota").onclick = () => {
-    const texto = document.getElementById("inputNota").value.trim();
+  modalFondo.querySelector("#cancelarNota").onclick = cerrar;
+  modalFondo.querySelector("#cerrarModalNotaX").onclick = cerrar;
+
+  const input = modalFondo.querySelector("#inputNota");
+  setTimeout(() => input.focus(), 80);
+
+  modalFondo.querySelector("#guardarNota").onclick = () => {
+    const texto = input.value.trim();
     if (!texto) return;
     if (!notasPoligonos[id]) notasPoligonos[id] = [];
     notasPoligonos[id].push(texto);
     localStorage.setItem(territorioId + "_notas", JSON.stringify(notasPoligonos));
-    document.body.removeChild(modalFondo);
+    cerrar();
     if (typeof window.refrescarIndicadoresNotas === "function") {
       window.refrescarIndicadoresNotas();
     }
@@ -404,26 +406,31 @@ function anadirNotaPopup(id, territorioId) {
 }
 
 function verNotas(id, territorioId) {
-  ocultarMenu();
+  ocultarMenu(true);
   var notasPoligonos = JSON.parse(localStorage.getItem(territorioId + "_notas") || "{}");
   mostrarNotasPopup(id, notasPoligonos, territorioId);
 }
 
 function mostrarNotasPopup(id, notasPoligonos, territorioId) {
   map.closePopup();
-  var notas = notasPoligonos[id] || [];
-  notas = notas.filter(n => typeof n === "string" ? !n.startsWith("Trabajado por:") : true);
+  var listaOriginal = notasPoligonos[id] || [];
+  var itemsValidos = [];
+  listaOriginal.forEach((nota, realIndex) => {
+    const txt = typeof nota === "string" ? nota : (nota.texto || JSON.stringify(nota));
+    if (!txt.startsWith("Trabajado por:")) {
+      itemsValidos.push({ texto: txt, realIndex: realIndex });
+    }
+  });
 
-  var contenido = "<div style='font-family:system-ui; font-size:13.5px;'><b style='font-size:15px; color:#1e293b;'>📒 Notas de esta cuadra:</b><br><br>";
-  if (notas.length === 0) {
+  var contenido = "<div style='font-family:system-ui; font-size:13.5px; min-width:190px;'><b style='font-size:15px; color:#1e293b;'>📒 Notas de esta cuadra:</b><br><br>";
+  if (itemsValidos.length === 0) {
     contenido += "<span style='color:#64748b;'>No hay notas registradas.</span>";
   } else {
-    notas.forEach((nota, i) => {
-      const textoNota = typeof nota === "string" ? nota : (nota.texto || JSON.stringify(nota));
+    itemsValidos.forEach((item, idx) => {
       contenido += `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f1f5f9; gap:8px;">
-          <span>${i + 1}. <b>${textoNota}</b></span>
-          <button onclick="confirmarEliminarNotaPopup('${id}', ${i}, '${territorioId}')" style="background:#fee2e2; border:none; border-radius:6px; padding:3px 7px; color:#dc2626; cursor:pointer; font-weight:bold;">🗑️</button>
+          <span style="word-break:break-word;">${idx + 1}. <b>${escaparHtmlSeguro(item.texto)}</b></span>
+          <button onclick="confirmarEliminarNotaPopup('${id}', ${item.realIndex}, '${territorioId}')" style="background:#fee2e2; border:none; border-radius:6px; padding:4px 8px; color:#dc2626; cursor:pointer; font-weight:bold; flex-shrink:0;">🗑️</button>
         </div>
       `;
     });

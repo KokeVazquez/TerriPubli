@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=32" />
+  <link rel="stylesheet" href="css/styles.css?v=33" />
 </head>
 
 <body>
@@ -297,34 +297,7 @@
         </svg>
         <span>Reportar</span>
       </button>
-
-      <button id="btnTerritoriosTerminados" style="display:none">Territorios terminados</button>
-      <select id="filtroMes" style="display:none;"><option value="inicio">Mes</option></select>
     </div>
-  </div>
-
-  <!-- Cuadro flotante de porcentaje de avance -->
-  <div id="cuadroPorcentaje" style="
-    position: fixed;
-    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
-    right: clamp(12px, 3vw, 25px);
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0,0,0,0.15);
-    border-radius: 50px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
-    z-index: 10000;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: clamp(0.9rem, 2vw, 1rem);
-    display: none;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    user-select: none;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-  ">
-    <span style="font-weight: 600; color: #333;">Avance:</span>
-    <span id="porcentajeAvance" style="font-weight: bold; color: #1a73e8; font-size: clamp(1rem, 2.4vw, 1.2rem);">0.0%</span>
   </div>
 
   <!-- Contenedor del Mapa Leaflet -->
@@ -350,27 +323,22 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=32"></script>
+  <script src="js/territoriobase.js?v=33"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=32"></script>
+  <script src="js/territoriosData.js?v=33"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=32"></script>
+  <script src="js/territoriosManager.js?v=33"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=32"></script>
-  <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=32"></script>
-  <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=32"></script>
-  <!-- 7. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=32"></script>
-  <!-- 8. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=32"></script>
-  <!-- 9. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=32"></script>
+  <script src="js/notas.js?v=33"></script>
+  <!-- 5. Módulo de Capitanes y Aprobaciones S-13 -->
+  <script src="js/capitanManager.js?v=33"></script>
+  <!-- 6. Aplicación principal (interfaz, mapa, geolocalización) -->
+  <script src="js/app.js?v=33"></script>
+  <!-- 7. Registro de Service Worker (PWA) -->
+  <script src="js/pwa.js?v=33"></script>
 </body>
 
 </html>

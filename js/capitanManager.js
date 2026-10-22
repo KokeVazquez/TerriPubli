@@ -129,6 +129,24 @@
     return p.fechaDisplay || fechaStr;
   }
 
+  // Obtener fecha actual en zona horaria local (evita desfase UTC después de las 6:00 PM)
+  function obtenerFechaLocalISO() {
+    const d = new Date();
+    const anio = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    return `${anio}-${mes}-${dia}`;
+  }
+
+  function escaparTextoSeguro(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   // 1. Obtener estado actual y versión activa (Anterior vs Nueva)
   window.getModoActual = function () {
     return localStorage.getItem("terrosa_modo") || "publicador";
@@ -671,27 +689,29 @@
     const rep = lista.find(r => r.id === id);
     if (!rep) return;
 
+    const fechaISO = parsearFechaReporte(rep.fecha).fechaISO || obtenerFechaLocalISO();
+
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
       <div class="terrosa-modal-card" style="max-width:330px; padding:22px 20px;">
         <h3 style="margin:0 0 2px 0; color:#0f172a; font-size:18px; font-weight:800;">✏️ Editar Registro</h3>
-        <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:14px;">Territorio ${rep.territorioNumero}</div>
+        <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:14px;">Territorio ${escaparTextoSeguro(rep.territorioNumero)}</div>
 
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div>
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
-            <input type="text" id="editCapitanNombre" value="${rep.capitan}" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:600; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
+            <input type="text" id="editCapitanNombre" value="${escaparTextoSeguro(rep.capitan)}" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:600; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
           </div>
 
           <div>
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Fecha</label>
-            <input type="date" id="editFecha" value="${rep.fecha}" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
+            <input type="date" id="editFecha" value="${fechaISO}" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
           </div>
 
           <div>
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Comentario</label>
-            <input type="text" id="editComentario" value="${rep.comentario || ''}" placeholder="Escribe aquí..." style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
+            <input type="text" id="editComentario" value="${escaparTextoSeguro(rep.comentario || '')}" placeholder="Escribe aquí..." style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
           </div>
         </div>
 
@@ -783,7 +803,7 @@
   window.abrirModalRegistroTerritorio = function (preTerritorioId, preCuadraId) {
     window.reproducirSonidoClick("tap");
     const capitanActivo = window.getCapitanNombre() || "Koke";
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = obtenerFechaLocalISO();
     const listaCapitanesSugeridos = ["Koke", "Josué Ramos", "Auxiliar de Territorios", "Encargado de Servicio"];
     if (capitanActivo && !listaCapitanesSugeridos.includes(capitanActivo)) {
       listaCapitanesSugeridos.unshift(capitanActivo);
@@ -974,10 +994,17 @@
           chk.checked = !chk.checked;
           chip.classList.toggle("selected", chk.checked);
           window.reproducirSonidoClick("toggle");
+          const todosChks = contenedorCuadras.querySelectorAll(".chk-cuadra");
+          const todasChecked = todosChks.length > 0 && Array.from(todosChks).every(c => c.checked);
+          btnToggleTodas.textContent = todasChecked ? "Desmarcar todas" : "Seleccionar todas";
         });
 
         contenedorCuadras.appendChild(chip);
       });
+
+      const todosChksInicial = contenedorCuadras.querySelectorAll(".chk-cuadra");
+      const todasCheckedInicial = todosChksInicial.length > 0 && Array.from(todosChksInicial).every(c => c.checked);
+      btnToggleTodas.textContent = todasCheckedInicial ? "Desmarcar todas" : "Seleccionar todas";
     }
 
     if (selectTerr.value) {
@@ -1802,21 +1829,14 @@
         localStorage.setItem("terrosa_mutaciones_aprobadas", JSON.stringify(Array.from(aprobadosLocales)));
         localStorage.setItem("terrosa_mutaciones_eliminadas", JSON.stringify(Array.from(eliminadosLocales)));
 
-        // Normalizar fechas y filtrar los reportes eliminados localmente
+        // Normalizar fechas sin desfase de zona horaria UTC y filtrar los reportes eliminados localmente
         let reportesNormalizados = listaReportes
           .filter(r => !eliminadosLocales.has(r.id))
           .map(r => {
-            let f = r.fecha || "";
-            if (f && f.length > 10 && !/^\d{4}-\d{2}-\d{2}$/.test(f)) {
-              const d = new Date(f);
-              if (!isNaN(d.getTime())) {
-                const anio = d.getFullYear();
-                const mes = ("0" + (d.getMonth() + 1)).slice(-2);
-                const dia = ("0" + d.getDate()).slice(-2);
-                f = `${anio}-${mes}-${dia}`;
-              }
+            const parsed = parsearFechaReporte(r.fecha);
+            if (parsed.fechaISO) {
+              r.fecha = parsed.fechaISO;
             }
-            r.fecha = f;
 
             // Mantener como APROBADO si el usuario lo aprobó localmente y la nube aún está procesando
             if (aprobadosLocales.has(r.id)) {
@@ -1852,9 +1872,10 @@
     }
   };
 
-  // 16. Sonido táctil en micro-interacciones de la app
+  // 16. Sonido táctil en barras y selectores principales (evitando duplicar en modales que tienen su propio sonido)
   document.addEventListener("click", (e) => {
-    const btn = e.target.closest("button, .pill-btn, .custom-select .selected, .options li, .filtro-pildora-btn");
+    if (e.target.closest(".terrosa-modal-overlay")) return;
+    const btn = e.target.closest(".pill-btn, .custom-select .selected, .options li, .filtro-pildora-btn, .filtro-fecha-btn-limpiar, #menuContextual button");
     if (btn && typeof window.reproducirSonidoClick === "function") {
       window.reproducirSonidoClick("tap");
     }

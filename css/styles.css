@@ -88,10 +88,10 @@ path:not(.leaflet-interactive) {
   right: 0;
   width: 100%;
   background-color: #e5e3df; /* Mismo color exacto que el notch/barra de estado */
-  padding-top: calc(max(env(safe-area-inset-top, 0px), 8px) + 2px);
+  padding-top: calc(max(env(safe-area-inset-top, 0px), 6px) + 2px);
   padding-bottom: 8px;
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-left: 8px;
+  padding-right: 8px;
   border-radius: 0 0 18px 18px;
   z-index: 1000;
   display: flex;
@@ -103,11 +103,11 @@ path:not(.leaflet-interactive) {
   box-sizing: border-box;
 }
 
-/* Botón Ingresar / Perfil Capitán arriba del lado derecho */
+/* Botón Ingresar / Perfil Capitán hasta arriba del lado derecho */
 .header-top-actions {
   position: absolute;
-  top: calc(max(env(safe-area-inset-top, 0px), 8px) + 2px);
-  right: 12px;
+  top: calc(max(env(safe-area-inset-top, 0px), 6px) + 2px);
+  right: 8px;
   z-index: 1001;
   pointer-events: auto !important;
   display: flex;
@@ -124,20 +124,21 @@ path:not(.leaflet-interactive) {
   justify-content: center;
   text-align: center;
   pointer-events: auto !important;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .top-header-title {
   margin: 0;
-  padding: 0 76px; /* Espacio para que el botón derecho no lo encime y quede 100% centrado */
-  font-size: clamp(16.5px, 4.6vw, 22px);
+  padding: 0;
+  font-size: clamp(14.5px, 4.1vw, 21px);
   font-weight: 850;
   color: #1e293b;
   text-align: center;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.35px;
   user-select: none;
   -webkit-user-select: none;
-  line-height: 1.18;
+  line-height: 26px; /* Alineado ópticamente con el botón derecho de 26px */
+  white-space: nowrap;
   box-sizing: border-box;
 }
 
@@ -146,7 +147,7 @@ path:not(.leaflet-interactive) {
   font-weight: 800;
   padding: 2.5px 11px;
   border-radius: 20px;
-  margin-top: 6px; /* Separación más marcada solicitada */
+  margin-top: 7px; /* Separación clara respecto al título */
   letter-spacing: 0.4px;
   text-transform: uppercase;
   user-select: none;
@@ -178,16 +179,12 @@ path:not(.leaflet-interactive) {
   justify-content: center;
   gap: 8px;
   pointer-events: auto !important;
-  margin-top: 6px;
+  margin-top: 7px;
   flex-wrap: nowrap;
 }
 
 body.modo-capitan .header-buttons-toolbar {
   display: flex;
-}
-  pointer-events: auto !important;
-  margin-top: 4px;
-  flex-wrap: nowrap;
 }
 
 /* Quitar selección azul al dejar presionado en móvil */
@@ -202,21 +199,21 @@ body.modo-capitan .header-buttons-toolbar {
   outline: none !important;
 }
 
-/* Botón Ingresar para Capitanes (Modern Pill) */
+/* Botón Ingresar para Capitanes (Compacto en esquina superior derecha) */
 .btn-ingresar-pill {
   background: #ffffff;
   color: #1e293b;
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 50px;
-  height: 30px;
-  padding: 0 12px;
-  font-size: 12.5px;
+  height: 26px;
+  padding: 0 9px;
+  font-size: 11.5px;
   font-weight: 700;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   pointer-events: auto !important;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
@@ -224,6 +221,7 @@ body.modo-capitan .header-buttons-toolbar {
   user-select: none;
   box-sizing: border-box;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .btn-ingresar-pill:active {
@@ -237,24 +235,31 @@ body.modo-capitan .header-buttons-toolbar {
   color: #ffffff;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   border-radius: 50px;
-  height: 30px;
-  padding: 0 12px;
-  font-size: 12.5px;
+  height: 26px;
+  padding: 0 9px;
+  font-size: 11.5px;
   font-weight: 800;
   letter-spacing: -0.2px;
-  box-shadow: 0 3px 8px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 2px 7px rgba(26, 115, 232, 0.3);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   pointer-events: auto !important;
   transition: all 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
   box-sizing: border-box;
   flex-shrink: 0;
-  max-width: 140px;
+  max-width: 86px;
+}
+
+#txtNombreCapitanHeader {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 52px;
 }
 
 .avatar-capitan-dot {
@@ -637,88 +642,6 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 
 .menu-panel.show {
   transform: translateX(0);
-}
-
-/* Control conmutador de Versión (Segmented Control) */
-.version-toggle-container {
-  display: flex !important;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
-  padding: 3px;
-  gap: 3px;
-  margin-top: 2px;
-}
-
-.version-toggle-btn {
-  flex: 1 !important;
-  width: auto !important;
-  border: none !important;
-  background: transparent !important;
-  padding: 8px 10px !important;
-  border-radius: 9px !important;
-  font-family: inherit;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: #555 !important;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center !important;
-  justify-content: center !important;
-  display: flex !important;
-  box-shadow: none !important;
-}
-
-.version-toggle-btn:hover {
-  color: #111 !important;
-  background: rgba(0, 0, 0, 0.04) !important;
-}
-
-.version-toggle-btn.active {
-  background: #ffffff !important;
-  color: #1a73e8 !important;
-  font-weight: 700 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
-}
-
-/* Control conmutador de Modo (Publicador vs Capitán) */
-.modo-toggle-container {
-  display: flex !important;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
-  padding: 3px;
-  gap: 3px;
-  margin-top: 2px;
-}
-
-.modo-toggle-btn {
-  flex: 1 !important;
-  width: auto !important;
-  border: none !important;
-  background: transparent !important;
-  padding: 8px 10px !important;
-  border-radius: 9px !important;
-  font-family: inherit;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: #555 !important;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center !important;
-  justify-content: center !important;
-  display: flex !important;
-  box-shadow: none !important;
-}
-
-.modo-toggle-btn:hover {
-  color: #111 !important;
-  background: rgba(0, 0, 0, 0.04) !important;
-}
-
-.modo-toggle-btn.active {
-  background: #ffffff !important;
-  color: #1a73e8 !important;
-  font-weight: 700 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
 }
 
 /* Modales Modernos TerRosa */
