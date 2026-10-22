@@ -26,21 +26,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=31" />
+  <link rel="stylesheet" href="css/styles.css?v=32" />
 </head>
 
 <body>
-  <!-- Barra Superior de Título (Título, Modo y Botones Alineados y Distribuidos) -->
+  <!-- Barra Superior de Título -->
   <header class="top-header-bar">
-    <!-- 1. Título Principal y Modo Alineados al Centro -->
-    <div class="header-title-block">
-      <h1 class="top-header-title" id="tituloHeaderPrincipal">Mapa Congregación Rosario</h1>
-      <div class="top-header-subtitle modo-publicador" id="subtituloHeader">Modo Publicador</div>
-    </div>
-
-    <!-- 2. Botones de Acción y Filtros Perfectamente Alineados y Distribuidos -->
-    <div class="header-buttons-toolbar" id="filtroFechaBarra">
-      <!-- Botón Ingresar / Perfil Capitán -->
+    <!-- Botón Ingresar / Perfil Capitán arriba del lado derecho -->
+    <div class="header-top-actions">
       <button id="btnIngresarHeader" class="btn-ingresar-pill" title="Ingreso para Capitán">
         <span>🔑</span> <span>Ingresar</span>
       </button>
@@ -49,7 +42,16 @@
         <span id="txtNombreCapitanHeader">Koke</span>
         <span style="font-size:10px; opacity:0.8;">▾</span>
       </button>
+    </div>
 
+    <!-- Título Principal y Modo Centrados -->
+    <div class="header-title-block">
+      <h1 class="top-header-title" id="tituloHeaderPrincipal">Mapa Congregación Rosario</h1>
+      <div class="top-header-subtitle modo-publicador" id="subtituloHeader">Modo Publicador</div>
+    </div>
+
+    <!-- Barra de Filtros (Año y Mes) - Solo en Modo Capitán -->
+    <div class="header-buttons-toolbar capitan-only" id="filtroFechaBarra" style="display:none;">
       <!-- Selector de Año -->
       <div class="filtro-pildora-wrapper">
         <select id="selectFiltroAnio" class="filtro-pildora-select" title="Filtrar por año"></select>
@@ -352,23 +354,23 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=31"></script>
+  <script src="js/territoriobase.js?v=32"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=31"></script>
+  <script src="js/territoriosData.js?v=32"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=31"></script>
+  <script src="js/territoriosManager.js?v=32"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=31"></script>
+  <script src="js/notas.js?v=32"></script>
   <!-- 5. Territorios terminados y exportación Excel -->
-  <script src="js/terminados.js?v=31"></script>
+  <script src="js/terminados.js?v=32"></script>
   <!-- 6. Copias de seguridad (Backup y Restore) -->
-  <script src="js/backup.js?v=31"></script>
+  <script src="js/backup.js?v=32"></script>
   <!-- 7. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=31"></script>
+  <script src="js/capitanManager.js?v=32"></script>
   <!-- 8. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=31"></script>
+  <script src="js/app.js?v=32"></script>
   <!-- 9. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=31"></script>
+  <script src="js/pwa.js?v=32"></script>
 </body>
 
 </html>

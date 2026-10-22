@@ -219,10 +219,14 @@
       if (badgeCapitan) badgeCapitan.style.display = "none";
     }
 
-    // Elementos exclusivos de Capitán (ej: botón Reportar, botón Historial)
+    // Elementos exclusivos de Capitán (ej: botón Reportar, botón Historial, Filtros de Fecha)
     const capitanOnlyElements = document.querySelectorAll(".capitan-only");
     capitanOnlyElements.forEach(el => {
-      el.style.display = esCapitan ? "inline-flex" : "none";
+      if (el.id === "filtroFechaBarra") {
+        el.style.display = esCapitan ? "flex" : "none";
+      } else {
+        el.style.display = esCapitan ? "inline-flex" : "none";
+      }
     });
 
     // Elementos exclusivos de Publicador (ej: botón Notas personal)

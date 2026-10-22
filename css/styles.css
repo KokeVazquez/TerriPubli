@@ -88,7 +88,7 @@ path:not(.leaflet-interactive) {
   right: 0;
   width: 100%;
   background-color: #e5e3df; /* Mismo color exacto que el notch/barra de estado */
-  padding-top: calc(max(env(safe-area-inset-top, 0px), 8px) + 4px);
+  padding-top: calc(max(env(safe-area-inset-top, 0px), 8px) + 2px);
   padding-bottom: 8px;
   padding-left: 12px;
   padding-right: 12px;
@@ -97,11 +97,22 @@ path:not(.leaflet-interactive) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   pointer-events: none; /* No obstruye toques accidentales en mapa */
   box-sizing: border-box;
+}
+
+/* Botón Ingresar / Perfil Capitán arriba del lado derecho */
+.header-top-actions {
+  position: absolute;
+  top: calc(max(env(safe-area-inset-top, 0px), 8px) + 2px);
+  right: 12px;
+  z-index: 1001;
+  pointer-events: auto !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 /* 1. Título y Modo Alineados al Centro */
@@ -112,27 +123,30 @@ path:not(.leaflet-interactive) {
   align-items: center;
   justify-content: center;
   text-align: center;
+  pointer-events: auto !important;
+  margin-top: 2px;
 }
 
 .top-header-title {
   margin: 0;
-  padding: 0;
-  font-size: clamp(17px, 4.6vw, 22px);
+  padding: 0 76px; /* Espacio para que el botón derecho no lo encime y quede 100% centrado */
+  font-size: clamp(16.5px, 4.6vw, 22px);
   font-weight: 850;
   color: #1e293b;
   text-align: center;
   letter-spacing: -0.3px;
   user-select: none;
   -webkit-user-select: none;
-  line-height: 1.2;
+  line-height: 1.18;
+  box-sizing: border-box;
 }
 
 .top-header-subtitle {
   font-size: 11px;
   font-weight: 800;
-  padding: 2px 10px;
+  padding: 2.5px 11px;
   border-radius: 20px;
-  margin-top: 2px;
+  margin-top: 6px; /* Separación más marcada solicitada */
   letter-spacing: 0.4px;
   text-transform: uppercase;
   user-select: none;
@@ -155,14 +169,22 @@ path:not(.leaflet-interactive) {
   border: 1px solid rgba(29, 78, 216, 0.22);
 }
 
-/* 2. Barra de Botones Alineados y Distribuidos */
+/* 2. Barra de Botones Filtro (Exclusivo Modo Capitán) */
 .header-buttons-toolbar {
   width: 100%;
   max-width: 440px;
-  display: flex;
+  display: none; /* Oculto en modo publicador */
   align-items: center;
   justify-content: center;
   gap: 8px;
+  pointer-events: auto !important;
+  margin-top: 6px;
+  flex-wrap: nowrap;
+}
+
+body.modo-capitan .header-buttons-toolbar {
+  display: flex;
+}
   pointer-events: auto !important;
   margin-top: 4px;
   flex-wrap: nowrap;
