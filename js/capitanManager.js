@@ -10,13 +10,13 @@
 
   // Usuarios con permiso de ingresar al Modo Capitán (con código 1234)
   const USUARIOS_ACCESO_CAPITAN = [
-    "Jorge Vásquez",
+    "Koke",
     "Merari Rosales"
   ];
 
   // Base de datos oficial de Capitanes disponibles para reportar territorios
   const LISTA_CAPITANES_OFICIAL = [
-    "Jorge Vásquez",
+    "Koke",
     "Merari Rosales",
     "Alex García",
     "Alfredo Dávila",
@@ -385,7 +385,7 @@
     }
   }
 
-  // 5. Modal para Iniciar Sesión de Capitán con PIN (Exclusivo Jorge Vásquez / Koke y Merari Rosales)
+  // 5. Modal para Iniciar Sesión de Capitán con PIN (Exclusivo Koke y Merari Rosales)
   function abrirModalLoginCapitan() {
     const actual = window.getCapitanNombre();
     const modal = document.createElement("div");
@@ -406,7 +406,7 @@
             <select id="selectNombreLogin" style="
               width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; box-sizing:border-box; margin-top:4px; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
             ">
-              ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${actual === u ? "selected" : ""}>${u === "Jorge Vásquez" ? "Jorge Vásquez (Koke)" : u}</option>`).join("")}
+              ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${actual === u ? "selected" : ""}>${u}</option>`).join("")}
             </select>
           </div>
 
@@ -452,7 +452,7 @@
       const nombre = selectNombre.value.trim();
       const pin = inputPin.value.trim();
       if (!USUARIOS_ACCESO_CAPITAN.includes(nombre)) {
-        alert("Acceso restringido únicamente a Jorge Vásquez y Merari Rosales.");
+        alert("Acceso restringido únicamente a Koke y Merari Rosales.");
         return;
       }
       if (pin !== PIN_ENCARGADO_DEFAULT) {
@@ -505,7 +505,7 @@
             <select id="inputPerfilNombreDirecto" style="
               flex:1; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14.5px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#f8fafc;
             ">
-              ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${nombre === u ? "selected" : ""}>${u === "Jorge Vásquez" ? "Jorge Vásquez (Koke)" : u}</option>`).join("")}
+              ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${nombre === u ? "selected" : ""}>${u}</option>`).join("")}
             </select>
             <button id="btnGuardarNombreDirecto" style="
               padding:10px 14px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer;
@@ -879,7 +879,7 @@
   // 7. Modal de Registro de Territorio / Cuadras — Rediseño App Nativa
   window.abrirModalRegistroTerritorio = function (preTerritorioId, preCuadraId) {
     window.reproducirSonidoClick("tap");
-    const capitanActivo = window.getCapitanNombre() || "Jorge Vásquez";
+    const capitanActivo = window.getCapitanNombre() || "Koke";
     const hoy = obtenerFechaLocalISO();
     const listaCapitanesSugeridos = [...LISTA_CAPITANES_OFICIAL];
     if (capitanActivo && !listaCapitanesSugeridos.includes(capitanActivo)) {
