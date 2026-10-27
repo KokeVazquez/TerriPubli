@@ -590,8 +590,8 @@ window.TERRITORIOS_DATA_ANTERIOR = [
             coords: [
                 [28.611716, -106.081767], [28.611571, -106.081870], [28.611292, -106.081376], [28.611427, -106.081277]
             ],
-            color: "rgba(35, 168, 14, 1)",
-            fillOpacity: 0.8,
+            color: "rgba(70, 44, 11, 1)",
+            fillOpacity: 1.0,
             weight: 2,
             label: "Plaza",
             link: "https://maps.app.goo.gl/LggasbxLpMKWSHyG7"

@@ -310,7 +310,7 @@
     const txtNombreBadge = document.getElementById("txtNombreCapitanHeader");
 
     if (tituloPrincipal) {
-      tituloPrincipal.textContent = "Mapa Congregación Rosario";
+      tituloPrincipal.innerHTML = '<span class="header-title-row1">Mapa</span><span class="header-title-row2">Congregación Rosario</span>';
     }
 
     if (esCapitan) {
@@ -389,7 +389,7 @@
   function abrirModalLoginCapitan() {
     const actual = window.getCapitanNombre();
     const modal = document.createElement("div");
-    modal.className = "terrosa-modal-overlay";
+    modal.className = "terrosa-modal-overlay login-modal-overlay";
     modal.innerHTML = `
       <div class="terrosa-modal-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -749,21 +749,68 @@
       capitanesEdit.unshift(rep.capitan);
     }
 
+    const numTLimpio = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
+    const itemT = (window.TERRITORIOS_DATA && Array.isArray(window.TERRITORIOS_DATA))
+      ? window.TERRITORIOS_DATA.find(x => {
+          const n = x.datos.numeroTerritorio !== undefined ? x.datos.numeroTerritorio : x.datos.id;
+          return String(obtenerNumeroTerritorioLimpio(x.datos.id, n)) === String(numTLimpio);
+        })
+      : null;
+
+    const cuadrasDisponibles = (itemT && itemT.datos.poligonos)
+      ? itemT.datos.poligonos.filter(pol => typeof window.esCuadraPredicable === "function" ? window.esCuadraPredicable(pol) : true)
+      : [];
+
+    const repCuadrasList = Array.isArray(rep.cuadras) ? rep.cuadras : (rep.cuadras ? String(rep.cuadras).split(",") : []);
+    function estaCuadraEnReporte(cPolId) {
+      const variantes = obtenerVariantesIdCuadra(cPolId, numTLimpio);
+      const cortoPol = aCodigoCortoCuadra(cPolId, numTLimpio);
+      return repCuadrasList.some(c => {
+        const cStr = String(c || "").trim();
+        if (!cStr) return false;
+        const cortoC = aCodigoCortoCuadra(cStr, numTLimpio);
+        return cortoC === cortoPol || variantes.includes(cStr) || cStr === cPolId;
+      });
+    }
+
+    let cuadrasHtml = "";
+    if (cuadrasDisponibles.length === 0) {
+      cuadrasHtml = `<div style="font-size:12px; color:#94a3b8; text-align:center; padding:10px;">${repCuadrasList.length > 0 ? repCuadrasList.join(', ') : 'Sin cuadras registradas'}</div>`;
+    } else {
+      cuadrasHtml = cuadrasDisponibles.map(pol => {
+        const polId = pol.id || ("Cuadra" + pol.numeroCuadra + "_Territorio" + numTLimpio);
+        const isChecked = estaCuadraEnReporte(polId);
+        const label = pol.label ? String(pol.label).trim() : (pol.numeroCuadra ? `Cuadra ${pol.numeroCuadra}` : formatearEtiquetaCuadraCorta(polId));
+        return `
+          <label class="chip-cuadra-item ${isChecked ? 'selected' : ''}" style="
+            display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:10px; cursor:pointer; background:${isChecked ? 'rgba(37,99,235,0.08)' : '#ffffff'}; border:1px solid ${isChecked ? '#93c5fd' : '#e2e8f0'}; transition:all 0.15s ease;
+          ">
+            <input type="checkbox" value="${escaparTextoSeguro(polId)}" class="chk-edit-cuadra" ${isChecked ? 'checked' : ''} style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer;" />
+            <span style="font-size:13px; font-weight:700; color:#1e293b; flex:1;">${escaparTextoSeguro(label)}</span>
+          </label>
+        `;
+      }).join("");
+    }
+
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
-      <div class="terrosa-modal-card" style="max-width:330px; padding:22px 20px;">
-        <h3 style="margin:0 0 2px 0; color:#0f172a; font-size:18px; font-weight:800;">✏️ Editar Registro</h3>
-        <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:14px;">Territorio ${escaparTextoSeguro(rep.territorioNumero)}</div>
+      <div class="terrosa-modal-card" style="max-width:360px; max-height:88vh; display:flex; flex-direction:column; padding:22px 20px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+          <h3 style="margin:0; color:#0f172a; font-size:18px; font-weight:800;">✏️ Editar Registro</h3>
+          <button id="btnCerrarModalEditReg" class="btn-icon-square">✕</button>
+        </div>
+        <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px;">Territorio ${escaparTextoSeguro(numTLimpio)}</div>
 
-        <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; flex-direction:column; gap:11px; overflow-y:auto; padding-right:2px; flex:1;">
           <div>
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
-            <select id="editSelectCapitan" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit; background:#fff;">
-              ${capitanesEdit.map(c => `<option value="${escaparTextoSeguro(c)}" ${c === rep.capitan ? "selected" : ""}>${escaparTextoSeguro(c)}</option>`).join("")}
-              <option value="__otro__">✏️ Escribir otro...</option>
-            </select>
-            <input type="text" id="editCapitanOtro" placeholder="Nombre del Capitán" style="display:none; width:100%; padding:10px 12px; border:1.5px solid #3b82f6; border-radius:12px; font-size:14px; font-weight:600; box-sizing:border-box; margin-top:5px; outline:none; font-family:inherit;"/>
+            <input type="text" id="editCapitanInput" list="listaCapitanesEditDatalist" value="${escaparTextoSeguro(rep.capitan || '')}" placeholder="Escribe o selecciona..." autocomplete="off" style="
+              width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit; background:#fff; color:#0f172a;
+            "/>
+            <datalist id="listaCapitanesEditDatalist">
+              ${capitanesEdit.map(c => `<option value="${escaparTextoSeguro(c)}"></option>`).join("")}
+            </datalist>
           </div>
 
           <div>
@@ -772,12 +819,28 @@
           </div>
 
           <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Cuadras trabajadas</label>
+              ${cuadrasDisponibles.length > 0 ? `
+                <button id="btnToggleEditCuadras" type="button" style="
+                  background:#ef4444; color:#ffffff; border:none; border-radius:16px; padding:4px 10px; font-size:11px; font-weight:800; cursor:pointer; box-shadow:0 2px 5px rgba(239,68,68,0.25);
+                ">Seleccionar todas</button>
+              ` : ''}
+            </div>
+            <div id="editContenedorCuadras" style="
+              max-height:160px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:12px; padding:7px; background:#f8fafc; display:flex; flex-direction:column; gap:5px;
+            ">
+              ${cuadrasHtml}
+            </div>
+          </div>
+
+          <div>
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Comentario</label>
             <input type="text" id="editComentario" value="${escaparTextoSeguro(rep.comentario || '')}" placeholder="Escribe aquí..." style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
           </div>
         </div>
 
-        <div style="display:flex; gap:8px; margin-top:18px;">
+        <div style="display:flex; gap:8px; margin-top:14px; padding-top:4px;">
           <button id="btnCancelarEdicion" style="flex:1; padding:11px; background:#f1f5f9; border:none; border-radius:12px; font-weight:700; color:#475569; cursor:pointer; font-size:13.5px;">Cancelar</button>
           <button id="btnGuardarEdicion" style="flex:1; padding:11px; background:linear-gradient(135deg, #1a73e8, #1557b0); border:none; border-radius:12px; font-weight:800; color:white; cursor:pointer; font-size:13.5px; box-shadow:0 3px 10px rgba(26,115,232,0.3);">Guardar</button>
         </div>
@@ -791,26 +854,66 @@
       if (document.body.contains(modal)) document.body.removeChild(modal);
     };
 
-    const selCap = modal.querySelector("#editSelectCapitan");
-    const inpCapOtro = modal.querySelector("#editCapitanOtro");
-    selCap.addEventListener("change", () => {
-      if (selCap.value === "__otro__") {
-        inpCapOtro.style.display = "block";
-        inpCapOtro.focus();
-      } else {
-        inpCapOtro.style.display = "none";
-      }
-    });
-
+    modal.querySelector("#btnCerrarModalEditReg").onclick = cerrar;
     modal.querySelector("#btnCancelarEdicion").onclick = cerrar;
 
+    const btnToggle = modal.querySelector("#btnToggleEditCuadras");
+    if (btnToggle) {
+      btnToggle.onclick = () => {
+        window.reproducirSonidoClick("tap");
+        const chks = modal.querySelectorAll(".chk-edit-cuadra");
+        if (chks.length === 0) return;
+        const todas = Array.from(chks).every(c => c.checked);
+        chks.forEach(c => {
+          c.checked = !todas;
+          const chip = c.closest(".chip-cuadra-item");
+          if (chip) {
+            chip.classList.toggle("selected", !todas);
+            chip.style.background = !todas ? 'rgba(37,99,235,0.08)' : '#ffffff';
+            chip.style.borderColor = !todas ? '#93c5fd' : '#e2e8f0';
+          }
+        });
+        btnToggle.textContent = todas ? "Seleccionar todas" : "Desmarcar todas";
+      };
+    }
+
+    modal.querySelectorAll(".chk-edit-cuadra").forEach(c => {
+      c.onchange = () => {
+        window.reproducirSonidoClick("toggle");
+        const chip = c.closest(".chip-cuadra-item");
+        if (chip) {
+          chip.classList.toggle("selected", c.checked);
+          chip.style.background = c.checked ? 'rgba(37,99,235,0.08)' : '#ffffff';
+          chip.style.borderColor = c.checked ? '#93c5fd' : '#e2e8f0';
+        }
+      };
+    });
+
     modal.querySelector("#btnGuardarEdicion").onclick = () => {
-      const nuevoCapitan = selCap.value === "__otro__" ? inpCapOtro.value.trim() : selCap.value.trim();
+      const nuevoCapitan = (modal.querySelector("#editCapitanInput").value || "").trim();
       const nuevaFecha = modal.querySelector("#editFecha").value;
       const nuevoComentario = modal.querySelector("#editComentario").value.trim();
 
       if (!nuevoCapitan) return alert("Por favor ingresa el nombre del capitán.");
       if (!nuevaFecha) return alert("Por favor ingresa una fecha.");
+
+      const chksEdit = Array.from(modal.querySelectorAll(".chk-edit-cuadra:checked"));
+      if (cuadrasDisponibles.length > 0 && chksEdit.length === 0) {
+        return alert("Selecciona al menos una cuadra trabajada.");
+      }
+
+      if (chksEdit.length > 0) {
+        const nuevasCuadrasIds = chksEdit.map(c => aCodigoCortoCuadra(c.value, numTLimpio));
+        const nuevasCuadrasLabels = chksEdit.map(c => {
+          const val = c.value;
+          const polData = (itemT && itemT.datos.poligonos) ? itemT.datos.poligonos.find(p => p.id === val) : null;
+          return (polData && polData.label) ? String(polData.label).trim() : formatearEtiquetaCuadraCorta(val);
+        });
+        rep.cuadras = nuevasCuadrasIds;
+        rep.cuadrasLabels = nuevasCuadrasLabels;
+        rep.cuadrasTotal = chksEdit.length;
+        rep.totalCuadrasTerritorio = cuadrasDisponibles.length || chksEdit.length;
+      }
 
       rep.capitan = nuevoCapitan;
       rep.fecha = nuevaFecha;
@@ -829,7 +932,9 @@
       }
 
       // Si hay filtros o colores, refrescar
-      if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+      if (typeof window.ejecutarFiltroFecha === "function") {
+        window.ejecutarFiltroFecha();
+      } else if (typeof window.actualizarColoresCuadrasCapitan === "function") {
         window.actualizarColoresCuadrasCapitan();
       }
 
@@ -906,15 +1011,12 @@
           <div style="display:flex; gap:10px;">
             <div style="flex:1.2;">
               <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
-              <select id="regSelectCapitan" style="
-                width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit;
-              ">
-                ${listaCapitanesSugeridos.map(c => `<option value="${c}" ${c === capitanActivo ? "selected" : ""}>${c}</option>`).join("")}
-                <option value="__otro__">✏️ Escribir otro...</option>
-              </select>
-              <input type="text" id="regCapitanOtro" placeholder="Nombre del Capitán" style="
-                display:none; width:100%; padding:9px 12px; border:1.5px solid #3b82f6; border-radius:12px; font-size:13.5px; box-sizing:border-box; margin-top:5px; outline:none; font-family:inherit;
-              " />
+              <input type="text" id="regInputCapitan" list="listaCapitanesDatalist" value="${escaparTextoSeguro(capitanActivo)}" placeholder="Escribe o selecciona..." autocomplete="off" style="
+                width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit; color:#0f172a;
+              "/>
+              <datalist id="listaCapitanesDatalist">
+                ${listaCapitanesSugeridos.map(c => `<option value="${escaparTextoSeguro(c)}"></option>`).join("")}
+              </datalist>
             </div>
 
             <div style="flex:0.8;">
@@ -982,19 +1084,6 @@
     };
 
     modal.querySelector("#btnCerrarModalReg").onclick = cerrar;
-
-    // Selector de Capitán "Otro"
-    const selectCap = modal.querySelector("#regSelectCapitan");
-    const inputOtro = modal.querySelector("#regCapitanOtro");
-    selectCap.addEventListener("change", () => {
-      window.reproducirSonidoClick("tap");
-      if (selectCap.value === "__otro__") {
-        inputOtro.style.display = "block";
-        inputOtro.focus();
-      } else {
-        inputOtro.style.display = "none";
-      }
-    });
 
     // Poblar selector de territorios
     const selectTerr = modal.querySelector("#regSelectTerritorio");
@@ -1114,7 +1203,7 @@
 
     // Guardar y Enviar Reporte
     modal.querySelector("#btnEnviarReporte").onclick = () => {
-      let capitan = selectCap.value === "__otro__" ? inputOtro.value.trim() : selectCap.value.trim();
+      let capitan = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
       const fecha = modal.querySelector("#regFecha").value;
       const tId = selectTerr.value;
       const chks = Array.from(contenedorCuadras.querySelectorAll(".chk-cuadra:checked"));
@@ -1636,8 +1725,29 @@
 
   let mesesFiltroActivos = new Set();
 
+  // Función para determinar si una fecha ISO pertenece al Año de Servicio seleccionado
+  // Cada año de servicio es de septiembre a agosto: ej. 2025 es hasta 31/08/2026; 2026 es de 01/09/2026 a 31/08/2027.
+  function perteneceAAnioServicio(fechaISO, targetAnio) {
+    if (!fechaISO) return false;
+    if (!targetAnio || targetAnio === "todos") return true;
+    const str = String(fechaISO).slice(0, 10);
+    const anioNum = parseInt(targetAnio, 10);
+    if (isNaN(anioNum)) return true;
+
+    if (anioNum === 2025) {
+      return str <= "2026-08-31";
+    }
+    const inicio = `${anioNum}-09-01`;
+    const fin = `${anioNum + 1}-08-31`;
+    return str >= inicio && str <= fin;
+  }
+
   window.hayFiltroFechaActivo = function () {
-    return mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12;
+    const anioElem = document.getElementById("selectFiltroAnio");
+    const anio = anioElem ? anioElem.value : "2026";
+    const mesActivo = mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12;
+    const anioActivo = anio !== "todos";
+    return mesActivo || anioActivo;
   };
 
   function abrirModalSeleccionarMeses() {
@@ -1726,22 +1836,22 @@
 
     if (mesesFiltroActivos.size === 0 || mesesFiltroActivos.size === 12) {
       lbl.textContent = "Mes: Todos";
-      if (btnLimpiar) btnLimpiar.style.display = "none";
     } else if (mesesFiltroActivos.size === 1) {
       const num = Array.from(mesesFiltroActivos)[0];
       const mObj = NOMBRES_MESES.find(m => m.num === num);
       lbl.textContent = `Mes: ${mObj ? mObj.nombre : num}`;
-      if (btnLimpiar) btnLimpiar.style.display = "inline-flex";
     } else if (mesesFiltroActivos.size === 2) {
       const arr = Array.from(mesesFiltroActivos).map(num => {
         const mObj = NOMBRES_MESES.find(m => m.num === num);
         return mObj ? mObj.abrev : num;
       });
       lbl.textContent = `Mes: ${arr.join(", ")}`;
-      if (btnLimpiar) btnLimpiar.style.display = "inline-flex";
     } else {
       lbl.textContent = `Mes (${mesesFiltroActivos.size})`;
-      if (btnLimpiar) btnLimpiar.style.display = "inline-flex";
+    }
+
+    if (btnLimpiar) {
+      btnLimpiar.style.display = window.hayFiltroFechaActivo() ? "inline-flex" : "none";
     }
   }
 
@@ -1763,56 +1873,23 @@
 
     const anioElem = document.getElementById("selectFiltroAnio");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
-    const anio = anioElem ? anioElem.value : String(new Date().getFullYear());
+    const anio = anioElem ? anioElem.value : "2026";
 
-    const activo = window.hayFiltroFechaActivo();
-    if (btnLimpiar) btnLimpiar.style.display = activo ? "inline-flex" : "none";
-
-    if (!activo) {
-      const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-      const cuadrasReportadas = {};
-      reportes.forEach(rep => {
-        if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO" || !rep.estado) && perteneceAVersionActiva(rep)) {
-          const tIdLimpio = obtenerTerritorioIdLimpio(rep);
-          const numR = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
-          if (!cuadrasReportadas[tIdLimpio]) cuadrasReportadas[tIdLimpio] = new Set();
-          if (Array.isArray(rep.cuadras)) {
-            rep.cuadras.forEach(cId => {
-              obtenerVariantesIdCuadra(cId, numR).forEach(v => cuadrasReportadas[tIdLimpio].add(v));
-            });
-          }
-        }
-      });
-
-      window.todosLosTerritorios.forEach(grupo => {
-        const tId = grupo._id;
-        const setRep = cuadrasReportadas[tId] || new Set();
-        grupo.eachLayer(pol => {
-          if (!pol._originalStyle) return;
-          if ((pol._esPredicable !== false) && setRep.has(pol._id)) {
-            pol._selected = true;
-            pol.setStyle({ color: "#475569", fillColor: "#64748b", fillOpacity: 0.85, weight: 2 });
-          } else {
-            pol._selected = false;
-            pol.setStyle(pol._originalStyle);
-          }
-        });
-      });
-      return;
-    }
-
-    // Prefijos seleccionados (ej: ["2026-10", "2026-11"])
-    const prefijos = Array.from(mesesFiltroActivos).map(m => `${anio}-${m}`);
+    const filtrarPorMes = (mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12);
+    const hayFiltro = (filtrarPorMes || anio !== "todos");
+    if (btnLimpiar) btnLimpiar.style.display = hayFiltro ? "inline-flex" : "none";
 
     const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     const cuadrasCoincidentes = {};
 
     reportes.forEach(rep => {
       if (!rep.fecha || !perteneceAVersionActiva(rep)) return;
+      if (!perteneceAAnioServicio(rep.fecha, anio)) return;
+
       const p = parsearFechaReporte(rep.fecha);
-      const ym = `${p.anio}-${p.mes}`;
-      const coincide = prefijos.includes(ym);
-      if (coincide && Array.isArray(rep.cuadras)) {
+      if (filtrarPorMes && !mesesFiltroActivos.has(p.mes)) return;
+
+      if (Array.isArray(rep.cuadras)) {
         const tIdLimpio = obtenerTerritorioIdLimpio(rep);
         const numR = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
         if (!cuadrasCoincidentes[tIdLimpio]) cuadrasCoincidentes[tIdLimpio] = new Set();
@@ -1830,6 +1907,7 @@
         if (!pol._originalStyle) return;
 
         if ((pol._esPredicable !== false) && setMatch.has(pol._id)) {
+          pol._selected = true;
           pol.setStyle({
             color: "#334155",
             fillColor: "#64748b",
@@ -1837,6 +1915,7 @@
             weight: 2
           });
         } else {
+          pol._selected = false;
           pol.setStyle(pol._originalStyle);
         }
       });
@@ -1848,22 +1927,23 @@
     const btnMeses = document.getElementById("btnModalFiltroMeses");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
 
-    if (anioElem && anioElem.options.length === 0) {
-      const anioActual = new Date().getFullYear();
-      [anioActual - 1, anioActual, anioActual + 1].forEach(a => {
-        const opt = document.createElement("option");
-        opt.value = String(a);
-        opt.textContent = String(a);
-        if (a === anioActual) opt.selected = true;
-        anioElem.appendChild(opt);
-      });
-    }
-
     if (anioElem) {
+      anioElem.innerHTML = `
+        <option value="2026" selected>Año de Serv. 2026</option>
+        <option value="2025">Año de Serv. 2025</option>
+        <option value="todos">Todos los años</option>
+      `;
       anioElem.addEventListener("change", () => {
+        window.reproducirSonidoClick("tap");
         window.ejecutarFiltroFecha();
       });
     }
+
+    // Inicializar siempre con el mes actual
+    const mesActual = String(new Date().getMonth() + 1).padStart(2, "0");
+    mesesFiltroActivos.clear();
+    mesesFiltroActivos.add(mesActual);
+    actualizarEtiquetaBotonMeses();
 
     if (btnMeses) {
       btnMeses.addEventListener("click", () => {
@@ -1873,11 +1953,15 @@
 
     if (btnLimpiar) {
       btnLimpiar.addEventListener("click", () => {
+        window.reproducirSonidoClick("tap");
         mesesFiltroActivos.clear();
         actualizarEtiquetaBotonMeses();
         window.ejecutarFiltroFecha();
       });
     }
+
+    // Aplicar filtro inicial
+    window.ejecutarFiltroFecha();
   }
 
   // 15. Sincronización en la Nube con Google Sheets (Merge optimista y seguro)

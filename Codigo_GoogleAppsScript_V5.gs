@@ -157,6 +157,11 @@ function doPost(e) {
       for (var eIdx = 1; eIdx < filasE.length; eIdx++) {
         if (String(filasE[eIdx][0]).trim() === editId) {
           if (repEdit.fecha) sheetCuadras.getRange(eIdx + 1, 2).setValue(repEdit.fecha);
+          if (repEdit.cuadras) {
+            var nT = normalizarNumeroTerritorio(repEdit.territorioId, repEdit.territorioNumero || filasE[eIdx][3]);
+            var cNorm = normalizarListaCuadrasCorto(repEdit.cuadras, nT);
+            sheetCuadras.getRange(eIdx + 1, 5).setValue(cNorm.join(","));
+          }
           if (repEdit.capitan) sheetCuadras.getRange(eIdx + 1, 7).setValue(repEdit.capitan);
           sheetCuadras.getRange(eIdx + 1, 9).setValue("APROBADO");
         }
