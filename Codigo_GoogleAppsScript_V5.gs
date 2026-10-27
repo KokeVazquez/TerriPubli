@@ -1,48 +1,127 @@
 // =========================================================================================
-// GOOGLE APPS SCRIPT - TERROSA (NUMERACIÓN TRADICIONAL / ORIGINAL)
-// Soporta Hoja S-13 Oficial (2 filas por territorio, 4 columnas de asignación),
-// conteo exacto de cuadras predicables (sin escuelas ni baldíos) y sincronización con la app.
+// GOOGLE APPS SCRIPT - TERROSA (V6 - AÑOS DE SERVICIO S-13 2025 Y S-13 2026)
+// - Soporta los 84 territorios tradicionales con su conteo exacto de cuadras predicables
+// - Separa automáticamente en "S-13 2025" (hasta 31/08/2026) y "S-13 2026" (desde 01/09/2026)
+// - Corrige automáticamente la columna "Última fecha en que se completó*"
+// - Formato limpio en Cuadras_Trabajadas: ID Territorio = "42", Cuadras = "T42C1,T42C2"
+// - Crea hoja "Capitanes" con la base de datos de capitanes y administradores
+// - Sin paso de aprobación: todo reporte entra directo como APROBADO
 // =========================================================================================
 
+const MAX_TERRITORIOS = 84;
+
 const CUADRAS_MAP = {
-  "1": 3, "2": 3, "3": 5, "4": 6, "5": 6, "6": 4, "7": 4, "8": 4, "9": 5, "10": 4,
-  "11": 4, "12": 4, "13": 4, "14": 2, "15": 6, "16": 4, "17": 4, "18": 4, "19": 4, "20": 4,
-  "21": 4, "22": 4, "23": 4, "24": 3, "25": 4, "26": 4, "27": 4, "28": 4, "29": 2, "30": 4,
+  "1": 3, "2": 3, "3": 5, "4": 7, "5": 6, "6": 4, "7": 4, "8": 4, "9": 6, "10": 4,
+  "11": 4, "12": 4, "13": 4, "14": 3, "15": 6, "16": 4, "17": 4, "18": 4, "19": 4, "20": 4,
+  "21": 4, "22": 4, "23": 4, "24": 3, "25": 4, "26": 4, "27": 4, "28": 4, "29": 3, "30": 4,
   "31": 3, "32": 4, "33": 4, "34": 4, "35": 4, "36": 3, "37": 5, "38": 3, "39": 4, "40": 7,
-  "41": 5, "42": 4, "43": 4, "44": 5, "45": 5, "46": 4, "47": 3, "48": 5, "49": 5, "50": 7,
-  "51": 4, "52": 4, "53": 3, "54": 3, "55": 3, "56": 5, "57": 6, "58": 8, "59": 6, "60": 5,
-  "61": 5, "62": 6, "63": 6, "64": 4, "65": 4
+  "41": 6, "42": 4, "43": 4, "44": 5, "45": 5, "46": 4, "47": 3, "48": 5, "49": 5, "50": 7,
+  "51": 4, "52": 4, "53": 3, "54": 3, "55": 3, "56": 5, "57": 6, "58": 8, "59": 6, "60": 6,
+  "61": 5, "62": 6, "63": 6, "64": 4, "65": 4, "66": 5, "67": 4, "68": 4, "69": 4, "70": 4,
+  "71": 4, "72": 6, "73": 4, "74": 4, "75": 4, "76": 4, "77": 6, "78": 6, "79": 8, "80": 8,
+  "81": 6, "82": 7, "83": 8, "84": 8
 };
+
+const CAPITANES_DB = [
+  ["Jorge Vásquez (Koke)", "Administrador / Auxiliar", "SÍ", "1234"],
+  ["Merari Rosales", "Administrador / Capitán", "SÍ", "1234"],
+  ["Alex García", "Capitán", "NO", ""],
+  ["Alfredo Dávila", "Capitán", "NO", ""],
+  ["César Pineda", "Capitán", "NO", ""],
+  ["Daniel López", "Capitán", "NO", ""],
+  ["Diego Cerecedo", "Capitán", "NO", ""],
+  ["Edgar Rodríguez", "Capitán", "NO", ""],
+  ["Elijah Rodríguez", "Capitán", "NO", ""],
+  ["Félix Acuña", "Capitán", "NO", ""],
+  ["Fernando García", "Capitán", "NO", ""],
+  ["Heber Ramos", "Capitán", "NO", ""],
+  ["Jaciel Barrios", "Capitán", "NO", ""],
+  ["Jair Barraza", "Capitán", "NO", ""],
+  ["Jesús Alba", "Capitán", "NO", ""],
+  ["Josué Ramos", "Capitán", "NO", ""],
+  ["Luis Gardea", "Capitán", "NO", ""],
+  ["Moisés García", "Capitán", "NO", ""],
+  ["Oscar Hernández", "Capitán", "NO", ""],
+  ["René Molina", "Capitán", "NO", ""],
+  ["Ricardo Salinas", "Capitán", "NO", ""],
+  ["Rinat Reséndiz", "Capitán", "NO", ""]
+];
+
+// Convierte "Cuadra1_Territorio42" -> "T42C1" y extrae solo el número de territorio "42"
+function normalizarNumeroTerritorio(terrId, terrNum) {
+  var num = String(terrNum || "").trim();
+  if (/^\d+$/.test(num)) return String(parseInt(num, 10));
+  var m = String(terrId || "").match(/(\d+)/);
+  if (m) return String(parseInt(m[1], 10));
+  return num || String(terrId || "").trim();
+}
+
+function normalizarListaCuadrasCorto(cuadrasInput, numTerr) {
+  var rawArr = Array.isArray(cuadrasInput)
+    ? cuadrasInput
+    : String(cuadrasInput || "").split(",");
+  var tNum = normalizarNumeroTerritorio("", numTerr);
+  var resultado = [];
+
+  for (var i = 0; i < rawArr.length; i++) {
+    var item = String(rawArr[i] || "").trim();
+    if (!item) continue;
+
+    // Si ya viene como T42C1
+    var mCorto = item.match(/^T(\d+)C(\d+)$/i);
+    if (mCorto) {
+      resultado.push("T" + mCorto[1] + "C" + mCorto[2]);
+      continue;
+    }
+
+    // Si viene como Cuadra1_Territorio42
+    var mLargo = item.match(/^Cuadra(\d+)_Territorio(\d+)$/i);
+    if (mLargo) {
+      resultado.push("T" + mLargo[2] + "C" + mLargo[1]);
+      continue;
+    }
+
+    // Si viene solo el número "1"
+    if (/^\d+$/.test(item) && tNum) {
+      resultado.push("T" + tNum + "C" + item);
+      continue;
+    }
+
+    resultado.push(item);
+  }
+  return resultado;
+}
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  lock.tryLock(15000);
+  lock.tryLock(25000);
   try {
     var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheetCuadras = obtenerOCrearHojaCuadras(ss);
+    obtenerOCrearHojaCapitanes(ss);
     var action = data.accion || data.action || "";
 
     if (action === "nuevo_reporte" || action === "registrarCuadras") {
       var rep = data.reporte || {};
-      var estadoInicial = rep.estado || "PENDIENTE";
-      var cuadrasArr = Array.isArray(rep.cuadras) ? rep.cuadras.join(",") : String(rep.cuadras || "");
-      var totalCuadras = Number(rep.totalCuadrasTerritorio || rep.totalCuadras || rep.cuadrasTotal || 0);
+      var numTerr = normalizarNumeroTerritorio(rep.territorioId, rep.territorioNumero);
+      var cuadrasCortas = normalizarListaCuadrasCorto(rep.cuadras, numTerr);
+      var totalCuadras = Number(rep.totalCuadrasTerritorio || rep.totalCuadras || CUADRAS_MAP[numTerr] || cuadrasCortas.length || 0);
 
       sheetCuadras.appendRow([
         String(rep.id),
         String(rep.fecha),
-        String(rep.territorioId || ""),
-        String(rep.territorioNumero || ""),
-        cuadrasArr,
+        numTerr,
+        numTerr,
+        cuadrasCortas.join(","),
         totalCuadras,
         String(rep.capitan || ""),
         rep.visitaSC ? "SÍ" : "NO",
-        estadoInicial,
+        "APROBADO",
         formatearFechaHora(new Date())
       ]);
       reconstruirHojaS13(ss);
-      return respuestaJSON({ exito: true, status: "success", message: "Reporte guardado" });
+      return respuestaJSON({ exito: true, status: "success", message: "Reporte guardado y S-13 actualizado" });
     }
 
     if (action === "aprobar_reporte" || action === "aprobarReporte") {
@@ -79,7 +158,7 @@ function doPost(e) {
         if (String(filasE[eIdx][0]).trim() === editId) {
           if (repEdit.fecha) sheetCuadras.getRange(eIdx + 1, 2).setValue(repEdit.fecha);
           if (repEdit.capitan) sheetCuadras.getRange(eIdx + 1, 7).setValue(repEdit.capitan);
-          if (repEdit.estado) sheetCuadras.getRange(eIdx + 1, 9).setValue(repEdit.estado);
+          sheetCuadras.getRange(eIdx + 1, 9).setValue("APROBADO");
         }
       }
       reconstruirHojaS13(ss);
@@ -93,27 +172,41 @@ function doPost(e) {
       for (var k = 1; k < existentes.length; k++) {
         idsExistentes[String(existentes[k][0]).trim()] = k + 1;
       }
+      var nuevasFilas = [];
+      var ahoraStr = formatearFechaHora(new Date());
+
       for (var m = 0; m < historial.length; m++) {
         var r = historial[m];
         var rId = String(r.id).trim();
-        var est = r.estado || "APROBADO";
+        var nTerr = normalizarNumeroTerritorio(r.territorioId, r.territorioNumero);
+        var cCortas = normalizarListaCuadrasCorto(r.cuadras, nTerr);
+        var totC = Number(r.totalCuadrasTerritorio || r.totalCuadras || CUADRAS_MAP[nTerr] || cCortas.length || 0);
+
         if (idsExistentes[rId]) {
-          sheetCuadras.getRange(idsExistentes[rId], 9).setValue(est);
+          var rowIdx = idsExistentes[rId];
+          sheetCuadras.getRange(rowIdx, 3, 1, 3).setValues([[nTerr, nTerr, cCortas.join(",")]]);
+          sheetCuadras.getRange(rowIdx, 9).setValue("APROBADO");
         } else {
-          sheetCuadras.appendRow([
+          nuevasFilas.push([
             rId,
             String(r.fecha),
-            String(r.territorioId || ""),
-            String(r.territorioNumero || ""),
-            Array.isArray(r.cuadras) ? r.cuadras.join(",") : String(r.cuadras || ""),
-            Number(r.totalCuadrasTerritorio || r.totalCuadras || 0),
+            nTerr,
+            nTerr,
+            cCortas.join(","),
+            totC,
             String(r.capitan || ""),
             r.visitaSC ? "SÍ" : "NO",
-            est,
-            formatearFechaHora(new Date())
+            "APROBADO",
+            ahoraStr
           ]);
         }
       }
+
+      if (nuevasFilas.length > 0) {
+        var startRow = sheetCuadras.getLastRow() + 1;
+        sheetCuadras.getRange(startRow, 1, nuevasFilas.length, 10).setValues(nuevasFilas);
+      }
+
       reconstruirHojaS13(ss);
       return respuestaJSON({ exito: true, status: "success", message: "Sincronización completa" });
     }
@@ -136,21 +229,21 @@ function doGet(e) {
     for (var i = 1; i < filas.length; i++) {
       var fila = filas[i];
       if (!fila[0]) continue;
-      var cuadrasStr = String(fila[4] || "");
-      var cuadrasArr = cuadrasStr ? cuadrasStr.split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
+      var numTerr = normalizarNumeroTerritorio(fila[2], fila[3]);
+      var cuadrasArr = normalizarListaCuadrasCorto(fila[4], numTerr);
       var fechaStr = formatearFecha(fila[1]);
 
       historial.push({
         id: String(fila[0]),
         fecha: fechaStr,
-        territorioId: String(fila[2]),
-        territorioNumero: String(fila[3]),
+        territorioId: numTerr,
+        territorioNumero: numTerr,
         cuadras: cuadrasArr,
-        totalCuadras: Number(fila[5] || 0),
-        totalCuadrasTerritorio: Number(fila[5] || 0),
+        totalCuadras: Number(fila[5] || CUADRAS_MAP[numTerr] || 0),
+        totalCuadrasTerritorio: Number(fila[5] || CUADRAS_MAP[numTerr] || 0),
         capitan: String(fila[6] || ""),
         visitaSC: String(fila[7]) === "SÍ",
-        estado: String(fila[8] || "APROBADO")
+        estado: "APROBADO"
       });
     }
 
@@ -166,65 +259,89 @@ function doGet(e) {
 }
 
 // =========================================================================================
-// RECONSTRUCCIÓN AUTOMÁTICA DEL S-13 OFICIAL
+// RECONSTRUCCIÓN AUTOMÁTICA DE "S-13 2025" Y "S-13 2026" POR AÑO DE SERVICIO
+// - Año de Servicio 2025: Todo hasta el 31 de agosto de 2026 (fecha <= "2026-08-31")
+// - Año de Servicio 2026: Todo desde el 1 de septiembre de 2026 (fecha >= "2026-09-01")
 // =========================================================================================
 function reconstruirHojaS13(ss) {
   if (!ss) {
     ss = SpreadsheetApp.getActiveSpreadsheet();
   }
   var sheetCuadras = obtenerOCrearHojaCuadras(ss);
+  obtenerOCrearHojaCapitanes(ss);
   var filas = sheetCuadras.getDataRange().getValues();
 
-  var listaAprobados = [];
+  var registros2025 = [];
+  var registros2026 = [];
 
   for (var i = 1; i < filas.length; i++) {
     var f = filas[i];
     if (!f[0]) continue;
-    var estado = String(f[8] || "APROBADO").trim().toUpperCase();
-    if (estado !== "APROBADO") continue;
 
-    var terrId = String(f[2] || "").trim();
-    var numTerr = String(f[3] || "").trim();
-    if (!numTerr) {
-      var m = terrId.match(/territorio(\d+)/i);
-      if (m) numTerr = m[1];
-    }
-    if (!numTerr) continue;
+    var numTerr = normalizarNumeroTerritorio(f[2], f[3]);
+    if (!numTerr || !/^\d+$/.test(numTerr)) continue;
 
-    var cuadrasStr = String(f[4] || "");
-    var cuadrasArr = cuadrasStr ? cuadrasStr.split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
+    var cuadrasArr = normalizarListaCuadrasCorto(f[4], numTerr);
     if (cuadrasArr.length === 0) continue;
 
-    listaAprobados.push({
-      fecha: formatearFecha(f[1]),
-      numTerr: String(parseInt(numTerr, 10)),
+    var fechaISO = formatearFecha(f[1]);
+    if (!fechaISO) continue;
+
+    var item = {
+      fecha: fechaISO,
+      numTerr: numTerr,
       cuadras: cuadrasArr,
-      totalReportado: Number(f[5] || 0),
+      totalReportado: Number(f[5] || CUADRAS_MAP[numTerr] || 1),
       capitan: String(f[6] || "").trim()
-    });
+    };
+
+    if (fechaISO <= "2026-08-31") {
+      registros2025.push(item);
+    } else {
+      registros2026.push(item);
+    }
   }
 
-  // Ordenar cronológicamente por fecha ascendente
-  listaAprobados.sort(function(a, b) {
+  // Calcular y llenar S-13 2025
+  var resultado2025 = calcularCiclosS13(registros2025, {});
+  llenarHojaS13PorBloque(ss, "S-13 2025", "2025", resultado2025);
+
+  // Calcular y llenar S-13 2026 (usando como referencia de última fecha completada previa el cierre de 2025)
+  var resultado2026 = calcularCiclosS13(registros2026, resultado2025.ultimasFechasCompletadas);
+  llenarHojaS13PorBloque(ss, "S-13 2026", "2026", resultado2026);
+
+  // Si existía la hoja vieja "S-13 Registro", eliminarla para no confundir
+  var hojaVieja = ss.getSheetByName("S-13 Registro");
+  if (hojaVieja) {
+    try { ss.deleteSheet(hojaVieja); } catch (e) {}
+  }
+}
+
+function calcularCiclosS13(listaRegistros, ultimasFechasPrevias) {
+  listaRegistros.sort(function(a, b) {
     return a.fecha.localeCompare(b.fecha);
   });
 
-  var maxTerritorios = 65;
   var ciclosPorTerritorio = {};
   var acumulador = {};
+  var ultimasFechasCompletadas = {};
 
-  for (var t = 1; t <= maxTerritorios; t++) {
+  for (var t = 1; t <= MAX_TERRITORIOS; t++) {
     var tStr = String(t);
     ciclosPorTerritorio[tStr] = [];
     acumulador[tStr] = {
       cuadrasSet: {},
       fechaInicio: null,
-      ultimoCapitan: ""
+      ultimoCapitan: "",
+      totalNecesario: CUADRAS_MAP[tStr] || 1
     };
+    if (ultimasFechasPrevias && ultimasFechasPrevias[tStr]) {
+      ultimasFechasCompletadas[tStr] = ultimasFechasPrevias[tStr];
+    }
   }
 
-  for (var k = 0; k < listaAprobados.length; k++) {
-    var rep = listaAprobados[k];
+  for (var k = 0; k < listaRegistros.length; k++) {
+    var rep = listaRegistros[k];
     var num = rep.numTerr;
     if (!acumulador[num]) continue;
 
@@ -240,66 +357,91 @@ function reconstruirHojaS13(ss) {
       acc.cuadrasSet[rep.cuadras[c]] = true;
     }
 
-    // Usar la cantidad exacta de cuadras reportadas o el mapa oficial
-    var totalNecesario = (rep.totalReportado && rep.totalReportado > 0)
-      ? rep.totalReportado
-      : (CUADRAS_MAP[num] || 1);
-
+    var totalNecesario = CUADRAS_MAP[num] || rep.totalReportado || 1;
+    acc.totalNecesario = totalNecesario;
     var cuadrasUnicas = Object.keys(acc.cuadrasSet).length;
 
-    // Cuando se cubren todas las cuadras reales del territorio, se cierra el ciclo
     if (cuadrasUnicas >= totalNecesario) {
       ciclosPorTerritorio[num].push({
         capitan: acc.ultimoCapitan || "Sin capitán",
         fechaInicio: acc.fechaInicio,
-        fechaFin: rep.fecha
+        fechaFin: rep.fecha,
+        completo: true
       });
-      // Reiniciar acumulador para el siguiente ciclo
+      ultimasFechasCompletadas[num] = rep.fecha;
       acumulador[num] = {
         cuadrasSet: {},
         fechaInicio: null,
-        ultimoCapitan: ""
+        ultimoCapitan: "",
+        totalNecesario: totalNecesario
       };
     }
   }
 
-  var sheetS13 = obtenerOCrearPlantillaS13(ss, "S-13 Registro", maxTerritorios);
+  // Si un territorio tiene cuadras trabajadas en progreso (ej. T42 con 2 de 4 cuadras), mostrarlo en curso
+  for (var terr = 1; terr <= MAX_TERRITORIOS; terr++) {
+    var key = String(terr);
+    var accPend = acumulador[key];
+    var trabajadasCount = Object.keys(accPend.cuadrasSet).length;
+    if (trabajadasCount > 0 && accPend.fechaInicio) {
+      ciclosPorTerritorio[key].push({
+        capitan: accPend.ultimoCapitan || "Sin capitán",
+        fechaInicio: accPend.fechaInicio,
+        fechaFin: "", // Aún en progreso
+        completo: false
+      });
+    }
+  }
 
-  // Limpiar solo las celdas de datos (Columnas B a J)
-  var totalFilasDatos = maxTerritorios * 2;
-  sheetS13.getRange(5, 2, totalFilasDatos, 9).clearContent();
+  return {
+    ciclosPorTerritorio: ciclosPorTerritorio,
+    ultimasFechasCompletadas: ultimasFechasCompletadas
+  };
+}
 
-  // Escribir los ciclos en el formato S-13 oficial (2 filas por cada territorio)
-  for (var terr = 1; terr <= maxTerritorios; terr++) {
+function llenarHojaS13PorBloque(ss, nombreHoja, anioServicioTxt, datosS13) {
+  var sheetS13 = obtenerOCrearPlantillaS13(ss, nombreHoja, anioServicioTxt, MAX_TERRITORIOS);
+  var totalFilasDatos = MAX_TERRITORIOS * 2;
+
+  // Construir matriz en memoria (168 filas x 9 columnas: Columna B a Columna J) para escritura instantánea
+  var matriz = [];
+  for (var r = 0; r < totalFilasDatos; r++) {
+    matriz.push(["", "", "", "", "", "", "", "", ""]);
+  }
+
+  for (var terr = 1; terr <= MAX_TERRITORIOS; terr++) {
     var terrKey = String(terr);
-    var ciclos = ciclosPorTerritorio[terrKey] || [];
+    var ciclos = datosS13.ciclosPorTerritorio[terrKey] || [];
+    var ultimaFechaCompletada = datosS13.ultimasFechasCompletadas[terrKey] || "";
+
+    var idxSup = (terr - 1) * 2;
+    var idxInf = idxSup + 1;
+
+    // Columna B (índice 0 de la matriz): Última fecha en que se completó*
+    if (ultimaFechaCompletada) {
+      matriz[idxSup][0] = formatearFechaCorta(ultimaFechaCompletada);
+    }
+
     if (ciclos.length === 0) continue;
 
-    var filaSup = 5 + (terr - 1) * 2; // Fila superior (Nombre del Capitán)
-    var filaInf = filaSup + 1;        // Fila inferior (Fecha asignó | Fecha completó)
-
-    // Si hay más de 4 ciclos, dejamos los 4 más recientes en las 4 columnas
     var inicioIdx = 0;
     if (ciclos.length > 4) {
       inicioIdx = ciclos.length - 4;
-      var cicloPrevio = ciclos[inicioIdx - 1];
-      sheetS13.getRange(filaSup, 2).setValue(formatearFechaCorta(cicloPrevio.fechaFin));
-    } else if (ciclos.length >= 1) {
-      var ultimoCiclo = ciclos[ciclos.length - 1];
-      sheetS13.getRange(filaSup, 2).setValue(formatearFechaCorta(ultimoCiclo.fechaFin));
     }
 
     var ciclosVisibles = ciclos.slice(inicioIdx, inicioIdx + 4);
     for (var idx = 0; idx < ciclosVisibles.length; idx++) {
-      var colIzq = 3 + idx * 2; // C=3, E=5, G=7, I=9
-      var colDer = colIzq + 1;  // D=4, F=6, H=8, J=10
+      var colIzqMat = 1 + idx * 2; // 1=Col C, 3=Col E, 5=Col G, 7=Col I
+      var colDerMat = colIzqMat + 1; // 2=Col D, 4=Col F, 6=Col H, 8=Col J
       var cData = ciclosVisibles[idx];
 
-      sheetS13.getRange(filaSup, colIzq).setValue(cData.capitan);
-      sheetS13.getRange(filaInf, colIzq).setValue(formatearFechaCorta(cData.fechaInicio));
-      sheetS13.getRange(filaInf, colDer).setValue(formatearFechaCorta(cData.fechaFin));
+      matriz[idxSup][colIzqMat] = cData.capitan;
+      matriz[idxInf][colIzqMat] = formatearFechaCorta(cData.fechaInicio);
+      matriz[idxInf][colDerMat] = cData.fechaFin ? formatearFechaCorta(cData.fechaFin) : "";
     }
   }
+
+  sheetS13.getRange(5, 2, totalFilasDatos, 9).setValues(matriz);
 }
 
 function obtenerOCrearHojaCuadras(ss) {
@@ -311,18 +453,33 @@ function obtenerOCrearHojaCuadras(ss) {
       "Cuadras", "Total Cuadras", "Capitán", "Visita S.C.", "Estado", "Fecha Registro Nube"
     ]);
     sheet.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#115e59").setFontColor("#ffffff");
+    sheet.setFrozenRows(1);
   }
   return sheet;
 }
 
-function obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios) {
+function obtenerOCrearHojaCapitanes(ss) {
+  var sheet = ss.getSheetByName("Capitanes");
+  if (!sheet) {
+    sheet = ss.insertSheet("Capitanes");
+    sheet.appendRow(["Nombre del Capitán", "Rol", "Acceso Modo Capitán", "PIN"]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#1e3a8a").setFontColor("#ffffff");
+    sheet.getRange(2, 1, CAPITANES_DB.length, 4).setValues(CAPITANES_DB);
+    sheet.setFrozenRows(1);
+    sheet.autoResizeColumns(1, 4);
+  }
+  return sheet;
+}
+
+function obtenerOCrearPlantillaS13(ss, nombreHoja, anioServicioTxt, maxTerritorios) {
   var sheet = ss.getSheetByName(nombreHoja);
   var totalFilasNecesarias = 4 + (maxTerritorios * 2);
 
   if (sheet && sheet.getMaxRows() >= totalFilasNecesarias) {
     var valTerr1 = String(sheet.getRange(5, 1).getValue()).trim();
-    var valTerr2 = String(sheet.getRange(7, 1).getValue()).trim();
-    if (valTerr1 === "1" && valTerr2 === "2") {
+    var valTerr84 = String(sheet.getRange(5 + (maxTerritorios - 1) * 2, 1).getValue()).trim();
+    if (valTerr1 === "1" && valTerr84 === String(maxTerritorios)) {
+      sheet.getRange("A2").setValue("Año de servicio: " + anioServicioTxt);
       return sheet;
     }
   }
@@ -342,7 +499,7 @@ function obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios) {
 
   sheet.getRange("A1:J1").merge().setValue("REGISTRO DE ASIGNACIÓN DE TERRITORIO")
     .setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
-  sheet.getRange("A2:J2").merge().setValue("Año de servicio: ________________________")
+  sheet.getRange("A2:J2").merge().setValue("Año de servicio: " + anioServicioTxt)
     .setFontSize(11).setFontWeight("bold");
 
   sheet.getRange("A3:A4").merge().setValue("Núm. de\nterr.").setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold").setBackground("#e5e7eb");
@@ -356,26 +513,38 @@ function obtenerOCrearPlantillaS13(ss, nombreHoja, maxTerritorios) {
     sheet.getRange(4, colD).setValue("Fecha en que se\ncompletó").setHorizontalAlignment("center").setFontSize(8).setBackground("#e5e7eb");
   }
 
+  var numVals = [];
   for (var t = 1; t <= maxTerritorios; t++) {
-    var rSup = 5 + (t - 1) * 2;
+    numVals.push([t]);
+    numVals.push([""]);
+  }
+  sheet.getRange(5, 1, maxTerritorios * 2, 1).setValues(numVals)
+    .setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold");
+  sheet.getRange(5, 2, maxTerritorios * 2, 9)
+    .setHorizontalAlignment("center").setVerticalAlignment("middle");
+
+  for (var t2 = 1; t2 <= maxTerritorios; t2++) {
+    var rSup = 5 + (t2 - 1) * 2;
     var rInf = rSup + 1;
-
-    sheet.getRange(rSup, 1, 2, 1).merge().setValue(t).setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold");
-    sheet.getRange(rSup, 2, 2, 1).merge().setHorizontalAlignment("center").setVerticalAlignment("middle");
-
+    sheet.getRange(rSup, 1, 2, 1).merge();
+    sheet.getRange(rSup, 2, 2, 1).merge();
     for (var k = 0; k < 4; k++) {
       var cIzq = 3 + k * 2;
-      sheet.getRange(rSup, cIzq, 1, 2).merge().setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold");
-      sheet.getRange(rInf, cIzq).setHorizontalAlignment("center").setVerticalAlignment("middle").setFontSize(9);
-      sheet.getRange(rInf, cIzq + 1).setHorizontalAlignment("center").setVerticalAlignment("middle").setFontSize(9);
+      sheet.getRange(rSup, cIzq, 1, 2).merge().setFontWeight("bold");
+      sheet.getRange(rInf, cIzq, 1, 2).setFontSize(9);
     }
-
-    sheet.getRange(rSup, 1, 2, 10).setBorder(true, true, true, true, true, true, "#9ca3af", SpreadsheetApp.BorderStyle.SOLID);
-    sheet.getRange(rSup, 1, 2, 10).setBorder(true, true, true, true, null, null, "#000000", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   }
 
+  sheet.getRange(5, 1, maxTerritorios * 2, 10).setBorder(true, true, true, true, true, true, "#9ca3af", SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange("A3:J4").setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.setFrozenRows(4);
   return sheet;
+}
+
+// Función para ejecutar manualmente en el editor de Apps Script si se desea reconstruir todo al instante
+function actualizarHojasS13Manualmente() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  reconstruirHojaS13(ss);
 }
 
 function formatearFecha(valor) {

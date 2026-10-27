@@ -8,6 +8,38 @@
   const PIN_ENCARGADO_DEFAULT = "1234";
   const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbysLvd2KoADFWNsFflNolxQjrHVFn7rW9oDdewPyt7MfPoPbZ3w6qEALYoypQVJTerCmg/exec";
 
+  // Usuarios con permiso de ingresar al Modo Capitán (con código 1234)
+  const USUARIOS_ACCESO_CAPITAN = [
+    "Jorge Vásquez",
+    "Merari Rosales"
+  ];
+
+  // Base de datos oficial de Capitanes disponibles para reportar territorios
+  const LISTA_CAPITANES_OFICIAL = [
+    "Jorge Vásquez",
+    "Merari Rosales",
+    "Alex García",
+    "Alfredo Dávila",
+    "César Pineda",
+    "Daniel López",
+    "Diego Cerecedo",
+    "Edgar Rodríguez",
+    "Elijah Rodríguez",
+    "Félix Acuña",
+    "Fernando García",
+    "Heber Ramos",
+    "Jaciel Barrios",
+    "Jair Barraza",
+    "Jesús Alba",
+    "Josué Ramos",
+    "Luis Gardea",
+    "Moisés García",
+    "Oscar Hernández",
+    "René Molina",
+    "Ricardo Salinas",
+    "Rinat Reséndiz"
+  ];
+
   // Sistema de audio táctil háptico moderno (Web Audio API nativo y ligero)
   let _audioCtx = null;
   function getAudioContext() {
@@ -164,9 +196,74 @@
     return true;
   }
 
+  // Extrae solo el número de territorio (ej: "territorio42" -> "42") para guardar limpio en Excel
+  function obtenerNumeroTerritorioLimpio(tId, tNum) {
+    const numStr = String(tNum !== undefined && tNum !== null ? tNum : "").trim();
+    if (/^\d+$/.test(numStr)) return String(parseInt(numStr, 10));
+    const m = String(tId || "").match(/(\d+)/);
+    if (m) return String(parseInt(m[1], 10));
+    return numStr || String(tId || "").trim();
+  }
+
+  // Devuelve el ID de grupo del mapa Leaflet (ej: "42" -> "territorio42")
   function obtenerTerritorioIdLimpio(rep) {
-    const idRaw = String((rep && rep.territorioId) || "");
-    return idRaw.replace(/^(nueva_|anterior_)/, "");
+    const idRaw = String((rep && (rep.territorioId || rep.territorioNumero)) || "")
+      .replace(/^(nueva_|anterior_)/, "")
+      .trim();
+    if (/^\d+$/.test(idRaw)) {
+      return "territorio" + parseInt(idRaw, 10);
+    }
+    if (idRaw.toLowerCase().includes("negocios")) {
+      return "territorionegocios";
+    }
+    return idRaw;
+  }
+
+  // Convierte ID de polígono del mapa ("Cuadra1_Territorio42") a código corto de Excel ("T42C1")
+  function aCodigoCortoCuadra(cId, numTerr) {
+    const raw = String(cId || "").trim();
+    if (!raw) return "";
+    const mCorto = raw.match(/^T(\d+)C(\d+)$/i);
+    if (mCorto) return `T${mCorto[1]}C${mCorto[2]}`;
+    const mLargo = raw.match(/^Cuadra(\d+)_Territorio(\d+)$/i);
+    if (mLargo) return `T${mLargo[2]}C${mLargo[1]}`;
+    const nT = obtenerNumeroTerritorioLimpio("", numTerr);
+    if (/^\d+$/.test(raw) && nT) return `T${nT}C${raw}`;
+    return raw;
+  }
+
+  // Devuelve tanto el código corto ("T42C1") como el ID del polígono del mapa ("Cuadra1_Territorio42")
+  function obtenerVariantesIdCuadra(cId, numTerr) {
+    const raw = String(cId || "").trim();
+    const res = [raw];
+    const mCorto = raw.match(/^T(\d+)C(\d+)$/i);
+    if (mCorto) {
+      res.push(`Cuadra${mCorto[2]}_Territorio${mCorto[1]}`);
+      res.push(`T${mCorto[1]}C${mCorto[2]}`);
+      return res;
+    }
+    const mLargo = raw.match(/^Cuadra(\d+)_Territorio(\d+)$/i);
+    if (mLargo) {
+      res.push(`T${mLargo[2]}C${mLargo[1]}`);
+      res.push(`Cuadra${mLargo[1]}_Territorio${mLargo[2]}`);
+      return res;
+    }
+    const nT = obtenerNumeroTerritorioLimpio("", numTerr);
+    if (/^\d+$/.test(raw) && nT) {
+      res.push(`T${nT}C${raw}`);
+      res.push(`Cuadra${raw}_Territorio${nT}`);
+    }
+    return res;
+  }
+
+  // Extrae solo el número de cuadra para mostrar en tarjetas ("T42C1" -> "1")
+  function formatearEtiquetaCuadraCorta(cId) {
+    const raw = String(cId || "").trim();
+    const mCorto = raw.match(/^T\d+C(\d+)$/i);
+    if (mCorto) return mCorto[1];
+    const mLargo = raw.match(/^Cuadra(\d+)_Territorio\d+$/i);
+    if (mLargo) return mLargo[1];
+    return raw.replace(/^[a-zA-Z0-9]+_c/, "");
   }
 
   // Purgar por completo todas las llaves viejas (_estado y _capitanes) del teléfono
@@ -288,8 +385,9 @@
     }
   }
 
-  // 5. Modal para Iniciar Sesión de Capitán con PIN
+  // 5. Modal para Iniciar Sesión de Capitán con PIN (Exclusivo Jorge Vásquez / Koke y Merari Rosales)
   function abrirModalLoginCapitan() {
+    const actual = window.getCapitanNombre();
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
@@ -299,21 +397,17 @@
           <button id="btnCerrarLoginModal" class="btn-icon-square">✕</button>
         </div>
         <p style="font-size:13px; color:#64748b; margin-top:0; margin-bottom:16px;">
-          Ingresa tu nombre y el código PIN de acceso:
+          Selecciona tu usuario autorizado e ingresa el código PIN:
         </p>
 
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div>
-            <label style="font-size:11.5px; font-weight:700; color:#475569; text-transform:uppercase;">Nombre del Capitán</label>
-            <input type="text" id="inputNombreLogin" list="sugerenciasCapitanes" placeholder="Ej. Koke" value="${window.getCapitanNombre()}" style="
-              width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:600; box-sizing:border-box; margin-top:4px; outline:none; font-family:inherit;
-            " />
-            <datalist id="sugerenciasCapitanes">
-              <option value="Koke"></option>
-              <option value="Josué Ramos"></option>
-              <option value="Auxiliar de Territorios"></option>
-              <option value="Encargado de Servicio"></option>
-            </datalist>
+            <label style="font-size:11.5px; font-weight:700; color:#475569; text-transform:uppercase;">Usuario Autorizado</label>
+            <select id="selectNombreLogin" style="
+              width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; box-sizing:border-box; margin-top:4px; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
+            ">
+              ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${actual === u ? "selected" : ""}>${u === "Jorge Vásquez" ? "Jorge Vásquez (Koke)" : u}</option>`).join("")}
+            </select>
           </div>
 
           <div>
@@ -351,21 +445,17 @@
     };
 
     const inputPin = modal.querySelector("#inputPinLogin");
-    const inputNombre = modal.querySelector("#inputNombreLogin");
-    setTimeout(() => {
-      if (inputNombre.value) inputPin.focus();
-      else inputNombre.focus();
-    }, 120);
+    const selectNombre = modal.querySelector("#selectNombreLogin");
+    setTimeout(() => inputPin.focus(), 120);
 
     const intentarLogin = () => {
-      const nombre = inputNombre.value.trim();
+      const nombre = selectNombre.value.trim();
       const pin = inputPin.value.trim();
-      if (!nombre) {
-        alert("Por favor ingresa tu nombre.");
-        inputNombre.focus();
+      if (!USUARIOS_ACCESO_CAPITAN.includes(nombre)) {
+        alert("Acceso restringido únicamente a Jorge Vásquez y Merari Rosales.");
         return;
       }
-      if (pin !== "1234") {
+      if (pin !== PIN_ENCARGADO_DEFAULT) {
         window.reproducirSonidoClick("delete");
         alert("Código PIN incorrecto.");
         inputPin.value = "";
@@ -373,7 +463,6 @@
         return;
       }
 
-      // Registro de login para control
       try {
         const logins = JSON.parse(localStorage.getItem("terrosa_conexiones_log") || "[]");
         logins.push({
@@ -397,47 +486,34 @@
     });
   }
 
-  // 5.1. Menú al tocar el Badge del Capitán (Edición directa de nombre y acceso a S-13)
+  // 5.1. Menú al tocar el Badge del Capitán (Cambio rápido de usuario autorizado y salida a Modo Publicador)
   function abrirMenuPerfilCapitan() {
-    const nombre = window.getCapitanNombre();
-    const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const pendientes = lista.filter(r => r.estado === "PENDIENTE" && perteneceAVersionActiva(r));
+    const nombre = window.getCapitanNombre() || USUARIOS_ACCESO_CAPITAN[0];
 
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
       <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👤 Perfil de Capitán</h3>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👤 Perfil Activo</h3>
           <button id="btnCerrarMenuPerfilX" class="btn-icon-square">✕</button>
         </div>
 
-        <!-- Edición directa del nombre al tocarlo -->
         <div style="margin-bottom:16px;">
-          <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Nombre</label>
+          <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Administrador en sesión</label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="inputPerfilNombreDirecto" value="${nombre || 'Capitán'}" placeholder="Tu nombre..." style="
-              flex:1; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:15px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#f8fafc;
-            " />
+            <select id="inputPerfilNombreDirecto" style="
+              flex:1; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14.5px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#f8fafc;
+            ">
+              ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${nombre === u ? "selected" : ""}>${u === "Jorge Vásquez" ? "Jorge Vásquez (Koke)" : u}</option>`).join("")}
+            </select>
             <button id="btnGuardarNombreDirecto" style="
               padding:10px 14px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer;
             ">Guardar</button>
           </div>
-          <span style="font-size:11px; color:#94a3b8; margin-top:3px; display:block;">Toca el texto para editar tu nombre.</span>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:10px;">
-          <!-- Opción de Pendientes por Aprobar S-13 -->
-          <button id="btnPerfilAprobacionesS13" style="
-            width:100%; padding:13px 14px; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:14px; font-weight:800; color:#1d4ed8; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:space-between; text-align:left;
-          ">
-            <span>🔔 Pendientes por Aprobar</span>
-            <span style="background:${pendientes.length > 0 ? '#ef4444' : '#94a3b8'}; color:white; padding:3px 9px; border-radius:12px; font-size:12px; font-weight:800;">
-              ${pendientes.length}
-            </span>
-          </button>
-
-          <!-- Salir a Modo Publicador -->
           <button id="btnCerrarSesionModo" style="
             padding:12px 14px; background:#fef2f2; border:1px solid #fee2e2; border-radius:14px; font-weight:700; color:#dc2626; cursor:pointer; font-size:13.5px; text-align:left;
           ">🔒 Salir a Modo Publicador</button>
@@ -460,31 +536,12 @@
         localStorage.setItem("terrosa_capitan_nombre", nuevo);
         actualizarInterfazSegunModo();
         window.reproducirSonidoClick("success");
-        mostrarToastDiscreto("Nombre actualizado ✅");
+        mostrarToastDiscreto("Usuario actualizado ✅");
+        cerrar();
       }
     };
 
     modal.querySelector("#btnGuardarNombreDirecto").onclick = guardarNombre;
-    inputNombre.addEventListener("keyup", (e) => {
-      if (e.key === "Enter") guardarNombre();
-    });
-
-    // Acción para Pendientes por Aprobar (S-13)
-    // Si es Koke o Encargado de Servicio entra directo, otros deben ingresar el PIN 1234
-    modal.querySelector("#btnPerfilAprobacionesS13").onclick = () => {
-      window.reproducirSonidoClick("tap");
-      cerrar();
-      const capActual = (window.getCapitanNombre() || "").toLowerCase();
-      const esAdminDirecto = ["koke", "josué ramos", "josue ramos", "encargado", "auxiliar"].some(k => capActual.includes(k));
-
-      if (esAdminDirecto) {
-        abrirModalBuzonAprobaciones();
-      } else {
-        pedirPinEncargado(() => {
-          abrirModalBuzonAprobaciones();
-        });
-      }
-    };
 
     modal.querySelector("#btnCerrarSesionModo").onclick = () => {
       localStorage.setItem("terrosa_modo", "publicador");
@@ -612,14 +669,11 @@
         const card = document.createElement("div");
         card.className = "card-historial-minimal";
 
-        const esAprobado = (rep.estado === "APROBADO");
-        const statusDot = esAprobado
-          ? '<span title="Aprobado" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-left:5px;"></span>'
-          : '<span title="Pendiente" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; margin-left:5px;"></span>';
+        const statusDot = '<span title="Registrado en S-13" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-left:5px;"></span>';
 
         const labelsCuadras = (rep.cuadrasLabels && rep.cuadrasLabels.length > 0)
           ? rep.cuadrasLabels.join(", ")
-          : (Array.isArray(rep.cuadras) ? rep.cuadras.map(c => c.replace(/^[a-zA-Z0-9]+_c/, '')).join(", ") : "");
+          : (Array.isArray(rep.cuadras) ? rep.cuadras.map(c => formatearEtiquetaCuadraCorta(c)).join(", ") : "");
 
         card.innerHTML = `
           <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
@@ -628,13 +682,13 @@
             </div>
             <div style="min-width:0; flex:1;">
               <div style="display:flex; align-items:center;">
-                <span style="font-weight:800; color:#1e293b; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rep.capitan || 'Capitán'}</span>
+                <span style="font-weight:800; color:#1e293b; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escaparTextoSeguro(rep.capitan || 'Capitán')}</span>
                 ${statusDot}
               </div>
               <div style="font-size:12px; color:#64748b; margin-top:2px;">
-                📅 ${formatearFechaCorta(rep.fecha)} • Cuadras: ${labelsCuadras || rep.cuadrasTotal}
+                📅 ${formatearFechaCorta(rep.fecha)} • Cuadras: ${labelsCuadras || rep.cuadrasTotal || rep.totalCuadras || ""}
               </div>
-              ${rep.comentario ? `<div style="font-size:11.5px; color:#475569; background:#f8fafc; padding:3px 7px; border-radius:6px; margin-top:3px; max-width:fit-content; border:1px solid #e2e8f0;">💬 ${rep.comentario}</div>` : ''}
+              ${rep.comentario ? `<div style="font-size:11.5px; color:#475569; background:#f8fafc; padding:3px 7px; border-radius:6px; margin-top:3px; max-width:fit-content; border:1px solid #e2e8f0;">💬 ${escaparTextoSeguro(rep.comentario)}</div>` : ''}
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
@@ -690,6 +744,10 @@
     if (!rep) return;
 
     const fechaISO = parsearFechaReporte(rep.fecha).fechaISO || obtenerFechaLocalISO();
+    const capitanesEdit = [...LISTA_CAPITANES_OFICIAL];
+    if (rep.capitan && !capitanesEdit.includes(rep.capitan)) {
+      capitanesEdit.unshift(rep.capitan);
+    }
 
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
@@ -701,7 +759,11 @@
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div>
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
-            <input type="text" id="editCapitanNombre" value="${escaparTextoSeguro(rep.capitan)}" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:600; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit;"/>
+            <select id="editSelectCapitan" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit; background:#fff;">
+              ${capitanesEdit.map(c => `<option value="${escaparTextoSeguro(c)}" ${c === rep.capitan ? "selected" : ""}>${escaparTextoSeguro(c)}</option>`).join("")}
+              <option value="__otro__">✏️ Escribir otro...</option>
+            </select>
+            <input type="text" id="editCapitanOtro" placeholder="Nombre del Capitán" style="display:none; width:100%; padding:10px 12px; border:1.5px solid #3b82f6; border-radius:12px; font-size:14px; font-weight:600; box-sizing:border-box; margin-top:5px; outline:none; font-family:inherit;"/>
           </div>
 
           <div>
@@ -729,10 +791,21 @@
       if (document.body.contains(modal)) document.body.removeChild(modal);
     };
 
+    const selCap = modal.querySelector("#editSelectCapitan");
+    const inpCapOtro = modal.querySelector("#editCapitanOtro");
+    selCap.addEventListener("change", () => {
+      if (selCap.value === "__otro__") {
+        inpCapOtro.style.display = "block";
+        inpCapOtro.focus();
+      } else {
+        inpCapOtro.style.display = "none";
+      }
+    });
+
     modal.querySelector("#btnCancelarEdicion").onclick = cerrar;
 
     modal.querySelector("#btnGuardarEdicion").onclick = () => {
-      const nuevoCapitan = modal.querySelector("#editCapitanNombre").value.trim();
+      const nuevoCapitan = selCap.value === "__otro__" ? inpCapOtro.value.trim() : selCap.value.trim();
       const nuevaFecha = modal.querySelector("#editFecha").value;
       const nuevoComentario = modal.querySelector("#editComentario").value.trim();
 
@@ -742,6 +815,7 @@
       rep.capitan = nuevoCapitan;
       rep.fecha = nuevaFecha;
       rep.comentario = nuevoComentario;
+      rep.estado = "APROBADO";
 
       localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
 
@@ -770,12 +844,12 @@
   function obtenerInfoCuadrasTrabajadasEnMes(territorioId, territorioNumero, anioTarget, mesTarget) {
     const mapaCuadras = new Map();
     const listaReportesT = [];
+    const numTarget = obtenerNumeroTerritorioLimpio(territorioId, territorioNumero);
     const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     lista.forEach(r => {
       if (!perteneceAVersionActiva(r)) return;
-      const numR = String(r.territorioNumero || "");
-      const idR = String(r.territorioId || "");
-      if (numR === String(territorioNumero) || idR === String(territorioId)) {
+      const numR = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
+      if (numR === numTarget || String(r.territorioId) === String(territorioId)) {
         const p = parsearFechaReporte(r.fecha);
         if (p.anio === String(anioTarget) && parseInt(p.mes, 10) === parseInt(mesTarget, 10)) {
           listaReportesT.push({
@@ -785,12 +859,15 @@
           });
           if (Array.isArray(r.cuadras)) {
             r.cuadras.forEach(cId => {
-              if (!mapaCuadras.has(cId)) {
-                mapaCuadras.set(cId, {
-                  fechaDisplay: p.fechaDisplay,
-                  capitan: r.capitan || "Capitán"
-                });
-              }
+              const variantes = obtenerVariantesIdCuadra(cId, numR);
+              variantes.forEach(vId => {
+                if (!mapaCuadras.has(vId)) {
+                  mapaCuadras.set(vId, {
+                    fechaDisplay: p.fechaDisplay,
+                    capitan: r.capitan || "Capitán"
+                  });
+                }
+              });
             });
           }
         }
@@ -802,9 +879,9 @@
   // 7. Modal de Registro de Territorio / Cuadras — Rediseño App Nativa
   window.abrirModalRegistroTerritorio = function (preTerritorioId, preCuadraId) {
     window.reproducirSonidoClick("tap");
-    const capitanActivo = window.getCapitanNombre() || "Koke";
+    const capitanActivo = window.getCapitanNombre() || "Jorge Vásquez";
     const hoy = obtenerFechaLocalISO();
-    const listaCapitanesSugeridos = ["Koke", "Josué Ramos", "Auxiliar de Territorios", "Encargado de Servicio"];
+    const listaCapitanesSugeridos = [...LISTA_CAPITANES_OFICIAL];
     if (capitanActivo && !listaCapitanesSugeridos.includes(capitanActivo)) {
       listaCapitanesSugeridos.unshift(capitanActivo);
     }
@@ -1050,12 +1127,13 @@
 
       const itemT = window.TERRITORIOS_DATA.find(x => x.datos.id === tId);
       const numT = itemT ? (itemT.datos.numeroTerritorio !== undefined ? itemT.datos.numeroTerritorio : tId) : tId;
-      const cuadrasIds = chks.map(c => c.value);
+      const numTLimpio = obtenerNumeroTerritorioLimpio(tId, numT);
+      const cuadrasIds = chks.map(c => aCodigoCortoCuadra(c.value, numTLimpio));
 
       const cuadrasLabels = chks.map(c => {
         const val = c.value;
         const polData = (itemT && itemT.datos.poligonos) ? itemT.datos.poligonos.find(p => p.id === val) : null;
-        return (polData && polData.label) ? String(polData.label).trim() : val.replace(/^[a-zA-Z0-9]+_c/, '');
+        return (polData && polData.label) ? String(polData.label).trim() : formatearEtiquetaCuadraCorta(val);
       });
 
       const cuadrasRealesT = (itemT && itemT.datos.poligonos)
@@ -1067,8 +1145,8 @@
         id: "rep_" + Date.now(),
         fecha: fecha,
         version: "anterior",
-        territorioId: tId,
-        territorioNumero: numT,
+        territorioId: String(numTLimpio),
+        territorioNumero: String(numTLimpio),
         cuadras: cuadrasIds,
         cuadrasLabels: cuadrasLabels,
         cuadrasTotal: chks.length,
@@ -1076,7 +1154,7 @@
         capitan: capitan,
         comentario: comentario,
         visitaSC: visitaSC,
-        estado: "PENDIENTE",
+        estado: "APROBADO",
         timestamp: Date.now()
       };
 
@@ -1113,24 +1191,14 @@
   }
 
   function actualizarContadorPendientes() {
-    const lista = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const pendientes = lista.filter(r => r.estado === "PENDIENTE" && perteneceAVersionActiva(r));
     const badge = document.getElementById("badgeReportesPendientes");
     if (badge) {
-      badge.textContent = pendientes.length;
-      badge.style.display = pendientes.length > 0 ? "inline-block" : "none";
+      badge.style.display = "none";
     }
-
-    // Indicador sutil de punto rojo en avatar si hay pendientes
     const dot = document.querySelector(".avatar-capitan-dot");
     if (dot) {
-      if (pendientes.length > 0) {
-        dot.style.background = "#ef4444";
-        dot.style.boxShadow = "0 0 6px rgba(239, 68, 68, 0.7)";
-      } else {
-        dot.style.background = "#22c55e";
-        dot.style.boxShadow = "none";
-      }
+      dot.style.background = "#22c55e";
+      dot.style.boxShadow = "none";
     }
   }
 
@@ -1149,7 +1217,7 @@
     // Identificar cuadras en texto
     const labels = (reporte.cuadrasLabels && reporte.cuadrasLabels.length > 0)
       ? reporte.cuadrasLabels.join(", ")
-      : reporte.cuadras.map(c => c.replace(/^[a-zA-Z0-9]+_c/, '')).join(", ");
+      : reporte.cuadras.map(c => formatearEtiquetaCuadraCorta(c)).join(", ");
 
     const textoCuadra = (reporte.cuadrasTotal === 1)
       ? `la cuadra *${labels}*`
@@ -1511,13 +1579,16 @@
     const cuadrasReportadasPorTerritorio = {};
 
     reportes.forEach(rep => {
-      if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO") && perteneceAVersionActiva(rep)) {
+      if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO" || !rep.estado) && perteneceAVersionActiva(rep)) {
         const tIdLimpio = obtenerTerritorioIdLimpio(rep);
+        const numR = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
         if (!cuadrasReportadasPorTerritorio[tIdLimpio]) {
           cuadrasReportadasPorTerritorio[tIdLimpio] = new Set();
         }
         if (Array.isArray(rep.cuadras)) {
-          rep.cuadras.forEach(cId => cuadrasReportadasPorTerritorio[tIdLimpio].add(cId));
+          rep.cuadras.forEach(cId => {
+            obtenerVariantesIdCuadra(cId, numR).forEach(v => cuadrasReportadasPorTerritorio[tIdLimpio].add(v));
+          });
         }
       }
     });
@@ -1701,10 +1772,15 @@
       const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
       const cuadrasReportadas = {};
       reportes.forEach(rep => {
-        if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO") && perteneceAVersionActiva(rep)) {
+        if ((rep.estado === "PENDIENTE" || rep.estado === "APROBADO" || !rep.estado) && perteneceAVersionActiva(rep)) {
           const tIdLimpio = obtenerTerritorioIdLimpio(rep);
+          const numR = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
           if (!cuadrasReportadas[tIdLimpio]) cuadrasReportadas[tIdLimpio] = new Set();
-          if (Array.isArray(rep.cuadras)) rep.cuadras.forEach(cId => cuadrasReportadas[tIdLimpio].add(cId));
+          if (Array.isArray(rep.cuadras)) {
+            rep.cuadras.forEach(cId => {
+              obtenerVariantesIdCuadra(cId, numR).forEach(v => cuadrasReportadas[tIdLimpio].add(v));
+            });
+          }
         }
       });
 
@@ -1738,8 +1814,11 @@
       const coincide = prefijos.includes(ym);
       if (coincide && Array.isArray(rep.cuadras)) {
         const tIdLimpio = obtenerTerritorioIdLimpio(rep);
+        const numR = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
         if (!cuadrasCoincidentes[tIdLimpio]) cuadrasCoincidentes[tIdLimpio] = new Set();
-        rep.cuadras.forEach(cId => cuadrasCoincidentes[tIdLimpio].add(cId));
+        rep.cuadras.forEach(cId => {
+          obtenerVariantesIdCuadra(cId, numR).forEach(v => cuadrasCoincidentes[tIdLimpio].add(v));
+        });
       }
     });
 
@@ -1829,7 +1908,7 @@
         localStorage.setItem("terrosa_mutaciones_aprobadas", JSON.stringify(Array.from(aprobadosLocales)));
         localStorage.setItem("terrosa_mutaciones_eliminadas", JSON.stringify(Array.from(eliminadosLocales)));
 
-        // Normalizar fechas sin desfase de zona horaria UTC y filtrar los reportes eliminados localmente
+        // Normalizar fechas y códigos cortos sin desfase de zona horaria UTC
         let reportesNormalizados = listaReportes
           .filter(r => !eliminadosLocales.has(r.id))
           .map(r => {
@@ -1837,11 +1916,13 @@
             if (parsed.fechaISO) {
               r.fecha = parsed.fechaISO;
             }
-
-            // Mantener como APROBADO si el usuario lo aprobó localmente y la nube aún está procesando
-            if (aprobadosLocales.has(r.id)) {
-              r.estado = "APROBADO";
+            const numLimpio = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
+            r.territorioId = String(numLimpio);
+            r.territorioNumero = String(numLimpio);
+            if (Array.isArray(r.cuadras)) {
+              r.cuadras = r.cuadras.map(c => aCodigoCortoCuadra(c, numLimpio));
             }
+            r.estado = "APROBADO";
             return r;
           });
 
