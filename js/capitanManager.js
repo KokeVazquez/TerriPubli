@@ -952,27 +952,57 @@
       lockOverlay = document.createElement("div");
       lockOverlay.id = "pantallaBloqueoAcceso";
       lockOverlay.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; color:#ffffff; z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; box-sizing:border-box;";
-      lockOverlay.innerHTML = `
-        <div style="font-size:52px; margin-bottom:14px;">🔒</div>
-        <h2 style="margin:0 0 10px 0; font-size:22px; font-weight:800; color:#ffffff;">Acceso Restringido</h2>
-        <p style="font-size:14.5px; color:#94a3b8; max-width:320px; line-height:1.5; margin:0 0 20px 0;">
-          ${mensaje || "Esta aplicación requiere autorización del encargado de territorios de la Congregación Rosario."}
-        </p>
-        <div style="font-size:12px; color:#64748b; background:#1e293b; padding:8px 14px; border-radius:10px;">
-          ID Dispositivo: <b>${obtenerIdDispositivoLocal()}</b>
-        </div>
-      `;
       document.body.appendChild(lockOverlay);
+    }
+    lockOverlay.innerHTML = `
+      <div style="font-size:52px; margin-bottom:14px;">🔒</div>
+      <h2 style="margin:0 0 10px 0; font-size:22px; font-weight:800; color:#ffffff;">Acceso Restringido</h2>
+      <p id="txtMensajeBloqueo" style="font-size:14.5px; color:#94a3b8; max-width:320px; line-height:1.5; margin:0 0 20px 0;">
+        ${mensaje || "Esta aplicación requiere autorización del encargado de territorios de la Congregación Rosario."}
+      </p>
+      <button id="btnReintentarAcceso" style="
+        background:#1a73e8; color:white; border:none; padding:10px 22px; border-radius:50px; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(26,115,232,0.4); margin-bottom:20px; display:inline-flex; align-items:center; gap:8px;
+      ">
+        <span>🔄</span> <span>Comprobar estado</span>
+      </button>
+      <div style="font-size:12px; color:#64748b; background:#1e293b; padding:8px 14px; border-radius:10px;">
+        ID Dispositivo: <b>${obtenerIdDispositivoLocal()}</b>
+      </div>
+    `;
+
+    const btnRetry = lockOverlay.querySelector("#btnReintentarAcceso");
+    if (btnRetry) {
+      btnRetry.onclick = () => {
+        btnRetry.innerHTML = `<span>⏳</span> <span>Comprobando...</span>`;
+        btnRetry.disabled = true;
+        window.verificarAccesoEnNube(null, (permitido) => {
+          if (!permitido) {
+            btnRetry.disabled = false;
+            btnRetry.innerHTML = `<span>🔄</span> <span>Sigue restringido</span>`;
+            setTimeout(() => {
+              btnRetry.innerHTML = `<span>🔄</span> <span>Comprobar estado</span>`;
+            }, 2000);
+          }
+        });
+      };
     }
   }
 
-  window.verificarAccesoEnNube = function verificarAccesoEnNube(nombreOpcional) {
+  function quitarPantallaBloqueo() {
+    localStorage.removeItem("terrosa_acceso_bloqueado");
+    const lockOverlay = document.getElementById("pantallaBloqueoAcceso");
+    if (lockOverlay) {
+      lockOverlay.remove();
+    }
+  }
+
+  window.verificarAccesoEnNube = function verificarAccesoEnNube(nombreOpcional, callback) {
     const devId = obtenerIdDispositivoLocal();
     const nombre = (nombreOpcional || localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "Sin registrar").trim();
 
+    // Si estaba marcado como bloqueado previamente, mostramos la pantalla de inmediato mientras consulta el estado actualizado
     if (localStorage.getItem("terrosa_acceso_bloqueado") === "true") {
       mostrarPantallaBloqueo();
-      return;
     }
 
     // Ping POST para registrar / actualizar último acceso
@@ -990,20 +1020,24 @@
       }).catch(() => {});
     } catch (e) {}
 
-    // Consulta GET para verificar si el estado es Bloqueado
-    try {
-      fetch(`${URL_API_GOOGLE_SHEETS}?accion=verificar_acceso&dispositivoId=${encodeURIComponent(devId)}&t=${Date.now()}`)
-        .then(r => r.json())
-        .then(res => {
-          if (res && res.permitido === false) {
-            localStorage.setItem("terrosa_acceso_bloqueado", "true");
-            mostrarPantallaBloqueo(res.mensaje);
-          } else if (res && res.permitido === true) {
-            localStorage.removeItem("terrosa_acceso_bloqueado");
-          }
-        })
-        .catch(() => {});
-    } catch (e) {}
+    // Consulta GET en vivo sin caché para verificar si el estado es Activo o Bloqueado
+    fetch(`${URL_API_GOOGLE_SHEETS}?accion=verificar_acceso&dispositivoId=${encodeURIComponent(devId)}&t=${Date.now()}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.permitido === false) {
+          localStorage.setItem("terrosa_acceso_bloqueado", "true");
+          mostrarPantallaBloqueo(res.mensaje);
+          if (typeof callback === "function") callback(false);
+        } else {
+          // ¡Estado Activo / Permitido! Desbloqueamos la pantalla
+          quitarPantallaBloqueo();
+          if (typeof callback === "function") callback(true);
+        }
+      })
+      .catch(err => {
+        // En caso de fallo de red temporal, si no estaba bloqueado antes, permitir
+        if (typeof callback === "function") callback(localStorage.getItem("terrosa_acceso_bloqueado") !== "true");
+      });
   };
 
   // 6. Botón Registrar Territorio e Historial en Barra Inferior
