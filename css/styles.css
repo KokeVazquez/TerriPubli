@@ -666,22 +666,24 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   left: 0;
   width: 100%;
   height: 100%;
+  height: 100dvh;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 999999;
-  padding: 16px;
+  padding: clamp(14px, 5vh, 44px) 14px 24px 14px;
   box-sizing: border-box;
   animation: terrosaFadeIn 0.2s ease;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .terrosa-modal-overlay.login-modal-overlay {
   align-items: flex-start !important;
-  padding-top: clamp(20px, 8vh, 48px) !important;
+  padding-top: clamp(16px, 5vh, 36px) !important;
 }
 
 .terrosa-modal-card {
@@ -692,7 +694,20 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   max-width: 380px;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22);
   box-sizing: border-box;
+  margin: auto 0;
   animation: terrosaScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s ease;
+}
+
+@media (max-height: 580px) {
+  .terrosa-modal-overlay {
+    padding-top: 10px !important;
+    padding-bottom: 12px !important;
+  }
+  .terrosa-modal-card {
+    margin: 0 0 16px 0 !important;
+    padding: 16px 18px !important;
+  }
 }
 
 .terrosa-modal-card.terrosa-modal-large {

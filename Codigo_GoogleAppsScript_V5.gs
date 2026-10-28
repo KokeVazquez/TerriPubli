@@ -296,6 +296,13 @@ function doPost(e) {
       return respuestaJSON({ exito: true, status: "success", message: "Sincronización completa" });
     }
 
+    if (action === "verificar_acceso" || action === "registrar_usuario") {
+      var devId = String(data.dispositivoId || data.id || "").trim();
+      var nombreU = String(data.nombre || "").trim();
+      var resU = procesarVerificacionUsuario(ss, devId, nombreU);
+      return respuestaJSON({ exito: true, permitido: resU.permitido, estado: resU.estado, mensaje: resU.mensaje });
+    }
+
     return respuestaJSON({ exito: false, status: "error", message: "Acción no reconocida: " + action });
   } catch (err) {
     return respuestaJSON({ exito: false, status: "error", message: err.toString() });
@@ -307,6 +314,24 @@ function doPost(e) {
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = (e && e.parameter && e.parameter.accion) ? e.parameter.accion : "";
+
+    if (action === "verificar_acceso") {
+      var devId = String((e.parameter && e.parameter.dispositivoId) || "").trim();
+      var sheetU = obtenerOCrearHojaUsuarios(ss);
+      var filasU = sheetU.getDataRange().getValues();
+      for (var u = 1; u < filasU.length; u++) {
+        if (String(filasU[u][0]).trim() === devId) {
+          var est = String(filasU[u][4] || "Activo").trim();
+          if (est.toLowerCase() === "bloqueado") {
+            return respuestaJSON({ exito: true, permitido: false, estado: "Bloqueado", mensaje: "Acceso bloqueado por el encargado de territorios." });
+          }
+          return respuestaJSON({ exito: true, permitido: true, estado: "Activo" });
+        }
+      }
+      return respuestaJSON({ exito: true, permitido: true, estado: "Activo" });
+    }
+
     var sheetCuadras = obtenerOCrearHojaCuadras(ss);
     var filas = sheetCuadras.getDataRange().getValues();
     var historial = [];
@@ -660,4 +685,59 @@ function formatearFechaHora(fecha) {
 function respuestaJSON(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// =========================================================================================
+// GESTIÓN DE ACCESOS Y DISPOSITIVOS DE USUARIOS
+// =========================================================================================
+
+function obtenerOCrearHojaUsuarios(ss) {
+  var sheet = ss.getSheetByName("Usuarios");
+  if (!sheet) {
+    sheet = ss.insertSheet("Usuarios");
+    sheet.appendRow(["ID Dispositivo", "Nombre", "Fecha de Registro", "Último Acceso", "Estado", "Notas"]);
+    sheet.getRange("A1:F1").setBackground("#1e293b").setFontColor("#ffffff").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 170);
+    sheet.setColumnWidth(2, 190);
+    sheet.setColumnWidth(3, 150);
+    sheet.setColumnWidth(4, 150);
+    sheet.setColumnWidth(5, 120);
+    sheet.setColumnWidth(6, 200);
+
+    // Validación desplegable: "Activo" o "Bloqueado"
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(["Activo", "Bloqueado"], true)
+      .setAllowInvalid(false)
+      .build();
+    sheet.getRange("E2:E500").setDataValidation(rule);
+  }
+  return sheet;
+}
+
+function procesarVerificacionUsuario(ss, devId, nombre) {
+  var sheet = obtenerOCrearHojaUsuarios(ss);
+  var filas = sheet.getDataRange().getValues();
+  var idLimpio = String(devId || "").trim();
+  var nombreLimpio = String(nombre || "").trim();
+  var ahoraStr = formatearFechaHora(new Date());
+
+  for (var i = 1; i < filas.length; i++) {
+    var rowId = String(filas[i][0]).trim();
+    if (rowId === idLimpio) {
+      var estadoActual = String(filas[i][4] || "Activo").trim();
+      sheet.getRange(i + 1, 4).setValue(ahoraStr);
+      if (nombreLimpio && nombreLimpio !== "Sin registrar") {
+        sheet.getRange(i + 1, 2).setValue(nombreLimpio);
+      }
+      if (estadoActual.toLowerCase() === "bloqueado") {
+        return { permitido: false, estado: "Bloqueado", mensaje: "Acceso bloqueado por el encargado de territorios." };
+      }
+      return { permitido: true, estado: "Activo" };
+    }
+  }
+
+  // Si es un dispositivo nuevo, agregarlo como Activo
+  sheet.appendRow([idLimpio, nombreLimpio || "Sin registrar", ahoraStr, ahoraStr, "Activo", ""]);
+  return { permitido: true, estado: "Activo" };
 }

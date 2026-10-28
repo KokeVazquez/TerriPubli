@@ -464,6 +464,10 @@
     if (typeof window.sincronizarConNube === "function") {
       window.sincronizarConNube();
     }
+    // Verificar estado de autorización de este dispositivo en la nube
+    if (typeof window.verificarAccesoEnNube === "function") {
+      window.verificarAccesoEnNube();
+    }
     // Si es un usuario nuevo en este dispositivo, solicitar amablemente su nombre
     setTimeout(() => {
       if (typeof window.abrirModalBienvenidaNombre === "function") {
@@ -811,17 +815,12 @@
 
         <!-- Sección de Nombre -->
         <div style="margin-bottom:16px;">
-          <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Tu Nombre</label>
-          <div style="position:relative;">
-            <input type="text" id="inputNombrePublicador" value="${escaparTextoSeguro(actualPub)}" placeholder="Ej: Luis, Josué..." autocomplete="off" style="
-              width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14.5px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
-            " />
-            <div id="autocompletePublicadorList" style="
-              display:none; position:absolute; top:100%; left:0; right:0; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; max-height:160px; overflow-y:auto; z-index:1000010; box-shadow:0 8px 24px rgba(0,0,0,0.12); margin-top:4px;
-            "></div>
-          </div>
+          <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Tu Nombre y Apellido</label>
+          <input type="text" id="inputNombrePublicador" value="${escaparTextoSeguro(actualPub)}" placeholder="Escribe tu nombre..." autocomplete="name" style="
+            width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14.5px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
+          " />
           <button id="btnGuardarNombrePublicador" style="
-            width:100%; margin-top:8px; padding:10px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 2px 6px rgba(26,115,232,0.25);
+            width:100%; margin-top:10px; padding:11px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 2px 6px rgba(26,115,232,0.25);
           ">💾 Guardar Nombre</button>
         </div>
 
@@ -853,11 +852,6 @@
     };
 
     const inputNom = modal.querySelector("#inputNombrePublicador");
-    const autoList = modal.querySelector("#autocompletePublicadorList");
-
-    vincularAutocompleteCapitan(inputNom, autoList, null, (sel) => {
-      inputNom.value = sel;
-    });
 
     modal.querySelector("#btnGuardarNombrePublicador").onclick = () => {
       const nuevo = inputNom.value.trim();
@@ -867,10 +861,19 @@
       }
       localStorage.setItem("terrosa_nombre_publicador", nuevo);
       actualizarInterfazSegunModo();
+      if (typeof window.verificarAccesoEnNube === "function") {
+        window.verificarAccesoEnNube(nuevo);
+      }
       window.reproducirSonidoClick("success");
       mostrarToastDiscreto("Perfil actualizado ✅");
       cerrar();
     };
+
+    inputNom.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        modal.querySelector("#btnGuardarNombrePublicador").click();
+      }
+    });
 
     modal.querySelector("#btnIrLoginCapitanDesdePub").onclick = () => {
       cerrar();
@@ -878,7 +881,7 @@
     };
   };
 
-  // 5.3. Modal de Bienvenida para solicitar el nombre en la primera apertura
+  // 5.3. Modal de Bienvenida para solicitar el nombre en la primera apertura (Sin sugerencias)
   window.abrirModalBienvenidaNombre = function abrirModalBienvenidaNombre() {
     if (localStorage.getItem("terrosa_nombre_publicador") || window.getModoActual() === "capitan") return;
     if (document.querySelector(".terrosa-modal-overlay")) return;
@@ -891,16 +894,13 @@
         <div style="font-size:38px; margin-bottom:8px;">👋</div>
         <h3 style="margin:0 0 6px 0; font-size:19px; font-weight:800; color:#0f172a;">¡Bienvenido a TerRosa!</h3>
         <p style="font-size:13px; color:#64748b; margin:0 0 16px 0;">
-          Para personalizar tu mapa en este dispositivo, por favor escribe tu nombre:
+          Para personalizar tu mapa en este dispositivo, escribe tu nombre:
         </p>
 
-        <div style="position:relative; text-align:left; margin-bottom:14px;">
-          <input type="text" id="inputBienvenidaNombre" placeholder="Tu nombre y apellido..." autocomplete="off" style="
-            width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
+        <div style="text-align:left; margin-bottom:14px;">
+          <input type="text" id="inputBienvenidaNombre" placeholder="Tu nombre y apellido..." autocomplete="name" style="
+            width:100%; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
           " />
-          <div id="autocompleteBienvenidaList" style="
-            display:none; position:absolute; top:100%; left:0; right:0; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; max-height:160px; overflow-y:auto; z-index:1000010; box-shadow:0 8px 24px rgba(0,0,0,0.12); margin-top:4px;
-          "></div>
         </div>
 
         <button id="btnComenzarBienvenida" style="
@@ -912,11 +912,6 @@
     document.body.appendChild(modal);
 
     const inputB = modal.querySelector("#inputBienvenidaNombre");
-    const listB = modal.querySelector("#autocompleteBienvenidaList");
-
-    vincularAutocompleteCapitan(inputB, listB, null, (sel) => {
-      inputB.value = sel;
-    });
 
     const guardar = () => {
       const val = (inputB.value || "").trim();
@@ -926,6 +921,9 @@
       }
       localStorage.setItem("terrosa_nombre_publicador", val);
       actualizarInterfazSegunModo();
+      if (typeof window.verificarAccesoEnNube === "function") {
+        window.verificarAccesoEnNube(val);
+      }
       window.reproducirSonidoClick("success");
       modal.remove();
       mostrarToastDiscreto(`¡Bienvenido, ${val}! 🎉`);
@@ -935,6 +933,77 @@
     inputB.addEventListener("keydown", (e) => {
       if (e.key === "Enter") guardar();
     });
+  };
+
+  // 5.4. Control de Acceso y Registro de Dispositivos en Google Sheets
+  function obtenerIdDispositivoLocal() {
+    let devId = localStorage.getItem("terrosa_dispositivo_id");
+    if (!devId) {
+      devId = "disp_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now().toString(36);
+      localStorage.setItem("terrosa_dispositivo_id", devId);
+    }
+    return devId;
+  }
+
+  function mostrarPantallaBloqueo(mensaje) {
+    document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
+    let lockOverlay = document.getElementById("pantallaBloqueoAcceso");
+    if (!lockOverlay) {
+      lockOverlay = document.createElement("div");
+      lockOverlay.id = "pantallaBloqueoAcceso";
+      lockOverlay.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; color:#ffffff; z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; box-sizing:border-box;";
+      lockOverlay.innerHTML = `
+        <div style="font-size:52px; margin-bottom:14px;">🔒</div>
+        <h2 style="margin:0 0 10px 0; font-size:22px; font-weight:800; color:#ffffff;">Acceso Restringido</h2>
+        <p style="font-size:14.5px; color:#94a3b8; max-width:320px; line-height:1.5; margin:0 0 20px 0;">
+          ${mensaje || "Esta aplicación requiere autorización del encargado de territorios de la Congregación Rosario."}
+        </p>
+        <div style="font-size:12px; color:#64748b; background:#1e293b; padding:8px 14px; border-radius:10px;">
+          ID Dispositivo: <b>${obtenerIdDispositivoLocal()}</b>
+        </div>
+      `;
+      document.body.appendChild(lockOverlay);
+    }
+  }
+
+  window.verificarAccesoEnNube = function verificarAccesoEnNube(nombreOpcional) {
+    const devId = obtenerIdDispositivoLocal();
+    const nombre = (nombreOpcional || localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "Sin registrar").trim();
+
+    if (localStorage.getItem("terrosa_acceso_bloqueado") === "true") {
+      mostrarPantallaBloqueo();
+      return;
+    }
+
+    // Ping POST para registrar / actualizar último acceso
+    try {
+      fetch(URL_API_GOOGLE_SHEETS, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          accion: "verificar_acceso",
+          dispositivoId: devId,
+          nombre: nombre,
+          fechaHora: new Date().toISOString()
+        })
+      }).catch(() => {});
+    } catch (e) {}
+
+    // Consulta GET para verificar si el estado es Bloqueado
+    try {
+      fetch(`${URL_API_GOOGLE_SHEETS}?accion=verificar_acceso&dispositivoId=${encodeURIComponent(devId)}&t=${Date.now()}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res && res.permitido === false) {
+            localStorage.setItem("terrosa_acceso_bloqueado", "true");
+            mostrarPantallaBloqueo(res.mensaje);
+          } else if (res && res.permitido === true) {
+            localStorage.removeItem("terrosa_acceso_bloqueado");
+          }
+        })
+        .catch(() => {});
+    } catch (e) {}
   };
 
   // 6. Botón Registrar Territorio e Historial en Barra Inferior
@@ -3061,6 +3130,20 @@ ${lineas.join("\n")}`;
       if (mostrarFeedback) mostrarToastDiscreto("Sin conexión a la nube ⚠️");
     }
   };
+
+  // Ajustar modales y enfocar inputs automáticamente cuando se abre el teclado virtual en móvil
+  document.addEventListener("focusin", (e) => {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) {
+      const card = e.target.closest(".terrosa-modal-card");
+      if (card) {
+        setTimeout(() => {
+          try {
+            e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+          } catch (err) {}
+        }, 160);
+      }
+    }
+  });
 
   // 16. Sonido táctil en barras y selectores principales (evitando duplicar en modales que tienen su propio sonido)
   document.addEventListener("click", (e) => {

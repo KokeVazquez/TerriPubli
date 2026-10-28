@@ -1,5 +1,5 @@
 // ==============================================================================================================================
-// === REGISTRO DE SERVICE WORKER (PWA) ===
+// === REGISTRO DE SERVICE WORKER (PWA) Y PROMPT RÁPIDO DE INSTALACIÓN ===
 // ==============================================================================================================================
 
 if ('serviceWorker' in navigator) {
@@ -25,4 +25,69 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// Botón de 1 toque para instalar la App en pantalla de inicio (Ideal para hermanos y hermanas mayores)
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  mostrarBotonInstalacionPWA();
+});
+
+function mostrarBotonInstalacionPWA() {
+  if (document.getElementById('bannerInstalarAppPWA')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'bannerInstalarAppPWA';
+  banner.style.cssText = `
+    position: fixed;
+    bottom: 84px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 50px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: terrosaFadeIn 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.18);
+    max-width: 90vw;
+  `;
+  banner.innerHTML = `
+    <span style="font-size: 19px;">📲</span>
+    <span style="font-size: 13px; font-weight: 700; white-space: nowrap;">¿Descargar la App?</span>
+    <button id="btnEjecutarInstalarPWA" style="
+      background: #1a73e8; color: white; border: none; padding: 7px 15px; border-radius: 50px; font-weight: 800; font-size: 12.5px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(26,115,232,0.4);
+    ">Instalar</button>
+    <button id="btnCerrarBannerPWA" style="background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; padding: 0 4px;" title="Cerrar">✕</button>
+  `;
+
+  document.body.appendChild(banner);
+
+  banner.querySelector('#btnEjecutarInstalarPWA').onclick = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        banner.remove();
+      }
+      deferredInstallPrompt = null;
+    }
+  };
+
+  banner.querySelector('#btnCerrarBannerPWA').onclick = () => {
+    banner.remove();
+  };
+}
+
+window.addEventListener('appinstalled', () => {
+  const b = document.getElementById('bannerInstalarAppPWA');
+  if (b) b.remove();
+  deferredInstallPrompt = null;
+});
 
