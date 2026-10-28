@@ -792,30 +792,38 @@
   }
 
   // 6.1. Modal de Historial ("Territorios trabajados") — Rediseño Minimalista con Buscador
+  // 6.1. Modal de Historial ("Territorios trabajados") — Pantalla Fija con Buscador y Filtro Multimes
   window.abrirModalHistorialRegistros = function () {
     window.reproducirSonidoClick("tap");
     const todosReportes = deduplicarListaReportes(JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]"))
       .filter(r => perteneceAVersionActiva(r));
 
-    const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const mesActualNum = String(new Date().getMonth() + 1);
-
-    // Predeterminar exactamente al filtro activo de la barra superior principal
+    // Heredar filtro activo del mapa principal
     let filtroAnioSel = anioFiltroActivo || "2026";
-    let filtroMesSel = "todos";
-    if (mesesFiltroActivos.size === 1) {
-      const numActivo = Array.from(mesesFiltroActivos)[0];
-      filtroMesSel = String(parseInt(numActivo, 10));
-    } else if (mesesFiltroActivos.size > 1 && mesesFiltroActivos.size < 12) {
-      filtroMesSel = "filtro_principal";
-    } else {
-      filtroMesSel = "todos";
+    let mesesHistorialSel = new Set(mesesFiltroActivos);
+
+    function obtenerTextoBotonMesesHistorial() {
+      if (mesesHistorialSel.size === 0 || mesesHistorialSel.size === 12) {
+        return "🗓️ Mes: Todos";
+      } else if (mesesHistorialSel.size === 1) {
+        const num = Array.from(mesesHistorialSel)[0];
+        const mObj = NOMBRES_MESES.find(m => m.num === num);
+        return `🗓️ Mes: ${mObj ? mObj.nombre : num}`;
+      } else if (mesesHistorialSel.size === 2) {
+        const arr = Array.from(mesesHistorialSel).map(num => {
+          const mObj = NOMBRES_MESES.find(m => m.num === num);
+          return mObj ? mObj.abrev : num;
+        });
+        return `🗓️ Mes: ${arr.join(", ")}`;
+      } else {
+        return `🗓️ Meses (${mesesHistorialSel.size})`;
+      }
     }
 
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
-      <div class="terrosa-modal-card terrosa-modal-large" style="max-height:86vh; display:flex; flex-direction:column; padding:20px 18px;">
+      <div class="terrosa-modal-card terrosa-modal-large" style="height:min(86vh, 640px); min-height:480px; display:flex; flex-direction:column; padding:20px 18px; box-sizing:border-box;">
         <!-- Cabecera Minimalista -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
           <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">Territorios trabajados</h3>
@@ -825,33 +833,32 @@
           </div>
         </div>
 
-        <!-- Buscador Rápido (Territorio o Capitán) -->
+        <!-- Buscador Rápido (Un solo emoji de lupa en el icono) -->
         <div style="position:relative; margin-bottom:10px; flex-shrink:0;">
-          <input type="text" id="buscadorHistorial" placeholder="🔍 Buscar territorio o capitán..." autocomplete="off" style="
+          <input type="text" id="buscadorHistorial" placeholder="Buscar territorio o capitán..." autocomplete="off" style="
             width:100%; padding:9px 12px 9px 34px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
           " />
           <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#94a3b8; pointer-events:none;">🔍</span>
         </div>
 
-        <!-- Dos Filtros: Año de Servicio y Mes (Heredan automáticamente del filtro principal) -->
+        <!-- Dos Filtros: Año de Servicio y Selector de Mes (Soporta 1 mes, varios meses o todos) -->
         <div style="display:flex; gap:8px; margin-bottom:12px; flex-shrink:0;">
-          <select id="filtroHistorialAnio" class="filtro-pildora-select" style="flex:1;">
+          <select id="filtroHistorialAnio" class="filtro-pildora-select" style="flex:1; min-width:0; padding:8px 10px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none;">
             <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>📅 Serv. 2026</option>
             <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>📅 Serv. 2025</option>
             <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>📅 Todos los años</option>
           </select>
-          <select id="filtroHistorialMes" class="filtro-pildora-select" style="flex:1;">
-            ${filtroMesSel === "filtro_principal" ? `<option value="filtro_principal" selected>🗓️ Filtro principal (${mesesFiltroActivos.size} meses)</option>` : ''}
-            <option value="todos" ${filtroMesSel === "todos" ? "selected" : ""}>🗓️ Todos los meses</option>
-            ${mesesNombres.map((m, idx) => {
-              const val = String(idx + 1);
-              return `<option value="${val}" ${filtroMesSel === val ? "selected" : ""}>${m}</option>`;
-            }).join("")}
-          </select>
+
+          <button type="button" id="btnHistorialMesesFiltro" class="filtro-pildora-btn" style="
+            flex:1; min-width:0; display:flex; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:8px 10px; font-weight:700; font-size:13px; color:#0f172a; outline:none; white-space:nowrap; overflow:hidden;
+          ">
+            <span id="txtHistorialMesLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${obtenerTextoBotonMesesHistorial()}</span>
+            <span style="font-size:10px; margin-left:4px; opacity:0.7; flex-shrink:0;">▾</span>
+          </button>
         </div>
 
-        <!-- Lista de Tarjetas Estéticas y Minimalistas -->
-        <div id="listaItemsHistorial" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:2px;"></div>
+        <!-- Lista de Tarjetas Estéticas con Contenedor Fijo y Scroll Interno -->
+        <div id="listaItemsHistorial" style="overflow-y:auto; flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; padding-right:2px;"></div>
       </div>
     `;
 
@@ -880,7 +887,8 @@
     }
 
     const selectAnio = modal.querySelector("#filtroHistorialAnio");
-    const selectMes = modal.querySelector("#filtroHistorialMes");
+    const btnMesesFiltro = modal.querySelector("#btnHistorialMesesFiltro");
+    const txtMesLabel = modal.querySelector("#txtHistorialMesLabel");
     const inputBuscador = modal.querySelector("#buscadorHistorial");
     const cont = modal.querySelector("#listaItemsHistorial");
 
@@ -889,6 +897,7 @@
         .filter(r => perteneceAVersionActiva(r));
 
       const query = (inputBuscador ? inputBuscador.value : "").trim().toLowerCase();
+      const filtrarMes = (mesesHistorialSel.size > 0 && mesesHistorialSel.size < 12);
 
       const filtrados = reportes.filter(r => {
         const p = parsearFechaReporte(r.fecha);
@@ -897,13 +906,8 @@
         // Filtro de Año de Servicio
         if (filtroAnioSel !== "todos" && !perteneceAAnioServicio(r.fecha, filtroAnioSel)) return false;
 
-        // Filtro de Mes (Soporta mes individual, filtro principal combinado o todos)
-        if (filtroMesSel === "filtro_principal") {
-          const mesNum2Dig = String(p.mes).padStart(2, "0");
-          if (mesesFiltroActivos.size > 0 && !mesesFiltroActivos.has(mesNum2Dig)) return false;
-        } else if (filtroMesSel !== "todos" && parseInt(p.mes, 10) !== parseInt(filtroMesSel, 10)) {
-          return false;
-        }
+        // Filtro de Meses (Soporta 1 mes, varios meses o todos)
+        if (filtrarMes && !mesesHistorialSel.has(p.mes)) return false;
 
         // Filtro de Búsqueda de Texto
         if (query) {
@@ -925,7 +929,7 @@
       cont.innerHTML = "";
 
       if (listaOrdenada.length === 0) {
-        cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:36px 16px; font-size:13.5px; font-weight:600;">No hay registros que coincidan con la búsqueda.</div>';
+        cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:50px 16px; font-size:15px; font-weight:700;">Sin resultados</div>';
         return;
       }
 
@@ -997,11 +1001,146 @@
       renderizarListaFiltrada();
     });
 
-    selectMes.addEventListener("change", () => {
+    // Selector de Meses en Historial (1 mes, varios meses o todos)
+    function abrirSelectorMesesHistorial(mesesActuales, onAplicar) {
       window.reproducirSonidoClick("tap");
-      filtroMesSel = selectMes.value;
-      renderizarListaFiltrada();
-    });
+      const subModal = document.createElement("div");
+      subModal.className = "terrosa-modal-overlay submodal-meses";
+      subModal.style.zIndex = "1000005";
+
+      const mesActual = String(new Date().getMonth() + 1).padStart(2, "0");
+      const mesesTemp = new Set(mesesActuales);
+
+      let itemsHtml = "";
+      NOMBRES_MESES.forEach(m => {
+        const isChecked = mesesTemp.has(m.num);
+        const isCurrent = (m.num === mesActual);
+        itemsHtml += `
+          <div id="itemMesHist_${m.num}" style="display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-radius:10px; background:${isChecked ? 'rgba(26,115,232,0.1)' : 'transparent'}; border:1px solid ${isChecked ? '#93c5fd' : 'transparent'}; transition:all 0.15s ease;">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1; margin:0;">
+              <input type="checkbox" value="${m.num}" class="chk-mes-hist" ${isChecked ? 'checked' : ''} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer;"/>
+              <span style="font-weight:700; font-size:14px; color:#1e293b;">${m.nombre} ${isCurrent ? '<span style="font-size:10px; font-weight:800; color:#2563eb; background:#dbeafe; padding:2px 6px; border-radius:6px; margin-left:4px;">Actual</span>' : ''}</span>
+            </label>
+            <button type="button" class="btn-solo-mes-hist" data-mes="${m.num}" title="Ver solo ${m.nombre}" style="font-size:11px; padding:3px 8px; border-radius:6px; border:1.5px solid #cbd5e1; background:#ffffff; color:#334155; font-weight:800; cursor:pointer;">
+              Solo
+            </button>
+          </div>
+        `;
+      });
+
+      subModal.innerHTML = `
+        <div class="terrosa-modal-card" style="max-width:320px; padding:20px 18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Filtrar Historial por Mes</h3>
+            <button id="btnCerrarSubModalMeses" class="btn-icon-square">✕</button>
+          </div>
+          <p style="margin:0 0 10px 0; font-size:12.5px; color:#64748b;">Elige uno, varios o todos los meses:</p>
+
+          <!-- Botones de selección rápida -->
+          <div style="display:flex; gap:6px; margin-bottom:10px;">
+            <button type="button" id="btnMesActualSubModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
+              📍 Actual
+            </button>
+            <button type="button" id="btnTodosMesesSubModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
+              🗓️ Todos
+            </button>
+            <button type="button" id="btnLimpiarMesesSubModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #fee2e2; background:#fff5f5; color:#dc2626; cursor:pointer;">
+              ✕ Limpiar
+            </button>
+          </div>
+          
+          <div id="listaMesesCheckSubModal" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; border:1px solid #e2e8f0; border-radius:14px; padding:6px; margin-bottom:14px; background:#f8fafc;">
+            ${itemsHtml}
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <button id="btnCancelarSubModalMeses" style="background:#f1f5f9; border:none; border-radius:12px; padding:11px 14px; font-size:13px; font-weight:700; color:#475569; cursor:pointer;">
+              Cancelar
+            </button>
+            <button id="btnAplicarSubModalMeses" style="flex:1; background:linear-gradient(135deg, #1a73e8, #1557b0); border:none; border-radius:12px; padding:11px; font-size:14px; font-weight:800; color:white; cursor:pointer; box-shadow:0 3px 10px rgba(26,115,232,0.3);">
+              Aplicar
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(subModal);
+
+      const cerrarSub = () => {
+        window.reproducirSonidoClick("tap");
+        if (document.body.contains(subModal)) document.body.removeChild(subModal);
+      };
+
+      subModal.querySelector("#btnCerrarSubModalMeses").onclick = cerrarSub;
+      subModal.querySelector("#btnCancelarSubModalMeses").onclick = cerrarSub;
+      subModal.onclick = (e) => {
+        if (e.target === subModal) cerrarSub();
+      };
+
+      const chks = subModal.querySelectorAll(".chk-mes-hist");
+      const actualizarEstilos = () => {
+        chks.forEach(c => {
+          const itemRow = c.closest("[id^='itemMesHist_']");
+          if (itemRow) {
+            itemRow.style.background = c.checked ? 'rgba(26,115,232,0.1)' : 'transparent';
+            itemRow.style.borderColor = c.checked ? '#93c5fd' : 'transparent';
+          }
+        });
+      };
+
+      subModal.querySelector("#btnMesActualSubModal").onclick = () => {
+        window.reproducirSonidoClick("tap");
+        chks.forEach(c => c.checked = (c.value === mesActual));
+        actualizarEstilos();
+      };
+
+      subModal.querySelector("#btnTodosMesesSubModal").onclick = () => {
+        window.reproducirSonidoClick("tap");
+        chks.forEach(c => c.checked = true);
+        actualizarEstilos();
+      };
+
+      subModal.querySelector("#btnLimpiarMesesSubModal").onclick = () => {
+        window.reproducirSonidoClick("tap");
+        chks.forEach(c => c.checked = false);
+        actualizarEstilos();
+      };
+
+      subModal.querySelectorAll(".btn-solo-mes-hist").forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const mesElegido = btn.dataset.mes;
+          window.reproducirSonidoClick("success");
+          if (document.body.contains(subModal)) document.body.removeChild(subModal);
+          onAplicar(new Set([mesElegido]));
+        };
+      });
+
+      chks.forEach(c => {
+        c.onchange = () => {
+          window.reproducirSonidoClick("toggle");
+          actualizarEstilos();
+        };
+      });
+
+      subModal.querySelector("#btnAplicarSubModalMeses").onclick = () => {
+        window.reproducirSonidoClick("success");
+        const resSet = new Set();
+        chks.forEach(c => {
+          if (c.checked) resSet.add(c.value);
+        });
+        if (document.body.contains(subModal)) document.body.removeChild(subModal);
+        onAplicar(resSet);
+      };
+    }
+
+    btnMesesFiltro.onclick = () => {
+      abrirSelectorMesesHistorial(mesesHistorialSel, (nuevosMeses) => {
+        mesesHistorialSel = nuevosMeses;
+        txtMesLabel.textContent = obtenerTextoBotonMesesHistorial();
+        renderizarListaFiltrada();
+      });
+    };
 
     renderizarListaFiltrada();
   };
