@@ -435,6 +435,13 @@
       if (document.body.contains(modal)) document.body.removeChild(modal);
     };
 
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        window.reproducirSonidoClick("tap");
+        cerrar();
+      }
+    };
+
     modal.querySelector("#btnCerrarLoginModal").onclick = () => {
       window.reproducirSonidoClick("tap");
       cerrar();
@@ -571,31 +578,25 @@
     }
   }
 
-  // 6.1. Modal de Historial ("Territorios trabajados") — Rediseño Minimalista
+  // 6.1. Modal de Historial ("Territorios trabajados") — Rediseño Minimalista con Buscador
   window.abrirModalHistorialRegistros = function () {
     window.reproducirSonidoClick("tap");
     const todosReportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]")
       .filter(r => perteneceAVersionActiva(r));
-    
-    // Obtener años y meses únicos presentes en el historial
-    const aniosSet = new Set();
-    const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    todosReportes.forEach(r => {
-      const p = parsearFechaReporte(r.fecha);
-      if (p.anio) aniosSet.add(p.anio);
-    });
-    const aniosArr = Array.from(aniosSet).sort().reverse();
-    if (aniosArr.length === 0) aniosArr.push(new Date().getFullYear().toString());
 
-    let filtroAnioSel = "todos";
-    let filtroMesSel = "todos";
+    const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const mesActualNum = String(new Date().getMonth() + 1);
+
+    // Predeterminar al año de servicio 2026 y al mes actual
+    let filtroAnioSel = "2026";
+    let filtroMesSel = mesActualNum;
 
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
       <div class="terrosa-modal-card terrosa-modal-large" style="max-height:86vh; display:flex; flex-direction:column; padding:20px 18px;">
         <!-- Cabecera Minimalista -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-shrink:0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
           <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">Territorios trabajados</h3>
           <div style="display:flex; align-items:center; gap:6px;">
             <button id="btnSyncHistorialModal" class="btn-icon-square" title="Sincronizar con la nube">🔄</button>
@@ -603,15 +604,24 @@
           </div>
         </div>
 
-        <!-- Dos Filtros Minimalistas: Año y Mes -->
+        <!-- Buscador Rápido (Territorio o Capitán) -->
+        <div style="position:relative; margin-bottom:10px; flex-shrink:0;">
+          <input type="text" id="buscadorHistorial" placeholder="🔍 Buscar territorio o capitán..." autocomplete="off" style="
+            width:100%; padding:9px 12px 9px 34px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
+          " />
+          <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#94a3b8; pointer-events:none;">🔍</span>
+        </div>
+
+        <!-- Dos Filtros: Año de Servicio y Mes -->
         <div style="display:flex; gap:8px; margin-bottom:12px; flex-shrink:0;">
           <select id="filtroHistorialAnio" class="filtro-pildora-select" style="flex:1;">
+            <option value="2026" selected>📅 Serv. 2026</option>
+            <option value="2025">📅 Serv. 2025</option>
             <option value="todos">📅 Todos los años</option>
-            ${aniosArr.map(a => `<option value="${a}">${a}</option>`).join("")}
           </select>
           <select id="filtroHistorialMes" class="filtro-pildora-select" style="flex:1;">
             <option value="todos">🗓️ Todos los meses</option>
-            ${mesesNombres.map((m, idx) => `<option value="${idx + 1}">${m}</option>`).join("")}
+            ${mesesNombres.map((m, idx) => `<option value="${idx + 1}" ${(idx + 1) === parseInt(mesActualNum, 10) ? "selected" : ""}>${m}</option>`).join("")}
           </select>
         </div>
 
@@ -628,6 +638,9 @@
     };
 
     modal.querySelector("#btnCerrarHistorial").onclick = cerrar;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrar();
+    };
 
     const btnSync = modal.querySelector("#btnSyncHistorialModal");
     if (btnSync) {
@@ -643,17 +656,38 @@
 
     const selectAnio = modal.querySelector("#filtroHistorialAnio");
     const selectMes = modal.querySelector("#filtroHistorialMes");
+    const inputBuscador = modal.querySelector("#buscadorHistorial");
     const cont = modal.querySelector("#listaItemsHistorial");
 
     function renderizarListaFiltrada() {
       const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]")
         .filter(r => perteneceAVersionActiva(r));
-      
+
+      const query = (inputBuscador ? inputBuscador.value : "").trim().toLowerCase();
+
       const filtrados = reportes.filter(r => {
         const p = parsearFechaReporte(r.fecha);
         if (!p.anio) return true;
-        if (filtroAnioSel !== "todos" && p.anio !== filtroAnioSel) return false;
+
+        // Filtro de Año de Servicio
+        if (filtroAnioSel !== "todos" && !perteneceAAnioServicio(r.fecha, filtroAnioSel)) return false;
+
+        // Filtro de Mes
         if (filtroMesSel !== "todos" && parseInt(p.mes, 10) !== parseInt(filtroMesSel, 10)) return false;
+
+        // Filtro de Búsqueda de Texto
+        if (query) {
+          const tNum = String(r.territorioNumero || r.territorioId || "").toLowerCase();
+          const cap = String(r.capitan || "").toLowerCase();
+          const com = String(r.comentario || "").toLowerCase();
+          const fechaStr = String(r.fecha || "").toLowerCase();
+          const matchTerr = (tNum === query) || tNum.includes(query) || `t-${tNum}`.includes(query) || `territorio ${tNum}`.includes(query);
+          const matchCap = cap.includes(query);
+          const matchCom = com.includes(query);
+          const matchFecha = fechaStr.includes(query);
+          if (!matchTerr && !matchCap && !matchCom && !matchFecha) return false;
+        }
+
         return true;
       });
 
@@ -661,7 +695,7 @@
       cont.innerHTML = "";
 
       if (listaOrdenada.length === 0) {
-        cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:36px 16px; font-size:13.5px; font-weight:600;">No hay registros en este período.</div>';
+        cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:36px 16px; font-size:13.5px; font-weight:600;">No hay registros que coincidan con la búsqueda.</div>';
         return;
       }
 
@@ -718,6 +752,12 @@
             renderizarListaFiltrada();
           }
         };
+      });
+    }
+
+    if (inputBuscador) {
+      inputBuscador.addEventListener("input", () => {
+        renderizarListaFiltrada();
       });
     }
 
@@ -856,6 +896,9 @@
 
     modal.querySelector("#btnCerrarModalEditReg").onclick = cerrar;
     modal.querySelector("#btnCancelarEdicion").onclick = cerrar;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrar();
+    };
 
     const btnToggle = modal.querySelector("#btnToggleEditCuadras");
     if (btnToggle) {
@@ -1084,6 +1127,9 @@
     };
 
     modal.querySelector("#btnCerrarModalReg").onclick = cerrar;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrar();
+    };
 
     // Poblar selector de territorios
     const selectTerr = modal.querySelector("#regSelectTerritorio");
@@ -1373,6 +1419,13 @@
 
     const cerrar = () => {
       if (document.body.contains(modal)) document.body.removeChild(modal);
+    };
+
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        window.reproducirSonidoClick("tap");
+        cerrar();
+      }
     };
 
     modal.querySelector("#btnCancelarPin").onclick = cerrar;
@@ -1742,25 +1795,107 @@
     return str >= inicio && str <= fin;
   }
 
+  let anioFiltroActivo = "2026";
+
   window.hayFiltroFechaActivo = function () {
-    const anioElem = document.getElementById("selectFiltroAnio");
-    const anio = anioElem ? anioElem.value : "2026";
     const mesActivo = mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12;
-    const anioActivo = anio !== "todos";
+    const anioActivo = anioFiltroActivo !== "todos";
     return mesActivo || anioActivo;
   };
+
+  function abrirModalSeleccionarAnio() {
+    window.reproducirSonidoClick("tap");
+    const modal = document.createElement("div");
+    modal.className = "terrosa-modal-overlay";
+
+    const opciones = [
+      { id: "2026", titulo: "Año de Serv. 2026", sub: "Septiembre 2026 a Agosto 2027 (Actual)" },
+      { id: "2025", titulo: "Año de Serv. 2025", sub: "Hasta 31 de Agosto de 2026" },
+      { id: "todos", titulo: "Todos los años", sub: "Mostrar todos los registros sin filtro de año" }
+    ];
+
+    modal.innerHTML = `
+      <div class="terrosa-modal-card" style="max-width:320px; padding:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Año de Servicio</h3>
+          <button id="btnCerrarModalAnio" class="btn-icon-square">✕</button>
+        </div>
+        <p style="margin:0 0 14px 0; font-size:12.5px; color:#64748b;">Elige el año de servicio para filtrar:</p>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${opciones.map(op => {
+            const esActivo = (anioFiltroActivo === op.id);
+            return `
+              <div class="opcion-anio-item" data-id="${op.id}" style="
+                display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:14px; cursor:pointer; background:${esActivo ? 'rgba(37,99,235,0.08)' : '#f8fafc'}; border:1.5px solid ${esActivo ? '#2563eb' : '#e2e8f0'}; transition:all 0.15s ease;
+              ">
+                <div>
+                  <div style="font-size:14px; font-weight:800; color:${esActivo ? '#1d4ed8' : '#1e293b'};">${op.titulo}</div>
+                  <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${op.sub}</div>
+                </div>
+                ${esActivo ? '<span style="font-size:16px; color:#2563eb; font-weight:900;">✓</span>' : ''}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cerrar = () => {
+      window.reproducirSonidoClick("tap");
+      if (document.body.contains(modal)) document.body.removeChild(modal);
+    };
+
+    modal.querySelector("#btnCerrarModalAnio").onclick = cerrar;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrar();
+    };
+
+    modal.querySelectorAll(".opcion-anio-item").forEach(item => {
+      item.onclick = () => {
+        const val = item.dataset.id;
+        anioFiltroActivo = val;
+        actualizarEtiquetaBotonAnio();
+        window.reproducirSonidoClick("tap");
+        window.ejecutarFiltroFecha();
+        if (document.body.contains(modal)) document.body.removeChild(modal);
+      };
+    });
+  }
+
+  function actualizarEtiquetaBotonAnio() {
+    const lbl = document.getElementById("txtFiltroAnioLabel");
+    if (!lbl) return;
+    if (anioFiltroActivo === "2026") {
+      lbl.textContent = "📅 Serv. 2026";
+    } else if (anioFiltroActivo === "2025") {
+      lbl.textContent = "📅 Serv. 2025";
+    } else {
+      lbl.textContent = "📅 Años: Todos";
+    }
+  }
 
   function abrirModalSeleccionarMeses() {
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
 
+    // Si no había ningún mes seleccionado, predeterminar al mes actual
+    const mesActual = String(new Date().getMonth() + 1).padStart(2, "0");
+    if (mesesFiltroActivos.size === 0) {
+      mesesFiltroActivos.add(mesActual);
+      actualizarEtiquetaBotonMeses();
+    }
+
     let itemsHtml = "";
     NOMBRES_MESES.forEach(m => {
       const isChecked = mesesFiltroActivos.has(m.num);
+      const isCurrent = (m.num === mesActual);
       itemsHtml += `
-        <label style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; background:${isChecked ? 'rgba(26,115,232,0.1)' : 'transparent'};">
+        <label id="labelMes_${m.num}" style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; background:${isChecked ? 'rgba(26,115,232,0.1)' : 'transparent'}; border:1px solid ${isChecked ? '#93c5fd' : 'transparent'}; transition:all 0.15s ease;">
           <input type="checkbox" value="${m.num}" class="chk-mes-filtro" ${isChecked ? 'checked' : ''} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer;"/>
-          <span style="font-weight:600; font-size:14px; color:#1e293b;">${m.nombre}</span>
+          <span style="font-weight:700; font-size:14px; color:#1e293b; flex:1;">${m.nombre} ${isCurrent ? '<span style="font-size:11px; font-weight:800; color:#2563eb; background:#dbeafe; padding:2px 6px; border-radius:6px; margin-left:6px;">Actual</span>' : ''}</span>
         </label>
       `;
     });
@@ -1796,6 +1931,14 @@
     };
 
     modal.querySelector("#btnCerrarModalMeses").onclick = cerrar;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrar();
+    };
+
+    setTimeout(() => {
+      const curElem = modal.querySelector(`#labelMes_${mesActual}`);
+      if (curElem) curElem.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 60);
 
     const listaCheck = modal.querySelector("#listaMesesCheck");
     const chks = listaCheck.querySelectorAll(".chk-mes-filtro");
@@ -1806,6 +1949,7 @@
       chks.forEach(c => {
         c.checked = !todos;
         c.closest("label").style.background = !todos ? 'rgba(26,115,232,0.1)' : 'transparent';
+        c.closest("label").style.borderColor = !todos ? '#93c5fd' : 'transparent';
       });
       modal.querySelector("#btnToggleTodosMeses").textContent = !todos ? 'Limpiar' : 'Todos';
     };
@@ -1814,6 +1958,7 @@
       c.onchange = () => {
         window.reproducirSonidoClick("toggle");
         c.closest("label").style.background = c.checked ? 'rgba(26,115,232,0.1)' : 'transparent';
+        c.closest("label").style.borderColor = c.checked ? '#93c5fd' : 'transparent';
       };
     });
 
@@ -1871,9 +2016,8 @@
       return;
     }
 
-    const anioElem = document.getElementById("selectFiltroAnio");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
-    const anio = anioElem ? anioElem.value : "2026";
+    const anio = anioFiltroActivo || "2026";
 
     const filtrarPorMes = (mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12);
     const hayFiltro = (filtrarPorMes || anio !== "todos");
@@ -1923,19 +2067,17 @@
   };
 
   function inicializarFiltroFechaBarra() {
-    const anioElem = document.getElementById("selectFiltroAnio");
+    const btnAnio = document.getElementById("btnModalFiltroAnio");
     const btnMeses = document.getElementById("btnModalFiltroMeses");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
 
-    if (anioElem) {
-      anioElem.innerHTML = `
-        <option value="2026" selected>Año de Serv. 2026</option>
-        <option value="2025">Año de Serv. 2025</option>
-        <option value="todos">Todos los años</option>
-      `;
-      anioElem.addEventListener("change", () => {
-        window.reproducirSonidoClick("tap");
-        window.ejecutarFiltroFecha();
+    // Inicializar año por defecto a 2026
+    anioFiltroActivo = "2026";
+    actualizarEtiquetaBotonAnio();
+
+    if (btnAnio) {
+      btnAnio.addEventListener("click", () => {
+        abrirModalSeleccionarAnio();
       });
     }
 
