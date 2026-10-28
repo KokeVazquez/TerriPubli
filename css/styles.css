@@ -214,15 +214,15 @@ body.modo-capitan .header-buttons-toolbar {
   outline: none !important;
 }
 
-/* Botón Ingresar para Capitanes (Compacto en esquina superior derecha) */
+/* Botón Ingresar / Perfil Publicador (Compacto en esquina superior derecha) */
 .btn-ingresar-pill {
   background: #ffffff;
   color: #1e293b;
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 50px;
-  height: 26px;
-  padding: 0 9px;
-  font-size: 11.5px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
   font-weight: 700;
   font-family: inherit;
   display: inline-flex;

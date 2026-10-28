@@ -464,6 +464,12 @@
     if (typeof window.sincronizarConNube === "function") {
       window.sincronizarConNube();
     }
+    // Si es un usuario nuevo en este dispositivo, solicitar amablemente su nombre
+    setTimeout(() => {
+      if (typeof window.abrirModalBienvenidaNombre === "function") {
+        window.abrirModalBienvenidaNombre();
+      }
+    }, 700);
   };
 
   // 3. Actualizar interfaz según el modo (Publicador vs Capitán)
@@ -503,7 +509,17 @@
         subtituloHeader.textContent = "Modo Publicador";
         subtituloHeader.className = "top-header-subtitle modo-publicador";
       }
-      if (btnIngresar) btnIngresar.style.display = "inline-flex";
+      if (btnIngresar) {
+        btnIngresar.style.display = "inline-flex";
+        const pubNombre = (localStorage.getItem("terrosa_nombre_publicador") || "").trim();
+        if (pubNombre) {
+          btnIngresar.innerHTML = `<span>👤</span> <span style="max-width:85px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparTextoSeguro(pubNombre)}</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
+          btnIngresar.title = `Perfil: ${pubNombre} (Toca para editar o entrar como Capitán)`;
+        } else {
+          btnIngresar.innerHTML = `<span>👤</span> <span>Perfil</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
+          btnIngresar.title = "Toca para identificarte o ingresar como Capitán";
+        }
+      }
       if (badgeCapitan) badgeCapitan.style.display = "none";
     }
 
@@ -537,13 +553,13 @@
 
   // 4. Conmutar entre Publicador y Capitán
   function vincularEventosModo() {
-    // Botón Ingresar en la cabecera (asignación única idempotente)
+    // Botón Perfil / Ingreso en la cabecera (asignación única idempotente)
     const btnIngresar = document.getElementById("btnIngresarHeader");
     if (btnIngresar) {
       btnIngresar.onclick = (e) => {
         e.stopPropagation();
         window.reproducirSonidoClick("tap");
-        abrirModalLoginCapitan();
+        abrirMenuPerfilPublicador();
       };
     }
 
@@ -582,6 +598,7 @@
             <select id="selectNombreLogin" style="
               width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; box-sizing:border-box; margin-top:4px; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
             ">
+              <option value="" disabled ${!actual ? "selected" : ""}>-- Selecciona tu usuario --</option>
               ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${actual === u ? "selected" : ""}>${u}</option>`).join("")}
             </select>
           </div>
@@ -772,6 +789,154 @@
     };
   }
 
+  // 5.2. Menú de Perfil de Publicador (Editar nombre o Ingresar como Capitán con PIN)
+  window.abrirMenuPerfilPublicador = function abrirMenuPerfilPublicador() {
+    window.reproducirSonidoClick("tap");
+    document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
+
+    const actualPub = (localStorage.getItem("terrosa_nombre_publicador") || "").trim();
+
+    const modal = document.createElement("div");
+    modal.className = "terrosa-modal-overlay";
+    modal.innerHTML = `
+      <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👤 Perfil de Publicador</h3>
+          <button id="btnCerrarMenuPubX" class="btn-icon-square">✕</button>
+        </div>
+
+        <p style="font-size:13px; color:#64748b; margin-top:0; margin-bottom:14px;">
+          Identifícate en este dispositivo para personalizar tu experiencia:
+        </p>
+
+        <!-- Sección de Nombre -->
+        <div style="margin-bottom:16px;">
+          <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Tu Nombre</label>
+          <div style="position:relative;">
+            <input type="text" id="inputNombrePublicador" value="${escaparTextoSeguro(actualPub)}" placeholder="Ej: Luis, Josué..." autocomplete="off" style="
+              width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14.5px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
+            " />
+            <div id="autocompletePublicadorList" style="
+              display:none; position:absolute; top:100%; left:0; right:0; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; max-height:160px; overflow-y:auto; z-index:1000010; box-shadow:0 8px 24px rgba(0,0,0,0.12); margin-top:4px;
+            "></div>
+          </div>
+          <button id="btnGuardarNombrePublicador" style="
+            width:100%; margin-top:8px; padding:10px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 2px 6px rgba(26,115,232,0.25);
+          ">💾 Guardar Nombre</button>
+        </div>
+
+        <div style="border-top:1px solid #e2e8f0; margin:16px 0;"></div>
+
+        <!-- Acceso a Capitán -->
+        <div>
+          <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:6px;">¿Eres Capitán o Encargado?</label>
+          <button id="btnIrLoginCapitanDesdePub" style="
+            width:100%; padding:11px 14px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; font-weight:800; color:#1e293b; cursor:pointer; font-size:13.5px; display:flex; align-items:center; justify-content:center; gap:8px;
+          ">
+            <span>🔑</span> <span>Ingresar con PIN</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cerrar = () => {
+      window.reproducirSonidoClick("tap");
+      modal.remove();
+      document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
+    };
+
+    modal.querySelector("#btnCerrarMenuPubX").onclick = cerrar;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrar();
+    };
+
+    const inputNom = modal.querySelector("#inputNombrePublicador");
+    const autoList = modal.querySelector("#autocompletePublicadorList");
+
+    vincularAutocompleteCapitan(inputNom, autoList, null, (sel) => {
+      inputNom.value = sel;
+    });
+
+    modal.querySelector("#btnGuardarNombrePublicador").onclick = () => {
+      const nuevo = inputNom.value.trim();
+      if (!nuevo) {
+        mostrarToastDiscreto("Por favor escribe tu nombre");
+        return;
+      }
+      localStorage.setItem("terrosa_nombre_publicador", nuevo);
+      actualizarInterfazSegunModo();
+      window.reproducirSonidoClick("success");
+      mostrarToastDiscreto("Perfil actualizado ✅");
+      cerrar();
+    };
+
+    modal.querySelector("#btnIrLoginCapitanDesdePub").onclick = () => {
+      cerrar();
+      abrirModalLoginCapitan();
+    };
+  };
+
+  // 5.3. Modal de Bienvenida para solicitar el nombre en la primera apertura
+  window.abrirModalBienvenidaNombre = function abrirModalBienvenidaNombre() {
+    if (localStorage.getItem("terrosa_nombre_publicador") || window.getModoActual() === "capitan") return;
+    if (document.querySelector(".terrosa-modal-overlay")) return;
+
+    const modal = document.createElement("div");
+    modal.className = "terrosa-modal-overlay";
+    modal.style.zIndex = "1000000";
+    modal.innerHTML = `
+      <div class="terrosa-modal-card" style="max-width:340px; padding:24px 20px; text-align:center;">
+        <div style="font-size:38px; margin-bottom:8px;">👋</div>
+        <h3 style="margin:0 0 6px 0; font-size:19px; font-weight:800; color:#0f172a;">¡Bienvenido a TerRosa!</h3>
+        <p style="font-size:13px; color:#64748b; margin:0 0 16px 0;">
+          Para personalizar tu mapa en este dispositivo, por favor escribe tu nombre:
+        </p>
+
+        <div style="position:relative; text-align:left; margin-bottom:14px;">
+          <input type="text" id="inputBienvenidaNombre" placeholder="Tu nombre y apellido..." autocomplete="off" style="
+            width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
+          " />
+          <div id="autocompleteBienvenidaList" style="
+            display:none; position:absolute; top:100%; left:0; right:0; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; max-height:160px; overflow-y:auto; z-index:1000010; box-shadow:0 8px 24px rgba(0,0,0,0.12); margin-top:4px;
+          "></div>
+        </div>
+
+        <button id="btnComenzarBienvenida" style="
+          width:100%; padding:12px; background:linear-gradient(135deg, #1a73e8, #1557b0); color:white; border:none; border-radius:14px; font-weight:800; font-size:14.5px; cursor:pointer; box-shadow:0 3px 10px rgba(26,115,232,0.3);
+        ">Comenzar 🚀</button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const inputB = modal.querySelector("#inputBienvenidaNombre");
+    const listB = modal.querySelector("#autocompleteBienvenidaList");
+
+    vincularAutocompleteCapitan(inputB, listB, null, (sel) => {
+      inputB.value = sel;
+    });
+
+    const guardar = () => {
+      const val = (inputB.value || "").trim();
+      if (!val) {
+        mostrarToastDiscreto("Por favor ingresa tu nombre");
+        return;
+      }
+      localStorage.setItem("terrosa_nombre_publicador", val);
+      actualizarInterfazSegunModo();
+      window.reproducirSonidoClick("success");
+      modal.remove();
+      mostrarToastDiscreto(`¡Bienvenido, ${val}! 🎉`);
+    };
+
+    modal.querySelector("#btnComenzarBienvenida").onclick = guardar;
+    inputB.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") guardar();
+    });
+  };
+
   // 6. Botón Registrar Territorio e Historial en Barra Inferior
   function vincularBotonRegistrar() {
     const btnRegistrar = document.getElementById("btnRegistrarTerritorio");
@@ -843,17 +1008,19 @@
 
         <!-- Dos Filtros: Año de Servicio y Selector de Mes (Soporta 1 mes, varios meses o todos) -->
         <div style="display:flex; gap:8px; margin-bottom:12px; flex-shrink:0;">
-          <select id="filtroHistorialAnio" class="filtro-pildora-select" style="flex:1; min-width:0; padding:8px 10px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none;">
+          <select id="filtroHistorialAnio" style="
+            flex:1; min-width:0; height:42px; min-height:42px; padding:0 10px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
+          ">
             <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>📅 Serv. 2026</option>
             <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>📅 Serv. 2025</option>
             <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>📅 Todos los años</option>
           </select>
 
-          <button type="button" id="btnHistorialMesesFiltro" class="filtro-pildora-btn" style="
-            flex:1; min-width:0; display:flex; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:8px 10px; font-weight:700; font-size:13px; color:#0f172a; outline:none; white-space:nowrap; overflow:hidden;
+          <button type="button" id="btnHistorialMesesFiltro" style="
+            flex:1; min-width:0; height:42px; min-height:42px; display:flex; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:0 12px; font-weight:700; font-size:13.5px; color:#0f172a; outline:none; white-space:nowrap; overflow:hidden; box-sizing:border-box;
           ">
             <span id="txtHistorialMesLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${obtenerTextoBotonMesesHistorial()}</span>
-            <span style="font-size:10px; margin-left:4px; opacity:0.7; flex-shrink:0;">▾</span>
+            <span style="font-size:11px; margin-left:4px; opacity:0.7; flex-shrink:0;">▾</span>
           </button>
         </div>
 
@@ -1065,6 +1232,11 @@
       `;
 
       document.body.appendChild(subModal);
+
+      setTimeout(() => {
+        const curElem = subModal.querySelector(`#itemMesHist_${mesActual}`);
+        if (curElem) curElem.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 60);
 
       const cerrarSub = () => {
         window.reproducirSonidoClick("tap");
