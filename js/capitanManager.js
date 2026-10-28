@@ -512,7 +512,8 @@
       if (btnIngresar) btnIngresar.style.display = "none";
       if (badgeCapitan) {
         badgeCapitan.style.display = "inline-flex";
-        if (txtNombreBadge) txtNombreBadge.textContent = nombreCapitan || "Capitán";
+        const capPrimer = (nombreCapitan || "Capitán").split(/\s+/)[0];
+        if (txtNombreBadge) txtNombreBadge.textContent = capPrimer;
       }
     } else {
       if (subtituloHeader) {
@@ -524,7 +525,9 @@
         btnIngresar.style.display = "inline-flex";
         const pubNombre = (localStorage.getItem("terrosa_nombre_publicador") || "").trim();
         if (pubNombre) {
-          btnIngresar.innerHTML = `<span>👤</span> <span style="max-width:85px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparTextoSeguro(pubNombre)}</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
+          // Usar solo el primer nombre para evitar tapar el título central
+          const primerNombre = pubNombre.split(/\s+/)[0];
+          btnIngresar.innerHTML = `<span>👤</span> <span style="max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparTextoSeguro(primerNombre)}</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
           btnIngresar.title = `Perfil: ${pubNombre} (Toca para editar o entrar como Capitán)`;
         } else {
           btnIngresar.innerHTML = `<span>👤</span> <span>Perfil</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
@@ -829,21 +832,24 @@
           <button id="btnGuardarNombrePublicador" style="
             width:100%; margin-top:10px; padding:11px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 2px 6px rgba(26,115,232,0.25);
           ">💾 Guardar Nombre</button>
-          <button id="btnInstalarAppPerfil" type="button" style="
-            width:100%; margin-top:8px; padding:10px; background:#f8fafc; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
-          ">📲 Instalar en Pantalla de Inicio</button>
         </div>
 
         <div style="border-top:1px solid #e2e8f0; margin:16px 0;"></div>
 
         <!-- Acceso a Capitán -->
-        <div>
+        <div style="margin-bottom:14px;">
           <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:6px;">¿Eres Capitán o Encargado?</label>
           <button id="btnIrLoginCapitanDesdePub" style="
             width:100%; padding:11px 14px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; font-weight:800; color:#1e293b; cursor:pointer; font-size:13.5px; display:flex; align-items:center; justify-content:center; gap:8px;
           ">
             <span>🔑</span> <span>Ingresar con PIN</span>
           </button>
+        </div>
+
+        <div style="border-top:1px solid #f1f5f9; padding-top:10px; text-align:center;">
+          <button id="btnReiniciarDatosLocales" type="button" style="
+            background:transparent; border:none; color:#94a3b8; font-size:11.5px; font-weight:700; cursor:pointer; padding:6px 10px; border-radius:8px; transition:all 0.15s ease;
+          ">🗑️ Borrar notas y datos locales</button>
         </div>
       </div>
     `;
@@ -885,11 +891,12 @@
       }
     });
 
-    const btnInstalar = modal.querySelector("#btnInstalarAppPerfil");
-    if (btnInstalar) {
-      btnInstalar.onclick = () => {
-        if (typeof window.abrirGuiaInstalacionPWA === "function") {
-          window.abrirGuiaInstalacionPWA();
+    const btnReiniciar = modal.querySelector("#btnReiniciarDatosLocales");
+    if (btnReiniciar) {
+      btnReiniciar.onclick = () => {
+        if (confirm("¿Estás seguro de que deseas borrar todas tus notas personales y reiniciar los datos locales de la app en este dispositivo?")) {
+          localStorage.clear();
+          window.location.reload();
         }
       };
     }
