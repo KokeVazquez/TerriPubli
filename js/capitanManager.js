@@ -40,6 +40,135 @@
     "Rinat Reséndiz"
   ];
 
+  // --- Utilidades de búsqueda, normalización y validación estricta de capitanes oficiales ---
+  function normalizarTextoBusqueda(str) {
+    return String(str || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function buscarCapitanesSugeridos(query) {
+    const qn = normalizarTextoBusqueda(query);
+    if (!qn) return [...LISTA_CAPITANES_OFICIAL];
+
+    const prefixMatches = [];
+    const wordPrefixMatches = [];
+    const containsMatches = [];
+
+    for (let i = 0; i < LISTA_CAPITANES_OFICIAL.length; i++) {
+      const c = LISTA_CAPITANES_OFICIAL[i];
+      const cn = normalizarTextoBusqueda(c);
+      const words = cn.split(/\s+/);
+      if (cn.startsWith(qn)) {
+        prefixMatches.push(c);
+      } else if (words.some(w => w.startsWith(qn))) {
+        wordPrefixMatches.push(c);
+      } else if (cn.includes(qn)) {
+        containsMatches.push(c);
+      }
+    }
+    return [...prefixMatches, ...wordPrefixMatches, ...containsMatches];
+  }
+
+  function resolverCapitanOficial(texto) {
+    const q = normalizarTextoBusqueda(texto);
+    if (!q) return null;
+    // 1. Coincidencia exacta sin importar mayúsculas ni acentos
+    const exact = LISTA_CAPITANES_OFICIAL.find(c => normalizarTextoBusqueda(c) === q);
+    if (exact) return exact;
+
+    // 2. Coincidencia por primer nombre o inicio de palabra único
+    const prefijos = LISTA_CAPITANES_OFICIAL.filter(c => {
+      const cn = normalizarTextoBusqueda(c);
+      const words = cn.split(/\s+/);
+      return words[0] === q || cn.startsWith(q + " ");
+    });
+    if (prefijos.length === 1) return prefijos[0];
+
+    return null;
+  }
+
+  function vincularAutocompleteCapitan(inputEl, dropdownEl, badgeEstadoEl, onSelect) {
+    if (!inputEl || !dropdownEl) return;
+
+    function renderSugerencias(query) {
+      const lista = buscarCapitanesSugeridos(query);
+      if (lista.length === 0) {
+        dropdownEl.innerHTML = `
+          <div style="padding:10px 14px; font-size:12.5px; color:#94a3b8; text-align:center;">
+            Sin coincidencias en la lista oficial
+          </div>
+        `;
+      } else {
+        dropdownEl.innerHTML = lista.map(c => `
+          <div class="sugerencia-capitan-item" data-nombre="${escaparTextoSeguro(c)}" style="
+            padding:10px 14px; cursor:pointer; font-size:13.5px; font-weight:700; color:#1e293b;
+            display:flex; align-items:center; justify-content:space-between;
+            border-bottom:1px solid #f1f5f9; transition:background 0.15s ease;
+          ">
+            <span>👤 ${escaparTextoSeguro(c)}</span>
+            <span style="font-size:11px; color:#16a34a; background:#dcfce7; padding:2px 7px; border-radius:10px; font-weight:700;">Oficial ✓</span>
+          </div>
+        `).join("");
+      }
+      dropdownEl.style.display = "block";
+    }
+
+    inputEl.addEventListener("focus", () => {
+      renderSugerencias(inputEl.value);
+    });
+
+    inputEl.addEventListener("input", () => {
+      renderSugerencias(inputEl.value);
+      actualizarEstadoVisual();
+    });
+
+    dropdownEl.addEventListener("pointerdown", (e) => {
+      const item = e.target.closest(".sugerencia-capitan-item");
+      if (item) {
+        e.preventDefault();
+        const seleccionado = item.dataset.nombre;
+        inputEl.value = seleccionado;
+        dropdownEl.style.display = "none";
+        actualizarEstadoVisual();
+        if (typeof onSelect === "function") onSelect(seleccionado);
+        window.reproducirSonidoClick("tap");
+      }
+    });
+
+    function actualizarEstadoVisual() {
+      const oficial = resolverCapitanOficial(inputEl.value);
+      if (!inputEl.value.trim()) {
+        inputEl.style.borderColor = "#cbd5e1";
+        inputEl.style.boxShadow = "none";
+        if (badgeEstadoEl) badgeEstadoEl.innerHTML = "";
+      } else if (oficial) {
+        inputEl.style.borderColor = "#16a34a";
+        inputEl.style.boxShadow = "0 0 0 2px rgba(22, 163, 74, 0.18)";
+        if (badgeEstadoEl) badgeEstadoEl.innerHTML = '<span style="color:#16a34a; font-size:15px; font-weight:800;" title="Capitán oficial verificado">✓</span>';
+      } else {
+        inputEl.style.borderColor = "#f59e0b";
+        inputEl.style.boxShadow = "0 0 0 2px rgba(245, 158, 11, 0.18)";
+        if (badgeEstadoEl) badgeEstadoEl.innerHTML = '<span style="color:#f59e0b; font-size:15px; font-weight:800;" title="No coincide con la lista oficial">⚠️</span>';
+      }
+    }
+
+    document.addEventListener("click", (e) => {
+      if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+        dropdownEl.style.display = "none";
+        const match = resolverCapitanOficial(inputEl.value);
+        if (match) {
+          inputEl.value = match;
+        }
+        actualizarEstadoVisual();
+      }
+    });
+
+    actualizarEstadoVisual();
+  }
+
   // Sistema de audio táctil háptico moderno (Web Audio API nativo y ligero)
   let _audioCtx = null;
   function getAudioContext() {
@@ -843,14 +972,17 @@
         <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px;">Territorio ${escaparTextoSeguro(numTLimpio)}</div>
 
         <div style="display:flex; flex-direction:column; gap:11px; overflow-y:auto; padding-right:2px; flex:1;">
-          <div>
+          <div style="position:relative;">
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
-            <input type="text" id="editCapitanInput" list="listaCapitanesEditDatalist" value="${escaparTextoSeguro(rep.capitan || '')}" placeholder="Escribe o selecciona..." autocomplete="off" style="
-              width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit; background:#fff; color:#0f172a;
-            "/>
-            <datalist id="listaCapitanesEditDatalist">
-              ${capitanesEdit.map(c => `<option value="${escaparTextoSeguro(c)}"></option>`).join("")}
-            </datalist>
+            <div style="display:flex; align-items:center; position:relative;">
+              <input type="text" id="editCapitanInput" value="${escaparTextoSeguro(rep.capitan || '')}" placeholder="Escribe o selecciona..." autocomplete="off" style="
+                width:100%; padding:10px 32px 10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit; background:#fff; color:#0f172a;
+              "/>
+              <span id="badgeEditCapitanEstado" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none;"></span>
+            </div>
+            <div id="editSugerenciasCapitan" style="
+              display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:99999; background:#fff; border:1.5px solid #3b82f6; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.18); max-height:190px; overflow-y:auto;
+            "></div>
           </div>
 
           <div>
@@ -895,6 +1027,11 @@
     };
 
     modal.querySelector("#btnCerrarModalEditReg").onclick = cerrar;
+    vincularAutocompleteCapitan(
+      modal.querySelector("#editCapitanInput"),
+      modal.querySelector("#editSugerenciasCapitan"),
+      modal.querySelector("#badgeEditCapitanEstado")
+    );
     modal.querySelector("#btnCancelarEdicion").onclick = cerrar;
     modal.onclick = (e) => {
       if (e.target === modal) cerrar();
@@ -933,7 +1070,14 @@
     });
 
     modal.querySelector("#btnGuardarEdicion").onclick = () => {
-      const nuevoCapitan = (modal.querySelector("#editCapitanInput").value || "").trim();
+      const capitanRaw = (modal.querySelector("#editCapitanInput").value || "").trim();
+      const capitanOficial = resolverCapitanOficial(capitanRaw);
+      if (!capitanOficial) {
+        alert("Por favor selecciona un hermano de la lista oficial de capitanes (ej. Koke, Merari Rosales, Jair Barraza). No se permiten nombres no registrados.");
+        modal.querySelector("#editCapitanInput").focus();
+        return;
+      }
+      const nuevoCapitan = capitanOficial;
       const nuevaFecha = modal.querySelector("#editFecha").value;
       const nuevoComentario = modal.querySelector("#editComentario").value.trim();
 
@@ -1024,15 +1168,11 @@
     return { mapaCuadras, listaReportesT };
   }
 
-  // 7. Modal de Registro de Territorio / Cuadras — Rediseño App Nativa
+  // 7. Modal de Registro de Territorio / Cuadras — Modo Lote (Múltiples territorios) con Autocompletado Oficial
   window.abrirModalRegistroTerritorio = function (preTerritorioId, preCuadraId) {
     window.reproducirSonidoClick("tap");
     const capitanActivo = window.getCapitanNombre() || "Koke";
     const hoy = obtenerFechaLocalISO();
-    const listaCapitanesSugeridos = [...LISTA_CAPITANES_OFICIAL];
-    if (capitanActivo && !listaCapitanesSugeridos.includes(capitanActivo)) {
-      listaCapitanesSugeridos.unshift(capitanActivo);
-    }
 
     let territorioActivo = preTerritorioId;
     if (!territorioActivo) {
@@ -1040,81 +1180,116 @@
       if (select && select.value) territorioActivo = select.value;
     }
 
+    // Lista en memoria de territorios agregados en este reporte en lote
+    let territoriosEnLote = [];
+
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
-      <div class="terrosa-modal-card terrosa-modal-large" style="padding:22px 20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-          <h3 style="margin:0; color:#0f172a; font-size:19px; font-weight:800;">📝 Reportar Territorio</h3>
+      <div class="terrosa-modal-card terrosa-modal-large" style="padding:22px 20px; max-width:440px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0; color:#0f172a; font-size:18.5px; font-weight:800;">📝 Reportar Territorios</h3>
+            <span style="font-size:11.5px; color:#64748b; font-weight:600;">Agrega uno o varios territorios y guarda todo junto</span>
+          </div>
           <button id="btnCerrarModalReg" class="btn-icon-square">✕</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:12px; max-height:74vh; overflow-y:auto; padding-right:2px;">
-          <!-- Capitán (Lista desplegable hasta arriba) y Fecha -->
-          <div style="display:flex; gap:10px;">
-            <div style="flex:1.2;">
-              <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
-              <input type="text" id="regInputCapitan" list="listaCapitanesDatalist" value="${escaparTextoSeguro(capitanActivo)}" placeholder="Escribe o selecciona..." autocomplete="off" style="
-                width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit; color:#0f172a;
-              "/>
-              <datalist id="listaCapitanesDatalist">
-                ${listaCapitanesSugeridos.map(c => `<option value="${escaparTextoSeguro(c)}"></option>`).join("")}
-              </datalist>
+        <div style="display:flex; flex-direction:column; gap:11px; max-height:74vh; overflow-y:auto; padding-right:2px;">
+          <!-- Encabezado del reporte: Capitán oficial y Fecha -->
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="flex:1.2; position:relative;">
+              <label style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; display:flex; justify-content:space-between;">
+                <span>Capitán</span>
+                <span style="font-size:10px; color:#2563eb; font-weight:700;">Lista oficial</span>
+              </label>
+              <div style="display:flex; align-items:center; position:relative;">
+                <input type="text" id="regInputCapitan" value="${escaparTextoSeguro(capitanActivo)}" placeholder="Escribe (ej. ja, re, al)..." autocomplete="off" style="
+                  width:100%; padding:10px 32px 10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit; color:#0f172a;
+                "/>
+                <span id="badgeRegCapitanEstado" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none;"></span>
+              </div>
+              <div id="regSugerenciasCapitan" style="
+                display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:99999; background:#fff; border:1.5px solid #3b82f6; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.18); max-height:190px; overflow-y:auto;
+              "></div>
             </div>
 
             <div style="flex:0.8;">
-              <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Fecha</label>
+              <label style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase;">Fecha</label>
               <input type="date" id="regFecha" value="${hoy}" style="
-                width:100%; padding:10px 10px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:13px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit;
+                width:100%; padding:10px 10px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit;
               "/>
             </div>
           </div>
 
-          <!-- Selector de Territorio -->
-          <div>
-            <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Territorio</label>
-            <select id="regSelectTerritorio" style="
-              width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:14.5px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit;
+          <!-- Tarjeta de Selección de Territorio y Cuadras -->
+          <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:16px; padding:12px 12px 14px; display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <label style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase;">Territorio</label>
+              <select id="regSelectTerritorio" style="
+                width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit;
+              ">
+                <option value="">-- Elige un territorio --</option>
+              </select>
+            </div>
+
+            <!-- Cuadras trabajadas -->
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <label style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase;">Cuadras trabajadas</label>
+                <button id="btnToggleTodasCuadras" type="button" style="
+                  background:#ef4444; color:#ffffff; border:none; border-radius:16px; padding:5px 12px; font-size:11.5px; font-weight:800; cursor:pointer; box-shadow:0 2px 6px rgba(239,68,68,0.25); transition:transform 0.15s;
+                ">Seleccionar todas</button>
+              </div>
+              
+              <div id="regContenedorCuadras" style="
+                max-height:160px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:12px; padding:8px; background:#ffffff; display:flex; flex-direction:column; gap:5px;
+              ">
+                <div style="font-size:12.5px; color:#94a3b8; text-align:center; padding:14px;">Elige un territorio para ver sus cuadras</div>
+              </div>
+            </div>
+
+            <!-- Comentario opcional -->
+            <details class="comentario-desplegable" style="background:#ffffff; border-radius:12px; padding:6px 10px;">
+              <summary style="font-size:12px; font-weight:700; color:#64748b; cursor:pointer;">💬 Comentario (opcional)</summary>
+              <textarea id="regComentario" rows="2" placeholder="Notas sobre este territorio..." style="width:100%; margin-top:6px; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none; font-family:inherit;"></textarea>
+            </details>
+
+            <!-- Casilla Visita SC -->
+            <label style="display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#475569; cursor:pointer; user-select:none; padding:2px 0;">
+              <input type="checkbox" id="regVisitaSC" style="width:15px; height:15px; cursor:pointer; accent-color:#1a73e8;"/>
+              <span>Trabajado durante la Visita del S.C.</span>
+            </label>
+
+            <!-- Botón para añadir este territorio al lote -->
+            <button id="btnAgregarTerritorioLote" type="button" style="
+              width:100%; padding:10px 14px; background:#0284c7; color:white; border:none; border-radius:12px; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 3px 8px rgba(2,132,199,0.28); display:flex; align-items:center; justify-content:center; gap:6px; transition:transform 0.15s;
             ">
-              <option value="">-- Elige un territorio --</option>
-            </select>
+              <span>➕ Agregar territorio al reporte</span>
+            </button>
           </div>
 
-          <!-- Cuadras trabajadas -->
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Cuadras trabajadas</label>
-              <!-- Botón más grande y en rojo -->
-              <button id="btnToggleTodasCuadras" type="button" style="
-                background:#ef4444; color:#ffffff; border:none; border-radius:20px; padding:7px 16px; font-size:12.5px; font-weight:800; cursor:pointer; box-shadow:0 3px 8px rgba(239,68,68,0.35); transition:transform 0.15s;
-              ">Seleccionar todas</button>
+          <!-- Lista acumulada de territorios en lote -->
+          <div id="regSeccionLote" style="display:flex; flex-direction:column; gap:6px; margin-top:2px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label style="font-size:11.5px; font-weight:800; color:#334155; text-transform:uppercase;">
+                📋 Territorios listos (<span id="regConteoLote">0</span>)
+              </label>
+              <span id="regAvisoLote" style="font-size:11px; color:#94a3b8; font-weight:600;">O guarda directo si es 1</span>
             </div>
-            
-            <div id="regContenedorCuadras" style="
-              max-height:190px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:16px; padding:10px; background:#f8fafc; display:flex; flex-direction:column; gap:6px;
-            ">
-              <div style="font-size:13px; color:#94a3b8; text-align:center; padding:16px;">Elige un territorio para ver sus cuadras</div>
+            <div id="regListaLoteCards" style="max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+              <div id="regMsgLoteVacio" style="font-size:12px; color:#94a3b8; text-align:center; padding:10px; border:1px dashed #cbd5e1; border-radius:12px; background:#f8fafc;">
+                Ningún territorio agregado a la lista aún
+              </div>
             </div>
           </div>
-
-          <!-- Comentario desplegable minimalista -->
-          <details class="comentario-desplegable">
-            <summary>💬 Comentario (opcional)</summary>
-            <textarea id="regComentario" rows="2" placeholder="Escribe aquí..."></textarea>
-          </details>
-
-          <!-- Casilla Visita SC -->
-          <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:#475569; cursor:pointer; user-select:none; padding:4px 0;">
-            <input type="checkbox" id="regVisitaSC" style="width:16px; height:16px; cursor:pointer; accent-color:#1a73e8;"/>
-            <span>Trabajado durante la Visita del S.C.</span>
-          </label>
         </div>
 
-        <!-- Botón de Envío -->
-        <div style="margin-top:16px;">
+        <!-- Botón de Guardar Definitivo -->
+        <div style="margin-top:14px;">
           <button id="btnEnviarReporte" style="
-            width:100%; padding:14px; background:linear-gradient(135deg, #1a73e8, #1557b0); color:white; border:none; border-radius:16px; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(26,115,232,0.35); transition:transform 0.15s;
-          ">Enviar Reporte ✅</button>
+            width:100%; padding:13px; background:linear-gradient(135deg, #1a73e8, #1557b0); color:white; border:none; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(26,115,232,0.35); transition:transform 0.15s;
+          ">Guardar Reporte ✅</button>
         </div>
       </div>
     `;
@@ -1130,6 +1305,12 @@
     modal.onclick = (e) => {
       if (e.target === modal) cerrar();
     };
+
+    // Vincular autocompletado y validación de capitán
+    const inputCap = modal.querySelector("#regInputCapitan");
+    const dropdownCap = modal.querySelector("#regSugerenciasCapitan");
+    const badgeCap = modal.querySelector("#badgeRegCapitanEstado");
+    vincularAutocompleteCapitan(inputCap, dropdownCap, badgeCap);
 
     // Poblar selector de territorios
     const selectTerr = modal.querySelector("#regSelectTerritorio");
@@ -1150,13 +1331,14 @@
     // Renderizar las cuadras del territorio seleccionado
     function renderizarCuadras(tId) {
       if (!tId) {
-        contenedorCuadras.innerHTML = '<div style="font-size:13px; color:#94a3b8; text-align:center; padding:16px;">Elige un territorio para ver sus cuadras</div>';
+        contenedorCuadras.innerHTML = '<div style="font-size:12.5px; color:#94a3b8; text-align:center; padding:14px;">Elige un territorio para ver sus cuadras</div>';
+        btnToggleTodas.textContent = "Seleccionar todas";
         return;
       }
 
       const item = window.TERRITORIOS_DATA.find(x => x.datos.id === tId);
       if (!item || !item.datos.poligonos) {
-        contenedorCuadras.innerHTML = '<div style="font-size:13px; color:#94a3b8; text-align:center; padding:16px;">Sin cuadras registradas</div>';
+        contenedorCuadras.innerHTML = '<div style="font-size:12.5px; color:#94a3b8; text-align:center; padding:14px;">Sin cuadras registradas</div>';
         return;
       }
 
@@ -1176,7 +1358,7 @@
       if (infoMes.listaReportesT.length > 0) {
         const ult = infoMes.listaReportesT[0];
         const aviso = document.createElement("div");
-        aviso.style.cssText = "background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:8px 12px; margin-bottom:6px; font-size:12.5px; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:8px;";
+        aviso.style.cssText = "background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:6px 10px; margin-bottom:5px; font-size:12px; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:6px;";
         aviso.innerHTML = `<span>🗓️</span> <span>Trabajado el <b>${ult.fecha}</b> (${ult.capitan})</span>`;
         contenedorCuadras.appendChild(aviso);
       }
@@ -1194,9 +1376,9 @@
         const chip = document.createElement("div");
         chip.className = `chip-cuadra-item ${estaMarcada ? "selected" : ""} ${yaTrabajada ? "trabajada-mes" : ""}`;
         chip.innerHTML = `
-          <div style="display:flex; align-items:center; gap:10px;">
-            <input type="checkbox" value="${pol.id}" class="chk-cuadra" ${estaMarcada ? "checked" : ""} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer; pointer-events:none;"/>
-            <span style="font-weight:700; font-size:14px; color:#1e293b;">Cuadra ${cuadraNum}</span>
+          <div style="display:flex; align-items:center; gap:9px;">
+            <input type="checkbox" value="${pol.id}" class="chk-cuadra" ${estaMarcada ? "checked" : ""} style="width:16px; height:16px; accent-color:#1a73e8; cursor:pointer; pointer-events:none;"/>
+            <span style="font-weight:700; font-size:13.5px; color:#1e293b;">Cuadra ${cuadraNum}</span>
           </div>
           ${yaTrabajada ? `<span class="chip-badge-mes">🗓️ Trabajado ${infoCuadra.fechaDisplay}</span>` : ''}
         `;
@@ -1247,18 +1429,68 @@
       btnToggleTodas.textContent = todas ? "Seleccionar todas" : "Desmarcar todas";
     });
 
-    // Guardar y Enviar Reporte
-    modal.querySelector("#btnEnviarReporte").onclick = () => {
-      let capitan = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
-      const fecha = modal.querySelector("#regFecha").value;
-      const tId = selectTerr.value;
-      const chks = Array.from(contenedorCuadras.querySelectorAll(".chk-cuadra:checked"));
-      const comentario = modal.querySelector("#regComentario").value.trim();
-      const visitaSC = modal.querySelector("#regVisitaSC").checked;
+    // Función para refrescar la lista de tarjetas de lote
+    function actualizarVistaLote() {
+      const contenedor = modal.querySelector("#regListaLoteCards");
+      const conteo = modal.querySelector("#regConteoLote");
+      const aviso = modal.querySelector("#regAvisoLote");
+      const btnGuardar = modal.querySelector("#btnEnviarReporte");
 
-      if (!capitan) return alert("Por favor selecciona o ingresa el nombre del capitán.");
-      if (!tId) return alert("Por favor selecciona un territorio.");
-      if (chks.length === 0) return alert("Selecciona al menos una cuadra trabajada.");
+      conteo.textContent = territoriosEnLote.length;
+
+      if (territoriosEnLote.length === 0) {
+        contenedor.innerHTML = `
+          <div id="regMsgLoteVacio" style="font-size:12px; color:#94a3b8; text-align:center; padding:10px; border:1px dashed #cbd5e1; border-radius:12px; background:#f8fafc;">
+            Ningún territorio agregado a la lista aún
+          </div>
+        `;
+        if (aviso) aviso.textContent = "O guarda directo si es 1";
+        btnGuardar.textContent = "Guardar Reporte ✅";
+        return;
+      }
+
+      if (aviso) aviso.textContent = "Listos para enviar";
+      btnGuardar.textContent = `Guardar todos los reportes (${territoriosEnLote.length}) ✅`;
+
+      contenedor.innerHTML = territoriosEnLote.map((item, idx) => `
+        <div style="
+          display:flex; align-items:center; justify-content:space-between; background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:8px 12px; box-shadow:0 2px 5px rgba(0,0,0,0.03);
+        ">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span style="font-weight:800; font-size:14px; color:#0f172a;">Territorio ${item.numTLimpio}</span>
+              <span style="background:#e0f2fe; color:#0369a1; font-size:11px; font-weight:700; padding:1.5px 7px; border-radius:10px;">${item.chksCount} cuadras</span>
+              ${item.visitaSC ? `<span style="background:#fef3c7; color:#b45309; font-size:10.5px; font-weight:700; padding:1.5px 6px; border-radius:8px;">S.C.</span>` : ''}
+            </div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${item.cuadrasLabels.join(", ")}${item.comentario ? ` • <span style="color:#d97706;">💬 ${escaparTextoSeguro(item.comentario)}</span>` : ''}
+            </div>
+          </div>
+          <button type="button" class="btn-quitar-lote" data-idx="${idx}" title="Eliminar de la lista" style="
+            background:#fee2e2; border:none; border-radius:8px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:#ef4444; font-size:14px; cursor:pointer; margin-left:8px; flex-shrink:0;
+          ">🗑️</button>
+        </div>
+      `).join("");
+
+      contenedor.querySelectorAll(".btn-quitar-lote").forEach(btn => {
+        btn.onclick = () => {
+          const i = parseInt(btn.dataset.idx, 10);
+          if (!isNaN(i) && i >= 0 && i < territoriosEnLote.length) {
+            territoriosEnLote.splice(i, 1);
+            window.reproducirSonidoClick("delete");
+            actualizarVistaLote();
+          }
+        };
+      });
+    }
+
+    // Función para extraer y validar los datos del territorio seleccionado en el formulario
+    function obtenerDatosTerritorioActual() {
+      const tId = selectTerr.value;
+      if (!tId) return null;
+
+      const chks = Array.from(contenedorCuadras.querySelectorAll(".chk-cuadra:checked"));
+      if (chks.length === 0) return null;
 
       const itemT = window.TERRITORIOS_DATA.find(x => x.datos.id === tId);
       const numT = itemT ? (itemT.datos.numeroTerritorio !== undefined ? itemT.datos.numeroTerritorio : tId) : tId;
@@ -1275,28 +1507,149 @@
         ? itemT.datos.poligonos.filter(pol => typeof window.esCuadraPredicable === "function" ? window.esCuadraPredicable(pol) : true)
         : [];
       const totalCuadras = cuadrasRealesT.length || chks.length;
+      const comentario = modal.querySelector("#regComentario").value.trim();
+      const visitaSC = modal.querySelector("#regVisitaSC").checked;
 
-      const nuevoReporte = {
-        id: "rep_" + Date.now(),
-        fecha: fecha,
-        version: "anterior",
-        territorioId: String(numTLimpio),
-        territorioNumero: String(numTLimpio),
-        cuadras: cuadrasIds,
-        cuadrasLabels: cuadrasLabels,
-        cuadrasTotal: chks.length,
-        totalCuadrasTerritorio: totalCuadras,
-        capitan: capitan,
-        comentario: comentario,
-        visitaSC: visitaSC,
-        estado: "APROBADO",
-        timestamp: Date.now()
+      return {
+        tId,
+        numTLimpio,
+        cuadrasIds,
+        cuadrasLabels,
+        totalCuadras,
+        chksCount: chks.length,
+        comentario,
+        visitaSC
       };
+    }
+
+    // Botón: ➕ Agregar territorio al reporte
+    modal.querySelector("#btnAgregarTerritorioLote").onclick = () => {
+      const capitanVal = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
+      const capitanOficial = resolverCapitanOficial(capitanVal);
+      if (!capitanOficial) {
+        alert("Por favor selecciona un hermano de la lista oficial de capitanes (ej. Koke, Merari Rosales, Jair Barraza). No se permiten nombres no registrados.");
+        modal.querySelector("#regInputCapitan").focus();
+        return;
+      }
+      modal.querySelector("#regInputCapitan").value = capitanOficial;
+
+      const datosT = obtenerDatosTerritorioActual();
+      if (!datosT) {
+        if (!selectTerr.value) {
+          alert("Por favor selecciona un territorio.");
+          selectTerr.focus();
+        } else {
+          alert("Por favor selecciona al menos una cuadra trabajada.");
+        }
+        return;
+      }
+
+      const idxExistente = territoriosEnLote.findIndex(item => String(item.numTLimpio) === String(datosT.numTLimpio));
+      if (idxExistente >= 0) {
+        territoriosEnLote[idxExistente] = datosT;
+      } else {
+        territoriosEnLote.push(datosT);
+      }
+
+      // Limpiar selección de territorio para agregar el siguiente con facilidad
+      selectTerr.value = "";
+      renderizarCuadras("");
+      modal.querySelector("#regComentario").value = "";
+      const det = modal.querySelector(".comentario-desplegable");
+      if (det) det.removeAttribute("open");
+
+      window.reproducirSonidoClick("toggle");
+      actualizarVistaLote();
+    };
+
+    // Botón: Guardar Reporte Definitivo (individual o en lote)
+    modal.querySelector("#btnEnviarReporte").onclick = () => {
+      const capitanVal = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
+      const capitanOficial = resolverCapitanOficial(capitanVal);
+      if (!capitanOficial) {
+        alert("Por favor selecciona un hermano de la lista oficial de capitanes (ej. Koke, Merari Rosales, Jair Barraza). No se permiten nombres no registrados.");
+        modal.querySelector("#regInputCapitan").focus();
+        return;
+      }
+      modal.querySelector("#regInputCapitan").value = capitanOficial;
+
+      // Si el usuario tiene un territorio seleccionado con cuadras marcadas y no le dio al botón de agregar, incluirlo automáticamente
+      const datosTActual = obtenerDatosTerritorioActual();
+      if (datosTActual) {
+        const idxExistente = territoriosEnLote.findIndex(item => String(item.numTLimpio) === String(datosTActual.numTLimpio));
+        if (idxExistente >= 0) {
+          territoriosEnLote[idxExistente] = datosTActual;
+        } else {
+          territoriosEnLote.push(datosTActual);
+        }
+      }
+
+      if (territoriosEnLote.length === 0) {
+        return alert("Por favor selecciona al menos un territorio y sus cuadras trabajadas.");
+      }
+
+      const fecha = modal.querySelector("#regFecha").value || hoy;
+      const listaLocal = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+      const reportesGuardados = [];
+
+      territoriosEnLote.forEach((item, index) => {
+        const tStamp = Date.now() + index;
+        const nuevoReporte = {
+          id: "rep_" + tStamp + "_" + Math.random().toString(36).substr(2, 5),
+          fecha: fecha,
+          version: "anterior",
+          territorioId: String(item.numTLimpio),
+          territorioNumero: String(item.numTLimpio),
+          cuadras: item.cuadrasIds,
+          cuadrasLabels: item.cuadrasLabels,
+          cuadrasTotal: item.chksCount,
+          totalCuadrasTerritorio: item.totalCuadras,
+          capitan: capitanOficial,
+          comentario: item.comentario,
+          visitaSC: item.visitaSC,
+          estado: "APROBADO",
+          timestamp: tStamp
+        };
+        listaLocal.push(nuevoReporte);
+        reportesGuardados.push(nuevoReporte);
+      });
+
+      localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(listaLocal));
+      actualizarContadorPendientes();
+      if (typeof window.actualizarColoresCuadrasCapitan === "function") {
+        window.actualizarColoresCuadrasCapitan();
+      }
+
+      // Sincronizar en la nube con Google Sheets (en lote y con fallback individual)
+      if (URL_API_GOOGLE_SHEETS) {
+        fetch(URL_API_GOOGLE_SHEETS, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            accion: "nuevos_reportes",
+            action: "nuevos_reportes",
+            reportes: reportesGuardados
+          })
+        }).catch(() => {
+          reportesGuardados.forEach(rep => {
+            fetch(URL_API_GOOGLE_SHEETS, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({
+                accion: "nuevo_reporte",
+                action: "nuevo_reporte",
+                reporte: rep,
+                reporteId: rep.id,
+                id: rep.id
+              })
+            }).catch(() => {});
+          });
+        });
+      }
 
       window.reproducirSonidoClick("success");
-      guardarReportePendiente(nuevoReporte);
       cerrar();
-      mostrarConfirmacionReporte(nuevoReporte);
+      mostrarConfirmacionReportesMultiples(reportesGuardados);
     };
   };
 
@@ -1337,34 +1690,46 @@
     }
   }
 
-  // 9. Confirmación discreta y opción de notificar por WhatsApp
-  function mostrarConfirmacionReporte(reporte) {
+  // 9. Confirmación discreta y opción de notificar por WhatsApp (Soporta individual y múltiples)
+  function mostrarConfirmacionReportesMultiples(reportes) {
+    if (!reportes || reportes.length === 0) return;
+    const lista = Array.isArray(reportes) ? reportes : [reportes];
+
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
 
-    // Formatear fecha: DD-MM-YYYY
-    let fechaFormateada = reporte.fecha || "";
+    const primerRep = lista[0];
+    let fechaFormateada = primerRep.fecha || "";
     if (fechaFormateada.includes("-")) {
       const p = fechaFormateada.split("-");
       if (p.length === 3) fechaFormateada = `${p[2]}-${p[1]}-${p[0]}`;
     }
 
-    // Identificar cuadras en texto
-    const labels = (reporte.cuadrasLabels && reporte.cuadrasLabels.length > 0)
-      ? reporte.cuadrasLabels.join(", ")
-      : reporte.cuadras.map(c => formatearEtiquetaCuadraCorta(c)).join(", ");
+    let msgTexto = "";
+    if (lista.length === 1) {
+      const r = lista[0];
+      const labels = (r.cuadrasLabels && r.cuadrasLabels.length > 0)
+        ? r.cuadrasLabels.join(", ")
+        : r.cuadras.map(c => formatearEtiquetaCuadraCorta(c)).join(", ");
+      const txtCuadra = (r.cuadrasTotal === 1) ? `la cuadra *${labels}*` : `las cuadras *${labels}*`;
+      msgTexto = `*${r.capitan}*: Se termina hoy *${fechaFormateada}*, ${txtCuadra} del territorio *${r.territorioNumero}*.`;
+    } else {
+      const lineas = lista.map(r => {
+        const labels = (r.cuadrasLabels && r.cuadrasLabels.length > 0)
+          ? r.cuadrasLabels.join(", ")
+          : r.cuadras.map(c => formatearEtiquetaCuadraCorta(c)).join(", ");
+        const txtCuadra = (r.cuadrasTotal === 1) ? `la cuadra *${labels}*` : `las cuadras *${labels}*`;
+        return `• Territorio *${r.territorioNumero}*: ${txtCuadra}`;
+      });
+      msgTexto = `*${primerRep.capitan}*: Se reportan hoy *${fechaFormateada}*:
+${lineas.join("
+")}`;
+    }
 
-    const textoCuadra = (reporte.cuadrasTotal === 1)
-      ? `la cuadra *${labels}*`
-      : `las cuadras *${labels}*`;
-
-    // Mensaje con formato exacto solicitado
-    const msgTexto = `*${reporte.capitan}*: Se termina hoy *${fechaFormateada}*, ${textoCuadra} del territorio *${reporte.territorioNumero}*.`;
     const msgWhatsApp = encodeURIComponent(msgTexto);
 
     modal.innerHTML = `
-      <div class="terrosa-modal-card" style="text-align:center; padding:24px 20px 18px; position:relative; max-width:280px;">
-        <!-- Logo discreto de WhatsApp -->
+      <div class="terrosa-modal-card" style="text-align:center; padding:24px 20px 18px; position:relative; max-width:${lista.length > 1 ? '320px' : '280px'};">
         <a href="https://api.whatsapp.com/send?text=${msgWhatsApp}" target="_blank" title="Notificar por WhatsApp" style="
           position:absolute; top:12px; right:12px; display:inline-flex; align-items:center; justify-content:center;
           width:36px; height:36px; border-radius:50%; background:#25D366; box-shadow:0 3px 8px rgba(37,211,102,0.35); text-decoration:none;
@@ -1374,20 +1739,38 @@
           </svg>
         </a>
 
-        <div style="font-size:32px; margin-bottom:8px;">✅</div>
-        <h3 style="margin:0 0 18px 0; color:#1e293b; font-size:17.5px; font-weight:800;">Reporte registrado</h3>
+        <div style="font-size:32px; margin-bottom:8px;">${lista.length > 1 ? '🎉' : '✅'}</div>
+        <h3 style="margin:0 0 8px 0; color:#1e293b; font-size:17.5px; font-weight:800;">
+          ${lista.length > 1 ? `Reportes registrados (${lista.length})` : 'Reporte registrado'}
+        </h3>
 
-        <button id="btnCerrarExito" style="
+        ${lista.length > 1 ? `
+          <div style="max-height:130px; overflow-y:auto; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:8px 10px; margin-bottom:14px; text-align:left; font-size:12px; color:#334155;">
+            ${lista.map(r => `
+              <div style="padding:4px 0; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between;">
+                <b>Territorio ${r.territorioNumero}:</b>
+                <span style="color:#0284c7; font-weight:700;">${r.cuadrasTotal} cuadras</span>
+              </div>
+            `).join("")}
+          </div>
+        ` : '<div style="margin-bottom:14px;"></div>'}
+
+        <button id="btnCerrarExitoReporte" style="
           width:100%; padding:11px; background:#1a73e8; border:none; border-radius:12px; font-weight:700; color:white; cursor:pointer; font-size:14px;
         ">Cerrar</button>
       </div>
     `;
     document.body.appendChild(modal);
 
-    modal.querySelector("#btnCerrarExito").onclick = () => {
+    modal.querySelector("#btnCerrarExitoReporte").onclick = () => {
       if (document.body.contains(modal)) document.body.removeChild(modal);
     };
   }
+
+  function mostrarConfirmacionReporte(reporte) {
+    mostrarConfirmacionReportesMultiples([reporte]);
+  }
+
 
   // 10. Buzón de Aprobaciones del Encargado con Modal de PIN personalizado
   function pedirPinEncargado(callbackExito) {

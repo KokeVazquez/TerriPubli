@@ -102,6 +102,36 @@ function doPost(e) {
     obtenerOCrearHojaCapitanes(ss);
     var action = data.accion || data.action || "";
 
+    if (action === "nuevos_reportes" || action === "reportes_lote") {
+      var listaReps = data.reportes || [];
+      if (Array.isArray(listaReps) && listaReps.length > 0) {
+        var nuevasFilas = [];
+        for (var r = 0; r < listaReps.length; r++) {
+          var repL = listaReps[r];
+          var numTL = normalizarNumeroTerritorio(repL.territorioId, repL.territorioNumero);
+          var cCortasL = normalizarListaCuadrasCorto(repL.cuadras, numTL);
+          var totCL = Number(repL.totalCuadrasTerritorio || repL.totalCuadras || CUADRAS_MAP[numTL] || cCortasL.length || 0);
+          nuevasFilas.push([
+            String(repL.id),
+            String(repL.fecha),
+            numTL,
+            numTL,
+            cCortasL.join(","),
+            totCL,
+            String(repL.capitan || ""),
+            repL.visitaSC ? "SÍ" : "NO",
+            "APROBADO",
+            formatearFechaHora(new Date())
+          ]);
+        }
+        if (nuevasFilas.length > 0) {
+          sheetCuadras.getRange(sheetCuadras.getLastRow() + 1, 1, nuevasFilas.length, nuevasFilas[0].length).setValues(nuevasFilas);
+          reconstruirHojaS13(ss);
+        }
+      }
+      return respuestaJSON({ exito: true, status: "success", count: listaReps.length });
+    }
+
     if (action === "nuevo_reporte" || action === "registrarCuadras") {
       var rep = data.reporte || {};
       var numTerr = normalizarNumeroTerritorio(rep.territorioId, rep.territorioNumero);
