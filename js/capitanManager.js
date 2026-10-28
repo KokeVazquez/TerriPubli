@@ -756,9 +756,17 @@
     const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const mesActualNum = String(new Date().getMonth() + 1);
 
-    // Predeterminar al año de servicio 2026 y al mes actual
-    let filtroAnioSel = "2026";
-    let filtroMesSel = mesActualNum;
+    // Predeterminar exactamente al filtro activo de la barra superior principal
+    let filtroAnioSel = anioFiltroActivo || "2026";
+    let filtroMesSel = "todos";
+    if (mesesFiltroActivos.size === 1) {
+      const numActivo = Array.from(mesesFiltroActivos)[0];
+      filtroMesSel = String(parseInt(numActivo, 10));
+    } else if (mesesFiltroActivos.size > 1 && mesesFiltroActivos.size < 12) {
+      filtroMesSel = "filtro_principal";
+    } else {
+      filtroMesSel = "todos";
+    }
 
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
@@ -781,16 +789,20 @@
           <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#94a3b8; pointer-events:none;">🔍</span>
         </div>
 
-        <!-- Dos Filtros: Año de Servicio y Mes -->
+        <!-- Dos Filtros: Año de Servicio y Mes (Heredan automáticamente del filtro principal) -->
         <div style="display:flex; gap:8px; margin-bottom:12px; flex-shrink:0;">
           <select id="filtroHistorialAnio" class="filtro-pildora-select" style="flex:1;">
-            <option value="2026" selected>📅 Serv. 2026</option>
-            <option value="2025">📅 Serv. 2025</option>
-            <option value="todos">📅 Todos los años</option>
+            <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>📅 Serv. 2026</option>
+            <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>📅 Serv. 2025</option>
+            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>📅 Todos los años</option>
           </select>
           <select id="filtroHistorialMes" class="filtro-pildora-select" style="flex:1;">
-            <option value="todos">🗓️ Todos los meses</option>
-            ${mesesNombres.map((m, idx) => `<option value="${idx + 1}" ${(idx + 1) === parseInt(mesActualNum, 10) ? "selected" : ""}>${m}</option>`).join("")}
+            ${filtroMesSel === "filtro_principal" ? `<option value="filtro_principal" selected>🗓️ Filtro principal (${mesesFiltroActivos.size} meses)</option>` : ''}
+            <option value="todos" ${filtroMesSel === "todos" ? "selected" : ""}>🗓️ Todos los meses</option>
+            ${mesesNombres.map((m, idx) => {
+              const val = String(idx + 1);
+              return `<option value="${val}" ${filtroMesSel === val ? "selected" : ""}>${m}</option>`;
+            }).join("")}
           </select>
         </div>
 
@@ -841,8 +853,13 @@
         // Filtro de Año de Servicio
         if (filtroAnioSel !== "todos" && !perteneceAAnioServicio(r.fecha, filtroAnioSel)) return false;
 
-        // Filtro de Mes
-        if (filtroMesSel !== "todos" && parseInt(p.mes, 10) !== parseInt(filtroMesSel, 10)) return false;
+        // Filtro de Mes (Soporta mes individual, filtro principal combinado o todos)
+        if (filtroMesSel === "filtro_principal") {
+          const mesNum2Dig = String(p.mes).padStart(2, "0");
+          if (mesesFiltroActivos.size > 0 && !mesesFiltroActivos.has(mesNum2Dig)) return false;
+        } else if (filtroMesSel !== "todos" && parseInt(p.mes, 10) !== parseInt(filtroMesSel, 10)) {
+          return false;
+        }
 
         // Filtro de Búsqueda de Texto
         if (query) {
