@@ -395,13 +395,57 @@
     return raw.replace(/^[a-zA-Z0-9]+_c/, "");
   }
 
-  // Purgar por completo todas las llaves viejas (_estado y _capitanes) del teléfono
+  // Deduplicación inteligente: si dos reportes tienen el mismo territorio, misma fecha, mismo capitán y mismas cuadras, se conserva solo uno (priorizando el ID oficial de la nube YYYYMMDD_T...)
+  function deduplicarListaReportes(lista) {
+    if (!Array.isArray(lista)) return [];
+    const mapaUnicos = new Map();
+
+    lista.forEach(r => {
+      if (!r || typeof r !== "object") return;
+      const tNum = String(obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero));
+      const fIso = String(r.fecha || "").slice(0, 10);
+      const capLimpio = String(r.capitan || "").trim().toLowerCase();
+      const cuadrasKey = Array.isArray(r.cuadras)
+        ? r.cuadras.map(c => aCodigoCortoCuadra(c, tNum)).sort().join(",")
+        : "";
+
+      const hashKey = `${tNum}_${fIso}_${capLimpio}_${cuadrasKey}`;
+
+      if (!mapaUnicos.has(hashKey)) {
+        mapaUnicos.set(hashKey, r);
+      } else {
+        const existente = mapaUnicos.get(hashKey);
+        // Si el reporte actual tiene formato de ID oficial de Google Sheets (YYYYMMDD_T...), sustituye al ID viejo local
+        const esOficialActual = /^\d{8}_T\d+_\d+$/.test(String(r.id || ""));
+        const esOficialExistente = /^\d{8}_T\d+_\d+$/.test(String(existente.id || ""));
+        if (esOficialActual && !esOficialExistente) {
+          mapaUnicos.set(hashKey, r);
+        }
+      }
+    });
+
+    return Array.from(mapaUnicos.values());
+  }
+
+  // Purgar por completo todas las llaves viejas y deduplicar reportes guardados
   function purgarBasuraLocalStorage() {
     try {
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
         if (k && (k.endsWith("_estado") || k.endsWith("_capitanes"))) {
           localStorage.removeItem(k);
+        }
+      }
+
+      // Limpiar automáticamente reportes duplicados que hayan quedado de versiones o IDs anteriores
+      const rawReportes = localStorage.getItem("terrosa_reportes_pendientes");
+      if (rawReportes) {
+        const lista = JSON.parse(rawReportes);
+        if (Array.isArray(lista) && lista.length > 0) {
+          const listaLimpia = deduplicarListaReportes(lista);
+          if (listaLimpia.length !== lista.length) {
+            localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(listaLimpia));
+          }
         }
       }
     } catch (e) {}
@@ -750,7 +794,7 @@
   // 6.1. Modal de Historial ("Territorios trabajados") — Rediseño Minimalista con Buscador
   window.abrirModalHistorialRegistros = function () {
     window.reproducirSonidoClick("tap");
-    const todosReportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]")
+    const todosReportes = deduplicarListaReportes(JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]"))
       .filter(r => perteneceAVersionActiva(r));
 
     const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -841,7 +885,7 @@
     const cont = modal.querySelector("#listaItemsHistorial");
 
     function renderizarListaFiltrada() {
-      const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]")
+      const reportes = deduplicarListaReportes(JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]"))
         .filter(r => perteneceAVersionActiva(r));
 
       const query = (inputBuscador ? inputBuscador.value : "").trim().toLowerCase();
@@ -2668,16 +2712,28 @@ ${lineas.join("\n")}`;
             return r;
           });
 
-        // Preservar reportes recién creados en local que aún van subiendo a la nube
+        // Preservar reportes recién creados en local que aún van subiendo a la nube (evitando duplicar con reportes ya existentes con IDs viejos)
         const listaLocal = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
         listaLocal.forEach(rLoc => {
           if (!eliminadosLocales.has(rLoc.id)) {
-            const existeEnNube = reportesNormalizados.some(rNub => rNub.id === rLoc.id);
+            const existeEnNube = reportesNormalizados.some(rNub => {
+              if (rNub.id === rLoc.id) return true;
+              const tNub = String(rNub.territorioNumero || rNub.territorioId);
+              const tLoc = String(rLoc.territorioNumero || rLoc.territorioId);
+              const fNub = String(rNub.fecha).slice(0, 10);
+              const fLoc = String(rLoc.fecha).slice(0, 10);
+              const capNub = String(rNub.capitan || "").trim().toLowerCase();
+              const capLoc = String(rLoc.capitan || "").trim().toLowerCase();
+              return (tNub === tLoc && fNub === fLoc && capNub === capLoc);
+            });
             if (!existeEnNube) {
               reportesNormalizados.push(rLoc);
             }
           }
         });
+
+        // Deduplicación garantizada
+        reportesNormalizados = deduplicarListaReportes(reportesNormalizados);
 
         localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(reportesNormalizados));
 
