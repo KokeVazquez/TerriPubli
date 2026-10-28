@@ -1753,8 +1753,7 @@
         return `• Territorio *${r.territorioNumero}*: ${txtCuadra}`;
       });
       msgTexto = `*${primerRep.capitan}*: Se reportan hoy *${fechaFormateada}*:
-${lineas.join("
-")}`;
+${lineas.join("\n")}`;
     }
 
     const msgWhatsApp = encodeURIComponent(msgTexto);
