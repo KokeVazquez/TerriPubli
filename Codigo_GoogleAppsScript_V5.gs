@@ -106,13 +106,19 @@ function doPost(e) {
       var listaReps = data.reportes || [];
       if (Array.isArray(listaReps) && listaReps.length > 0) {
         var nuevasFilas = [];
+        var startRow = sheetCuadras.getLastRow() + 1;
         for (var r = 0; r < listaReps.length; r++) {
           var repL = listaReps[r];
           var numTL = normalizarNumeroTerritorio(repL.territorioId, repL.territorioNumero);
           var cCortasL = normalizarListaCuadrasCorto(repL.cuadras, numTL);
           var totCL = Number(repL.totalCuadrasTerritorio || repL.totalCuadras || CUADRAS_MAP[numTL] || cCortasL.length || 0);
+          var fechaL = formatearFecha(repL.fecha).replace(/-/g, "").slice(0, 8);
+          var repIdL = String(repL.id || "").trim().replace(/^(hist_|rep_)/, "");
+          if (!repIdL || repIdL.indexOf("_T") === -1) {
+            repIdL = fechaL + "_T" + numTL + "_" + (startRow + r - 1);
+          }
           nuevasFilas.push([
-            String(repL.id),
+            repIdL,
             String(repL.fecha),
             numTL,
             numTL,
@@ -138,8 +144,14 @@ function doPost(e) {
       var cuadrasCortas = normalizarListaCuadrasCorto(rep.cuadras, numTerr);
       var totalCuadras = Number(rep.totalCuadrasTerritorio || rep.totalCuadras || CUADRAS_MAP[numTerr] || cuadrasCortas.length || 0);
 
+      var fechaL = formatearFecha(rep.fecha).replace(/-/g, "").slice(0, 8);
+      var repId = String(rep.id || "").trim().replace(/^(hist_|rep_)/, "");
+      if (!repId || repId.indexOf("_T") === -1) {
+        repId = fechaL + "_T" + numTerr + "_" + sheetCuadras.getLastRow();
+      }
+
       sheetCuadras.appendRow([
-        String(rep.id),
+        repId,
         String(rep.fecha),
         numTerr,
         numTerr,

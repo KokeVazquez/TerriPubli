@@ -1594,8 +1594,11 @@
 
       territoriosEnLote.forEach((item, index) => {
         const tStamp = Date.now() + index;
+        const fechaLimpia = String(fecha || "").replace(/-/g, "").slice(0, 8);
+        const consecutivo = listaLocal.length + 1;
+        const cleanId = `${fechaLimpia}_T${item.numTLimpio}_${consecutivo}`;
         const nuevoReporte = {
-          id: "rep_" + tStamp + "_" + Math.random().toString(36).substr(2, 5),
+          id: cleanId,
           fecha: fecha,
           version: "anterior",
           territorioId: String(item.numTLimpio),
