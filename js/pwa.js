@@ -91,3 +91,33 @@ window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
 });
 
+// Guía interactiva o disparo directo de instalación
+window.abrirGuiaInstalacionPWA = function () {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    return;
+  }
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const modal = document.createElement('div');
+  modal.className = 'terrosa-modal-overlay';
+  modal.style.zIndex = '10000000';
+  modal.innerHTML = `
+    <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px; text-align:center;">
+      <div style="font-size:38px; margin-bottom:8px;">📲</div>
+      <h3 style="margin:0 0 8px 0; font-size:18.5px; font-weight:800; color:#0f172a;">Instalar TerRosa</h3>
+      <p style="font-size:13px; color:#64748b; margin:0 0 16px 0; line-height:1.5;">
+        ${isIOS 
+          ? 'En iPhone / Safari:<br>Toca el botón <b>Compartir</b> (el recuadro con la flecha hacia arriba) y selecciona <b>"Agregar al inicio"</b> 📲.'
+          : 'En Android / Chrome:<br>Toca los <b>3 puntos</b> arriba a la derecha y selecciona <b>"Instalar aplicación"</b> o <b>"Agregar a la pantalla principal"</b> 📲.'
+        }
+      </p>
+      <button id="btnEntendidoGuiaPWA" style="
+        width:100%; padding:11px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:800; font-size:13.5px; cursor:pointer; box-shadow:0 2px 6px rgba(26,115,232,0.3);
+      ">Entendido 👍</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector('#btnEntendidoGuiaPWA').onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+};
+

@@ -448,6 +448,13 @@
           }
         }
       }
+
+      // Parámetro de emergencia para desbloquear o limpiar bloqueos residuales
+      if (window.location.search.includes("desbloquear") || window.location.hash.includes("desbloquear")) {
+        localStorage.removeItem("terrosa_acceso_bloqueado");
+        localStorage.removeItem("terrosa_dispositivo_id");
+      }
+      localStorage.removeItem("terrosa_acceso_bloqueado");
     } catch (e) {}
   }
 
@@ -822,6 +829,9 @@
           <button id="btnGuardarNombrePublicador" style="
             width:100%; margin-top:10px; padding:11px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 2px 6px rgba(26,115,232,0.25);
           ">💾 Guardar Nombre</button>
+          <button id="btnInstalarAppPerfil" type="button" style="
+            width:100%; margin-top:8px; padding:10px; background:#f8fafc; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+          ">📲 Instalar en Pantalla de Inicio</button>
         </div>
 
         <div style="border-top:1px solid #e2e8f0; margin:16px 0;"></div>
@@ -874,6 +884,15 @@
         modal.querySelector("#btnGuardarNombrePublicador").click();
       }
     });
+
+    const btnInstalar = modal.querySelector("#btnInstalarAppPerfil");
+    if (btnInstalar) {
+      btnInstalar.onclick = () => {
+        if (typeof window.abrirGuiaInstalacionPWA === "function") {
+          window.abrirGuiaInstalacionPWA();
+        }
+      };
+    }
 
     modal.querySelector("#btnIrLoginCapitanDesdePub").onclick = () => {
       cerrar();
@@ -1000,11 +1019,6 @@
     const devId = obtenerIdDispositivoLocal();
     const nombre = (nombreOpcional || localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "Sin registrar").trim();
 
-    // Si estaba marcado como bloqueado previamente, mostramos la pantalla de inmediato mientras consulta el estado actualizado
-    if (localStorage.getItem("terrosa_acceso_bloqueado") === "true") {
-      mostrarPantallaBloqueo();
-    }
-
     // Ping POST para registrar / actualizar último acceso
     try {
       fetch(URL_API_GOOGLE_SHEETS, {
@@ -1021,11 +1035,10 @@
     } catch (e) {}
 
     // Consulta GET en vivo sin caché para verificar si el estado es Activo o Bloqueado
-    fetch(`${URL_API_GOOGLE_SHEETS}?accion=verificar_acceso&dispositivoId=${encodeURIComponent(devId)}&t=${Date.now()}`, { cache: "no-store" })
+    fetch(`${URL_API_GOOGLE_SHEETS}?accion=verificar_acceso&dispositivoId=${encodeURIComponent(devId)}&t=${Date.now()}`)
       .then(r => r.json())
       .then(res => {
         if (res && res.permitido === false) {
-          localStorage.setItem("terrosa_acceso_bloqueado", "true");
           mostrarPantallaBloqueo(res.mensaje);
           if (typeof callback === "function") callback(false);
         } else {
@@ -1035,8 +1048,9 @@
         }
       })
       .catch(err => {
-        // En caso de fallo de red temporal, si no estaba bloqueado antes, permitir
-        if (typeof callback === "function") callback(localStorage.getItem("terrosa_acceso_bloqueado") !== "true");
+        // En caso de fallo de red, no bloquear la pantalla
+        quitarPantallaBloqueo();
+        if (typeof callback === "function") callback(true);
       });
   };
 
