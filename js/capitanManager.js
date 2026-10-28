@@ -515,18 +515,18 @@
   }
 
   // 5. Modal para Iniciar Sesión de Capitán con PIN (Exclusivo Koke y Merari Rosales)
-  function abrirModalLoginCapitan() {
+  window.abrirModalLoginCapitan = function () {
     const actual = window.getCapitanNombre();
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay login-modal-overlay";
     modal.innerHTML = `
-      <div class="terrosa-modal-card">
+      <div class="terrosa-modal-card" style="box-sizing:border-box;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="margin:0; color:#0f172a; font-size:18.5px; font-weight:800;">🔑 Acceso de Capitán</h3>
           <button id="btnCerrarLoginModal" class="btn-icon-square">✕</button>
         </div>
-        <p style="font-size:13px; color:#64748b; margin-top:0; margin-bottom:16px;">
-          Selecciona tu usuario autorizado e ingresa el código PIN:
+        <p style="font-size:13px; color:#64748b; margin-top:0; margin-bottom:14px;">
+          Selecciona tu usuario autorizado e ingresa el código PIN (1234):
         </p>
 
         <div style="display:flex; flex-direction:column; gap:12px;">
@@ -541,17 +541,18 @@
 
           <div>
             <label style="font-size:11.5px; font-weight:700; color:#475569; text-transform:uppercase;">Código PIN</label>
-            <input type="password" id="inputPinLogin" placeholder="••••" maxlength="6" inputmode="numeric" style="
-              width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:18px; letter-spacing:4px; box-sizing:border-box; margin-top:4px; outline:none; font-family:inherit;
+            <input type="password" id="inputPinLogin" placeholder="••••" maxlength="8" inputmode="numeric" style="
+              width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:20px; letter-spacing:6px; text-align:center; box-sizing:border-box; margin-top:4px; outline:none; font-family:inherit;
             " />
+            <div id="loginErrorMsg" style="color:#ef4444; font-size:12.5px; font-weight:700; margin-top:6px; min-height:16px; text-align:center;"></div>
           </div>
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button id="btnCancelarLogin" style="
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button id="btnCancelarLogin" type="button" style="
             flex:1; padding:12px; background:#f1f5f9; border:none; border-radius:14px; font-weight:700; color:#475569; cursor:pointer; font-size:14px;
           ">Cancelar</button>
-          <button id="btnConfirmarLogin" style="
+          <button id="btnConfirmarLogin" type="button" style="
             flex:1; padding:12px; background:linear-gradient(135deg, #1a73e8, #1557b0); border:none; border-radius:14px; font-weight:800; color:#ffffff; cursor:pointer; font-size:14px; box-shadow:0 3px 10px rgba(26,115,232,0.3);
           ">Ingresar</button>
         </div>
@@ -582,22 +583,35 @@
 
     const inputPin = modal.querySelector("#inputPinLogin");
     const selectNombre = modal.querySelector("#selectNombreLogin");
+    const errorMsg = modal.querySelector("#loginErrorMsg");
     setTimeout(() => inputPin.focus(), 120);
 
     const intentarLogin = () => {
-      const nombre = selectNombre.value.trim();
-      const pin = inputPin.value.trim();
+      const nombre = (selectNombre.value || "").trim();
+      const pin = (inputPin.value || "").trim();
+
+      if (!nombre) {
+        if (errorMsg) errorMsg.textContent = "Selecciona un usuario autorizado.";
+        return;
+      }
       if (!USUARIOS_ACCESO_CAPITAN.includes(nombre)) {
-        alert("Acceso restringido únicamente a Koke y Merari Rosales.");
+        if (errorMsg) errorMsg.textContent = "Acceso restringido únicamente a Koke y Merari Rosales.";
+        return;
+      }
+      if (!pin) {
+        if (errorMsg) errorMsg.textContent = "Por favor ingresa el código PIN (1234).";
+        inputPin.focus();
         return;
       }
       if (pin !== PIN_ENCARGADO_DEFAULT) {
         window.reproducirSonidoClick("delete");
-        alert("Código PIN incorrecto.");
+        if (errorMsg) errorMsg.textContent = "Código PIN incorrecto (1234).";
         inputPin.value = "";
         inputPin.focus();
         return;
       }
+
+      if (errorMsg) errorMsg.textContent = "";
 
       try {
         const logins = JSON.parse(localStorage.getItem("terrosa_conexiones_log") || "[]");
@@ -616,10 +630,24 @@
       mostrarToastDiscreto("Modo Capitán activado ✅");
     };
 
-    modal.querySelector("#btnConfirmarLogin").onclick = intentarLogin;
-    inputPin.addEventListener("keyup", (e) => {
-      if (e.key === "Enter") intentarLogin();
+    const btnConfirmar = modal.querySelector("#btnConfirmarLogin");
+    btnConfirmar.onclick = (e) => {
+      e.preventDefault();
+      intentarLogin();
+    };
+    btnConfirmar.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
     });
+
+    inputPin.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.keyCode === 13) {
+        e.preventDefault();
+        intentarLogin();
+      }
+    });
+  };
+  function abrirModalLoginCapitan() {
+    window.abrirModalLoginCapitan();
   }
 
   // 5.1. Menú al tocar el Badge del Capitán (Cambio rápido de usuario autorizado y salida a Modo Publicador)
@@ -2573,6 +2601,19 @@ ${lineas.join("
       window.reproducirSonidoClick("tap");
     }
   }, true);
+
+  // Auto-inicialización garantizada de eventos y botones
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof window.inicializarModuloCapitan === "function") {
+        window.inicializarModuloCapitan();
+      }
+    });
+  } else {
+    if (typeof window.inicializarModuloCapitan === "function") {
+      window.inicializarModuloCapitan();
+    }
+  }
 
 })();
 

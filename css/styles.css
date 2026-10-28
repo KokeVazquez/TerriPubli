@@ -99,7 +99,7 @@ path:not(.leaflet-interactive) {
   align-items: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  pointer-events: none; /* No obstruye toques accidentales en mapa */
+  pointer-events: auto; /* Permite interacción directa con botones superiores */
   box-sizing: border-box;
 }
 
@@ -108,7 +108,7 @@ path:not(.leaflet-interactive) {
   position: absolute;
   top: calc(max(env(safe-area-inset-top, 0px), 6px) + 2px);
   right: 8px;
-  z-index: 1001;
+  z-index: 10005;
   pointer-events: auto !important;
   display: flex;
   align-items: center;
