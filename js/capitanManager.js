@@ -493,29 +493,32 @@
 
   // 4. Conmutar entre Publicador y Capitán
   function vincularEventosModo() {
-    // Botón Ingresar en la cabecera
+    // Botón Ingresar en la cabecera (asignación única idempotente)
     const btnIngresar = document.getElementById("btnIngresarHeader");
     if (btnIngresar) {
-      btnIngresar.addEventListener("click", (e) => {
+      btnIngresar.onclick = (e) => {
         e.stopPropagation();
         window.reproducirSonidoClick("tap");
         abrirModalLoginCapitan();
-      });
+      };
     }
 
     // Tocar el badge con el nombre en la cabecera permite cambiar el perfil o cerrar sesión
     const badgeHeader = document.getElementById("badgeCapitanHeader");
     if (badgeHeader) {
-      badgeHeader.addEventListener("click", (e) => {
+      badgeHeader.onclick = (e) => {
         e.stopPropagation();
         window.reproducirSonidoClick("tap");
         abrirMenuPerfilCapitan();
-      });
+      };
     }
   }
 
   // 5. Modal para Iniciar Sesión de Capitán con PIN (Exclusivo Koke y Merari Rosales)
   window.abrirModalLoginCapitan = function () {
+    // Eliminar cualquier modal previo para evitar duplicados en pantalla
+    document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
+
     const actual = window.getCapitanNombre();
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay login-modal-overlay";
@@ -562,7 +565,8 @@
     document.body.appendChild(modal);
 
     const cerrar = () => {
-      if (document.body.contains(modal)) document.body.removeChild(modal);
+      modal.remove();
+      document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
     };
 
     modal.onclick = (e) => {
@@ -652,6 +656,9 @@
 
   // 5.1. Menú al tocar el Badge del Capitán (Cambio rápido de usuario autorizado y salida a Modo Publicador)
   function abrirMenuPerfilCapitan() {
+    // Eliminar cualquier modal previo para evitar duplicados en pantalla
+    document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
+
     const nombre = window.getCapitanNombre() || USUARIOS_ACCESO_CAPITAN[0];
 
     const modal = document.createElement("div");
@@ -688,7 +695,8 @@
 
     const cerrar = () => {
       window.reproducirSonidoClick("tap");
-      if (document.body.contains(modal)) document.body.removeChild(modal);
+      modal.remove();
+      document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
     };
 
     modal.querySelector("#btnCerrarMenuPerfilX").onclick = cerrar;
@@ -707,9 +715,10 @@
 
     modal.querySelector("#btnGuardarNombreDirecto").onclick = guardarNombre;
 
-    modal.querySelector("#btnCerrarSesionModo").onclick = () => {
-      localStorage.setItem("terrosa_modo", "publicador");
+    modal.querySelector("#btnCerrarSesionModo").onclick = (e) => {
+      e.stopPropagation();
       cerrar();
+      localStorage.setItem("terrosa_modo", "publicador");
       actualizarInterfazSegunModo();
       window.reproducirSonidoClick("delete");
       mostrarToastDiscreto("Modo Publicador activado");
