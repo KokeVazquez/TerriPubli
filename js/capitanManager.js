@@ -423,7 +423,7 @@
   };
 
   // 3. Actualizar interfaz según el modo (Publicador vs Capitán)
-  function actualizarInterfazSegunModo() {
+  window.actualizarInterfazSegunModo = function actualizarInterfazSegunModo() {
     const modo = window.getModoActual();
     const nombreCapitan = window.getCapitanNombre();
     const esCapitan = (modo === "capitan");
@@ -529,7 +529,7 @@
           <button id="btnCerrarLoginModal" class="btn-icon-square">✕</button>
         </div>
         <p style="font-size:13px; color:#64748b; margin-top:0; margin-bottom:14px;">
-          Selecciona tu usuario autorizado e ingresa el código PIN (1234):
+          Selecciona tu usuario autorizado e ingresa el código PIN:
         </p>
 
         <div style="display:flex; flex-direction:column; gap:12px;">
@@ -603,13 +603,13 @@
         return;
       }
       if (!pin) {
-        if (errorMsg) errorMsg.textContent = "Por favor ingresa el código PIN (1234).";
+        if (errorMsg) errorMsg.textContent = "Por favor ingresa tu código PIN.";
         inputPin.focus();
         return;
       }
       if (pin !== PIN_ENCARGADO_DEFAULT) {
         window.reproducirSonidoClick("delete");
-        if (errorMsg) errorMsg.textContent = "Código PIN incorrecto (1234).";
+        if (errorMsg) errorMsg.textContent = "Código equivocado";
         inputPin.value = "";
         inputPin.focus();
         return;
@@ -655,7 +655,7 @@
   }
 
   // 5.1. Menú al tocar el Badge del Capitán (Cambio rápido de usuario autorizado y salida a Modo Publicador)
-  function abrirMenuPerfilCapitan() {
+  window.abrirMenuPerfilCapitan = function abrirMenuPerfilCapitan() {
     // Eliminar cualquier modal previo para evitar duplicados en pantalla
     document.querySelectorAll(".terrosa-modal-overlay").forEach(m => m.remove());
 
@@ -700,6 +700,9 @@
     };
 
     modal.querySelector("#btnCerrarMenuPerfilX").onclick = cerrar;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrar();
+    };
 
     const inputNombre = modal.querySelector("#inputPerfilNombreDirecto");
     const guardarNombre = () => {
@@ -729,18 +732,18 @@
   function vincularBotonRegistrar() {
     const btnRegistrar = document.getElementById("btnRegistrarTerritorio");
     if (btnRegistrar) {
-      btnRegistrar.addEventListener("click", () => {
+      btnRegistrar.onclick = () => {
         abrirModalRegistroTerritorio();
-      });
+      };
     }
   }
 
   function vincularBotonHistorial() {
     const btnHistorial = document.getElementById("btnHistorialCapitan");
     if (btnHistorial) {
-      btnHistorial.addEventListener("click", () => {
+      btnHistorial.onclick = () => {
         window.abrirModalHistorialRegistros();
-      });
+      };
     }
   }
 
@@ -1873,11 +1876,11 @@ ${lineas.join("\n")}`;
   function vincularBuzonEncargado() {
     const btnBuzon = document.getElementById("btnBuzonReportes");
     if (btnBuzon) {
-      btnBuzon.addEventListener("click", () => {
+      btnBuzon.onclick = () => {
         pedirPinEncargado(() => {
           abrirModalBuzonAprobaciones();
         });
-      });
+      };
     }
   }
 
@@ -2198,6 +2201,7 @@ ${lineas.join("\n")}`;
     { num: "12", nombre: "Diciembre", abrev: "Dic" }
   ];
 
+  let _filtroFechaBarraInicializado = false;
   let mesesFiltroActivos = new Set();
 
   // Función para determinar si una fecha ISO pertenece al Año de Servicio seleccionado
@@ -2279,6 +2283,7 @@ ${lineas.join("\n")}`;
       item.onclick = () => {
         const val = item.dataset.id;
         anioFiltroActivo = val;
+        localStorage.setItem("terrosa_filtro_anio", anioFiltroActivo);
         actualizarEtiquetaBotonAnio();
         window.reproducirSonidoClick("tap");
         window.ejecutarFiltroFecha();
@@ -2299,44 +2304,57 @@ ${lineas.join("\n")}`;
     }
   }
 
-  function abrirModalSeleccionarMeses() {
+  window.abrirModalSeleccionarMeses = function abrirModalSeleccionarMeses() {
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
 
-    // Si no había ningún mes seleccionado, predeterminar al mes actual
     const mesActual = String(new Date().getMonth() + 1).padStart(2, "0");
-    if (mesesFiltroActivos.size === 0) {
-      mesesFiltroActivos.add(mesActual);
-      actualizarEtiquetaBotonMeses();
-    }
 
     let itemsHtml = "";
     NOMBRES_MESES.forEach(m => {
       const isChecked = mesesFiltroActivos.has(m.num);
       const isCurrent = (m.num === mesActual);
       itemsHtml += `
-        <label id="labelMes_${m.num}" style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; background:${isChecked ? 'rgba(26,115,232,0.1)' : 'transparent'}; border:1px solid ${isChecked ? '#93c5fd' : 'transparent'}; transition:all 0.15s ease;">
-          <input type="checkbox" value="${m.num}" class="chk-mes-filtro" ${isChecked ? 'checked' : ''} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer;"/>
-          <span style="font-weight:700; font-size:14px; color:#1e293b; flex:1;">${m.nombre} ${isCurrent ? '<span style="font-size:11px; font-weight:800; color:#2563eb; background:#dbeafe; padding:2px 6px; border-radius:6px; margin-left:6px;">Actual</span>' : ''}</span>
-        </label>
+        <div id="itemMes_${m.num}" style="display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-radius:10px; background:${isChecked ? 'rgba(26,115,232,0.1)' : 'transparent'}; border:1px solid ${isChecked ? '#93c5fd' : 'transparent'}; transition:all 0.15s ease;">
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1; margin:0;">
+            <input type="checkbox" value="${m.num}" class="chk-mes-filtro" ${isChecked ? 'checked' : ''} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer;"/>
+            <span style="font-weight:700; font-size:14px; color:#1e293b;">${m.nombre} ${isCurrent ? '<span style="font-size:10px; font-weight:800; color:#2563eb; background:#dbeafe; padding:2px 6px; border-radius:6px; margin-left:4px;">Actual</span>' : ''}</span>
+          </label>
+          <button type="button" class="btn-solo-mes" data-mes="${m.num}" title="Ver solo ${m.nombre}" style="font-size:11px; padding:3px 8px; border-radius:6px; border:1.5px solid #cbd5e1; background:#ffffff; color:#334155; font-weight:800; cursor:pointer;">
+            Solo
+          </button>
+        </div>
       `;
     });
 
     modal.innerHTML = `
-      <div class="terrosa-modal-card" style="max-width:320px; padding:22px 20px;">
+      <div class="terrosa-modal-card" style="max-width:320px; padding:20px 18px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Filtrar por Mes</h3>
           <button id="btnCerrarModalMeses" class="btn-icon-square">✕</button>
         </div>
-        <p style="margin:0 0 12px 0; font-size:12.5px; color:#64748b;">Elige uno o varios meses para ver lo trabajado:</p>
+        <p style="margin:0 0 10px 0; font-size:12.5px; color:#64748b;">Elige uno o varios meses para ver lo trabajado:</p>
+
+        <!-- Botones de selección rápida -->
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+          <button type="button" id="btnMesActualModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
+            📍 Actual
+          </button>
+          <button type="button" id="btnTodosMesesModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
+            🗓️ Todos
+          </button>
+          <button type="button" id="btnLimpiarMesesModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #fee2e2; background:#fff5f5; color:#dc2626; cursor:pointer;">
+            ✕ Limpiar
+          </button>
+        </div>
         
         <div id="listaMesesCheck" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; border:1px solid #e2e8f0; border-radius:14px; padding:6px; margin-bottom:14px; background:#f8fafc;">
           ${itemsHtml}
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-          <button id="btnToggleTodosMeses" style="background:#f1f5f9; border:none; border-radius:12px; padding:11px 14px; font-size:13px; font-weight:700; color:#475569; cursor:pointer;">
-            ${mesesFiltroActivos.size === 12 ? 'Limpiar' : 'Todos'}
+          <button id="btnCancelarMesesModal" style="background:#f1f5f9; border:none; border-radius:12px; padding:11px 14px; font-size:13px; font-weight:700; color:#475569; cursor:pointer;">
+            Cancelar
           </button>
           <button id="btnAplicarMeses" style="flex:1; background:linear-gradient(135deg, #1a73e8, #1557b0); border:none; border-radius:12px; padding:11px; font-size:14px; font-weight:800; color:white; cursor:pointer; box-shadow:0 3px 10px rgba(26,115,232,0.3);">
             Aplicar
@@ -2353,34 +2371,75 @@ ${lineas.join("\n")}`;
     };
 
     modal.querySelector("#btnCerrarModalMeses").onclick = cerrar;
+    modal.querySelector("#btnCancelarMesesModal").onclick = cerrar;
     modal.onclick = (e) => {
       if (e.target === modal) cerrar();
     };
 
     setTimeout(() => {
-      const curElem = modal.querySelector(`#labelMes_${mesActual}`);
+      const curElem = modal.querySelector(`#itemMes_${mesActual}`);
       if (curElem) curElem.scrollIntoView({ block: "center", behavior: "smooth" });
     }, 60);
 
     const listaCheck = modal.querySelector("#listaMesesCheck");
     const chks = listaCheck.querySelectorAll(".chk-mes-filtro");
 
-    modal.querySelector("#btnToggleTodosMeses").onclick = () => {
-      window.reproducirSonidoClick("tap");
-      const todos = Array.from(chks).every(c => c.checked);
+    const actualizarEstilosCheckboxes = () => {
       chks.forEach(c => {
-        c.checked = !todos;
-        c.closest("label").style.background = !todos ? 'rgba(26,115,232,0.1)' : 'transparent';
-        c.closest("label").style.borderColor = !todos ? '#93c5fd' : 'transparent';
+        const itemRow = c.closest("[id^='itemMes_']");
+        if (itemRow) {
+          itemRow.style.background = c.checked ? 'rgba(26,115,232,0.1)' : 'transparent';
+          itemRow.style.borderColor = c.checked ? '#93c5fd' : 'transparent';
+        }
       });
-      modal.querySelector("#btnToggleTodosMeses").textContent = !todos ? 'Limpiar' : 'Todos';
     };
+
+    // Botón Mes Actual rápido
+    modal.querySelector("#btnMesActualModal").onclick = () => {
+      window.reproducirSonidoClick("tap");
+      chks.forEach(c => {
+        c.checked = (c.value === mesActual);
+      });
+      actualizarEstilosCheckboxes();
+    };
+
+    // Botón Todos
+    modal.querySelector("#btnTodosMesesModal").onclick = () => {
+      window.reproducirSonidoClick("tap");
+      chks.forEach(c => {
+        c.checked = true;
+      });
+      actualizarEstilosCheckboxes();
+    };
+
+    // Botón Limpiar
+    modal.querySelector("#btnLimpiarMesesModal").onclick = () => {
+      window.reproducirSonidoClick("tap");
+      chks.forEach(c => {
+        c.checked = false;
+      });
+      actualizarEstilosCheckboxes();
+    };
+
+    // Botones "Solo" al lado de cada mes (aplica inmediatamente el mes seleccionado)
+    modal.querySelectorAll(".btn-solo-mes").forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const mesElegido = btn.dataset.mes;
+        mesesFiltroActivos.clear();
+        mesesFiltroActivos.add(mesElegido);
+        localStorage.setItem("terrosa_filtro_meses", JSON.stringify([mesElegido]));
+        actualizarEtiquetaBotonMeses();
+        window.ejecutarFiltroFecha();
+        window.reproducirSonidoClick("success");
+        if (document.body.contains(modal)) document.body.removeChild(modal);
+      };
+    });
 
     chks.forEach(c => {
       c.onchange = () => {
         window.reproducirSonidoClick("toggle");
-        c.closest("label").style.background = c.checked ? 'rgba(26,115,232,0.1)' : 'transparent';
-        c.closest("label").style.borderColor = c.checked ? '#93c5fd' : 'transparent';
+        actualizarEstilosCheckboxes();
       };
     });
 
@@ -2390,6 +2449,7 @@ ${lineas.join("\n")}`;
       chks.forEach(c => {
         if (c.checked) mesesFiltroActivos.add(c.value);
       });
+      localStorage.setItem("terrosa_filtro_meses", JSON.stringify(Array.from(mesesFiltroActivos)));
       actualizarEtiquetaBotonMeses();
       window.ejecutarFiltroFecha();
       cerrar();
@@ -2493,38 +2553,55 @@ ${lineas.join("\n")}`;
     const btnMeses = document.getElementById("btnModalFiltroMeses");
     const btnLimpiar = document.getElementById("btnLimpiarFiltroFecha");
 
-    // Inicializar año por defecto a 2026
-    anioFiltroActivo = "2026";
+    if (!_filtroFechaBarraInicializado) {
+      _filtroFechaBarraInicializado = true;
+
+      // Cargar año guardado o por defecto 2026
+      const anioGuardado = localStorage.getItem("terrosa_filtro_anio");
+      anioFiltroActivo = anioGuardado || "2026";
+
+      // Cargar meses guardados o por defecto el mes actual
+      const mesesGuardados = localStorage.getItem("terrosa_filtro_meses");
+      mesesFiltroActivos.clear();
+      if (mesesGuardados !== null) {
+        try {
+          const arr = JSON.parse(mesesGuardados);
+          if (Array.isArray(arr)) {
+            arr.forEach(m => mesesFiltroActivos.add(String(m).padStart(2, "0")));
+          }
+        } catch (e) {}
+      } else {
+        // Primera vez en el dispositivo: mes actual
+        const mesActual = String(new Date().getMonth() + 1).padStart(2, "0");
+        mesesFiltroActivos.add(mesActual);
+        localStorage.setItem("terrosa_filtro_meses", JSON.stringify([mesActual]));
+      }
+
+      if (btnAnio) {
+        btnAnio.onclick = () => {
+          abrirModalSeleccionarAnio();
+        };
+      }
+
+      if (btnMeses) {
+        btnMeses.onclick = () => {
+          abrirModalSeleccionarMeses();
+        };
+      }
+
+      if (btnLimpiar) {
+        btnLimpiar.onclick = () => {
+          window.reproducirSonidoClick("tap");
+          mesesFiltroActivos.clear();
+          localStorage.setItem("terrosa_filtro_meses", JSON.stringify([]));
+          actualizarEtiquetaBotonMeses();
+          window.ejecutarFiltroFecha();
+        };
+      }
+    }
+
     actualizarEtiquetaBotonAnio();
-
-    if (btnAnio) {
-      btnAnio.addEventListener("click", () => {
-        abrirModalSeleccionarAnio();
-      });
-    }
-
-    // Inicializar siempre con el mes actual
-    const mesActual = String(new Date().getMonth() + 1).padStart(2, "0");
-    mesesFiltroActivos.clear();
-    mesesFiltroActivos.add(mesActual);
     actualizarEtiquetaBotonMeses();
-
-    if (btnMeses) {
-      btnMeses.addEventListener("click", () => {
-        abrirModalSeleccionarMeses();
-      });
-    }
-
-    if (btnLimpiar) {
-      btnLimpiar.addEventListener("click", () => {
-        window.reproducirSonidoClick("tap");
-        mesesFiltroActivos.clear();
-        actualizarEtiquetaBotonMeses();
-        window.ejecutarFiltroFecha();
-      });
-    }
-
-    // Aplicar filtro inicial
     window.ejecutarFiltroFecha();
   }
 
