@@ -459,7 +459,10 @@
   }
 
   // 2. Inicializador del módulo
+  let moduloCapitanYaInicializado = false;
   window.inicializarModuloCapitan = function () {
+    if (moduloCapitanYaInicializado) return;
+    moduloCapitanYaInicializado = true;
     purgarBasuraLocalStorage();
     actualizarInterfazSegunModo();
     vincularEventosModo();
@@ -894,9 +897,29 @@
     const btnReiniciar = modal.querySelector("#btnReiniciarDatosLocales");
     if (btnReiniciar) {
       btnReiniciar.onclick = () => {
-        if (confirm("¿Estás seguro de que deseas borrar todas tus notas personales y reiniciar los datos locales de la app en este dispositivo?")) {
+        const accionBorrar = () => {
+          // Preservar la identidad del dispositivo para no duplicar en Google Sheets
+          const dispId = localStorage.getItem("terrosa_dispositivo_id");
+          const regVersion = localStorage.getItem("territorios_version");
           localStorage.clear();
-          window.location.reload();
+          if (dispId) localStorage.setItem("terrosa_dispositivo_id", dispId);
+          if (regVersion) localStorage.setItem("territorios_version", regVersion);
+          mostrarToastDiscreto("Datos locales reiniciados correctamente", "🧹");
+          setTimeout(() => window.location.reload(), 1200);
+        };
+
+        if (typeof window.mostrarConfirmacionModal === "function") {
+          window.mostrarConfirmacionModal({
+            titulo: "Reiniciar datos locales",
+            mensaje: "¿Estás seguro de que deseas borrar tus notas y reiniciar los datos locales de la app en este dispositivo? Tu registro seguirá protegido.",
+            icono: "🧹",
+            textoConfirmar: "Sí, reiniciar",
+            textoCancelar: "Cancelar",
+            peligro: true,
+            onConfirm: accionBorrar
+          });
+        } else {
+          accionBorrar();
         }
       };
     }
@@ -1277,10 +1300,25 @@
       cont.querySelectorAll(".btn-eliminar").forEach(btn => {
         btn.onclick = () => {
           const id = btn.dataset.id;
-          if (confirm("¿Estás seguro de eliminar este registro del historial?")) {
-            window.reproducirSonidoClick("delete");
+          const ejecutarEliminar = () => {
+            if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("delete");
             descartarReporte(id);
             renderizarListaFiltrada();
+            mostrarToastDiscreto("Registro eliminado del historial", "🗑️");
+          };
+
+          if (typeof window.mostrarConfirmacionModal === "function") {
+            window.mostrarConfirmacionModal({
+              titulo: "Eliminar registro",
+              mensaje: "¿Deseas eliminar este registro del historial?",
+              icono: "🗑️",
+              textoConfirmar: "Eliminar",
+              textoCancelar: "Cancelar",
+              peligro: true,
+              onConfirm: ejecutarEliminar
+            });
+          } else {
+            ejecutarEliminar();
           }
         };
       });
@@ -1615,7 +1653,7 @@
       const capitanRaw = (modal.querySelector("#editCapitanInput").value || "").trim();
       const capitanOficial = resolverCapitanOficial(capitanRaw);
       if (!capitanOficial) {
-        alert("Por favor selecciona un hermano de la lista oficial de capitanes (ej. Koke, Merari Rosales, Jair Barraza). No se permiten nombres no registrados.");
+        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.", "⚠️");
         modal.querySelector("#editCapitanInput").focus();
         return;
       }
@@ -1623,12 +1661,19 @@
       const nuevaFecha = modal.querySelector("#editFecha").value;
       const nuevoComentario = modal.querySelector("#editComentario").value.trim();
 
-      if (!nuevoCapitan) return alert("Por favor ingresa el nombre del capitán.");
-      if (!nuevaFecha) return alert("Por favor ingresa una fecha.");
+      if (!nuevoCapitan) {
+        mostrarToastDiscreto("Por favor ingresa el nombre del capitán.", "⚠️");
+        return;
+      }
+      if (!nuevaFecha) {
+        mostrarToastDiscreto("Por favor ingresa una fecha.", "⚠️");
+        return;
+      }
 
       const chksEdit = Array.from(modal.querySelectorAll(".chk-edit-cuadra:checked"));
       if (cuadrasDisponibles.length > 0 && chksEdit.length === 0) {
-        return alert("Selecciona al menos una cuadra trabajada.");
+        mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.", "⚠️");
+        return;
       }
 
       if (chksEdit.length > 0) {
@@ -2069,7 +2114,7 @@
       const capitanVal = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
       const capitanOficial = resolverCapitanOficial(capitanVal);
       if (!capitanOficial) {
-        alert("Por favor selecciona un hermano de la lista oficial de capitanes (ej. Koke, Merari Rosales, Jair Barraza). No se permiten nombres no registrados.");
+        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.", "⚠️");
         modal.querySelector("#regInputCapitan").focus();
         return;
       }
@@ -2078,10 +2123,10 @@
       const datosT = obtenerDatosTerritorioActual();
       if (!datosT) {
         if (!selectTerr.value) {
-          alert("Por favor selecciona un territorio.");
+          mostrarToastDiscreto("Por favor selecciona un territorio.", "⚠️");
           selectTerr.focus();
         } else {
-          alert("Por favor selecciona al menos una cuadra trabajada.");
+          mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.", "⚠️");
         }
         return;
       }
@@ -2109,7 +2154,7 @@
       const capitanVal = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
       const capitanOficial = resolverCapitanOficial(capitanVal);
       if (!capitanOficial) {
-        alert("Por favor selecciona un hermano de la lista oficial de capitanes (ej. Koke, Merari Rosales, Jair Barraza). No se permiten nombres no registrados.");
+        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.", "⚠️");
         modal.querySelector("#regInputCapitan").focus();
         return;
       }
@@ -2127,7 +2172,8 @@
       }
 
       if (territoriosEnLote.length === 0) {
-        return alert("Por favor selecciona al menos un territorio y sus cuadras trabajadas.");
+        mostrarToastDiscreto("Selecciona al menos un territorio y sus cuadras.", "⚠️");
+        return;
       }
 
       const fecha = modal.querySelector("#regFecha").value || hoy;
@@ -2569,7 +2615,12 @@ ${lineas.join("\n")}`;
   }
 
   // 12. Notificación flotante discreta tipo toast
-  function mostrarToastDiscreto(mensaje) {
+  function mostrarToastDiscreto(mensaje, icono = "✨", duracion = 2500) {
+    if (typeof window.mostrarToastDiscreto === "function") {
+      window.mostrarToastDiscreto(mensaje, icono, duracion);
+      return;
+    }
+
     const prev = document.getElementById("toastDiscreto");
     if (prev) prev.remove();
 
