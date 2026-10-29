@@ -203,6 +203,10 @@ function doPost(e) {
             var nT = normalizarNumeroTerritorio(repEdit.territorioId, repEdit.territorioNumero || filasE[eIdx][3]);
             var cNorm = normalizarListaCuadrasCorto(repEdit.cuadras, nT);
             sheetCuadras.getRange(eIdx + 1, 5).setValue(cNorm.join(","));
+            var totC = Number(repEdit.totalCuadrasTerritorio || repEdit.totalCuadras || CUADRAS_MAP[nT] || filasE[eIdx][5] || cNorm.length || 0);
+            if (totC > 0) {
+              sheetCuadras.getRange(eIdx + 1, 6).setValue(totC);
+            }
           }
           if (repEdit.capitan) sheetCuadras.getRange(eIdx + 1, 7).setValue(repEdit.capitan);
           sheetCuadras.getRange(eIdx + 1, 9).setValue("APROBADO");

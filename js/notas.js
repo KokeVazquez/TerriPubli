@@ -406,6 +406,18 @@ function irACuadra(territorioId, cuadraId) {
 }
 
 // --------------------------------------------------------------------------------------
+// Función auxiliar para fecha local (evita desfase UTC después de las 6:00 PM)
+// --------------------------------------------------------------------------------------
+function obtenerFechaLocalISO() {
+  const d = new Date();
+  const anio = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
+window.obtenerFechaLocalISO = obtenerFechaLocalISO;
+
+// --------------------------------------------------------------------------------------
 // Modal: Crear Nueva Revisita
 // --------------------------------------------------------------------------------------
 window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra, lat, lng) {
@@ -416,7 +428,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
   const prevModal = document.getElementById("modalCrearRevisita");
   if (prevModal) prevModal.remove();
 
-  const fechaHoy = new Date().toISOString().split("T")[0];
+  const fechaHoy = obtenerFechaLocalISO();
 
   const modal = document.createElement("div");
   modal.id = "modalCrearRevisita";
@@ -572,7 +584,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
   const rev = lista.find(r => r.id === revisitaId);
   if (!rev) return;
 
-  const fechaHoy = new Date().toISOString().split("T")[0];
+  const fechaHoy = obtenerFechaLocalISO();
 
   const modal = document.createElement("div");
   modal.id = "modalAgregarVisita";

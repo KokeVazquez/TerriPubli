@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v56';
+const CACHE_NAME = 'territorios-cache-v57';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -73,7 +73,7 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('tile.openstreetmap.org') || url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg')) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
-        return cache.match(event.request).then((cachedResponse) => {
+        return cache.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
           if (cachedResponse) {
             return cachedResponse;
           }
@@ -102,7 +102,7 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request, { ignoreSearch: true });
       })
   );
 });
