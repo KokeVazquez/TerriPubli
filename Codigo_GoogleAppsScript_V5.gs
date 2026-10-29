@@ -737,7 +737,12 @@ function procesarVerificacionUsuario(ss, devId, nombre) {
     }
   }
 
-  // Si es un dispositivo nuevo, agregarlo como Activo
-  sheet.appendRow([idLimpio, nombreLimpio || "Sin registrar", ahoraStr, ahoraStr, "Activo", ""]);
+  // Si no se proporcionó un nombre válido aún, no crear fila fantasma
+  if (!nombreLimpio || nombreLimpio.toLowerCase() === "sin registrar") {
+    return { permitido: true, estado: "Activo" };
+  }
+
+  // Si es un dispositivo nuevo con nombre, agregarlo como Activo
+  sheet.appendRow([idLimpio, nombreLimpio, ahoraStr, ahoraStr, "Activo", ""]);
   return { permitido: true, estado: "Activo" };
 }

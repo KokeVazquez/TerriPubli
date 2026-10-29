@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  const PIN_ENCARGADO_DEFAULT = "1234";
+  const PIN_ENCARGADO_DEFAULT = "8318";
   const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbysLvd2KoADFWNsFflNolxQjrHVFn7rW9oDdewPyt7MfPoPbZ3w6qEALYoypQVJTerCmg/exec";
 
   // Usuarios con permiso de ingresar al Modo Capitán (con código 1234)
@@ -16,7 +16,7 @@
 
   // Base de datos oficial de Capitanes disponibles para reportar territorios
   const LISTA_CAPITANES_OFICIAL = [
-    "Koke",
+    "Jorge Vázquez",
     "Merari Rosales",
     "Alex García",
     "Alfredo Dávila",
@@ -178,7 +178,7 @@
         if (AudioCtx) _audioCtx = new AudioCtx();
       }
       if (_audioCtx && _audioCtx.state === "suspended") {
-        _audioCtx.resume().catch(() => {});
+        _audioCtx.resume().catch(() => { });
       }
       return _audioCtx;
     } catch (e) {
@@ -229,7 +229,7 @@
         osc.start(now);
         osc.stop(now + 0.038);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // Helper unificado y robusto para parsear fechas de cualquier origen (ISO YYYY-MM-DD, DD/MM/YYYY, etc.)
@@ -455,7 +455,7 @@
         localStorage.removeItem("terrosa_dispositivo_id");
       }
       localStorage.removeItem("terrosa_acceso_bloqueado");
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 2. Inicializador del módulo
@@ -699,7 +699,7 @@
           fechaHora: new Date().toLocaleString()
         });
         localStorage.setItem("terrosa_conexiones_log", JSON.stringify(logins.slice(-50)));
-      } catch (e) {}
+      } catch (e) { }
 
       localStorage.setItem("terrosa_capitan_nombre", nombre);
       localStorage.setItem("terrosa_modo", "capitan");
@@ -1024,7 +1024,13 @@
 
   window.verificarAccesoEnNube = function verificarAccesoEnNube(nombreOpcional, callback) {
     const devId = obtenerIdDispositivoLocal();
-    const nombre = (nombreOpcional || localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "Sin registrar").trim();
+    const nombre = (nombreOpcional || localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "").trim();
+
+    // Si aún no tiene nombre guardado en este dispositivo, no enviar registro fantasma
+    if (!nombre) {
+      if (typeof callback === "function") callback(true);
+      return;
+    }
 
     // Ping POST para registrar / actualizar último acceso
     try {
@@ -1038,8 +1044,8 @@
           nombre: nombre,
           fechaHora: new Date().toISOString()
         })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     // Consulta GET en vivo sin caché para verificar si el estado es Activo o Bloqueado
     fetch(`${URL_API_GOOGLE_SHEETS}?accion=verificar_acceso&dispositivoId=${encodeURIComponent(devId)}&t=${Date.now()}`)
@@ -1457,9 +1463,9 @@
     const numTLimpio = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
     const itemT = (window.TERRITORIOS_DATA && Array.isArray(window.TERRITORIOS_DATA))
       ? window.TERRITORIOS_DATA.find(x => {
-          const n = x.datos.numeroTerritorio !== undefined ? x.datos.numeroTerritorio : x.datos.id;
-          return String(obtenerNumeroTerritorioLimpio(x.datos.id, n)) === String(numTLimpio);
-        })
+        const n = x.datos.numeroTerritorio !== undefined ? x.datos.numeroTerritorio : x.datos.id;
+        return String(obtenerNumeroTerritorioLimpio(x.datos.id, n)) === String(numTLimpio);
+      })
       : null;
 
     const cuadrasDisponibles = (itemT && itemT.datos.poligonos)
@@ -2181,7 +2187,7 @@
                 reporteId: rep.id,
                 id: rep.id
               })
-            }).catch(() => {});
+            }).catch(() => { });
           });
         });
       }
@@ -2490,7 +2496,7 @@ ${lineas.join("\n")}`;
       const set = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_aprobadas") || "[]"));
       set.add(id);
       localStorage.setItem("terrosa_mutaciones_aprobadas", JSON.stringify(Array.from(set)));
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function registrarMutacionEliminado(id) {
@@ -2502,7 +2508,7 @@ ${lineas.join("\n")}`;
       const setApr = new Set(JSON.parse(localStorage.getItem("terrosa_mutaciones_aprobadas") || "[]"));
       setApr.delete(id);
       localStorage.setItem("terrosa_mutaciones_aprobadas", JSON.stringify(Array.from(setApr)));
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 11. Acción de Aprobar Reporte (Sin guardar basura local en _capitanes o _estado)
@@ -2746,8 +2752,8 @@ ${lineas.join("\n")}`;
 
         <div style="display:flex; flex-direction:column; gap:8px;">
           ${opciones.map(op => {
-            const esActivo = (anioFiltroActivo === op.id);
-            return `
+      const esActivo = (anioFiltroActivo === op.id);
+      return `
               <div class="opcion-anio-item" data-id="${op.id}" style="
                 display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:14px; cursor:pointer; background:${esActivo ? 'rgba(37,99,235,0.08)' : '#f8fafc'}; border:1.5px solid ${esActivo ? '#2563eb' : '#e2e8f0'}; transition:all 0.15s ease;
               ">
@@ -2758,7 +2764,7 @@ ${lineas.join("\n")}`;
                 ${esActivo ? '<span style="font-size:16px; color:#2563eb; font-weight:900;">✓</span>' : ''}
               </div>
             `;
-          }).join("")}
+    }).join("")}
         </div>
       </div>
     `;
@@ -3065,7 +3071,7 @@ ${lineas.join("\n")}`;
           if (Array.isArray(arr)) {
             arr.forEach(m => mesesFiltroActivos.add(String(m).padStart(2, "0")));
           }
-        } catch (e) {}
+        } catch (e) { }
       } else {
         // Primera vez en el dispositivo: mes actual
         const mesActual = String(new Date().getMonth() + 1).padStart(2, "0");
@@ -3194,7 +3200,7 @@ ${lineas.join("\n")}`;
         setTimeout(() => {
           try {
             e.target.scrollIntoView({ behavior: "smooth", block: "center" });
-          } catch (err) {}
+          } catch (err) { }
         }, 160);
       }
     }
