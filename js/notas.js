@@ -3,8 +3,97 @@
 // === Módulo completo de Revisitas personales, historial de visitas, proximidad GPS y notas ===
 // ==============================================================================================================================
 
-let notasMostradas = true; // Mostrar iconos de revisitas y notas en el mapa
+let notasMostradas = true;
 const KEY_REVISITAS = "terrosa_revisitas_data";
+
+// --------------------------------------------------------------------------------------
+// Sistema Centralizado de Notificaciones Toasts y Modales de Confirmación
+// (Sustituye completamente los alerts y confirms nativos de "kokevazquez dice")
+// --------------------------------------------------------------------------------------
+window.mostrarToastDiscreto = function (mensaje, icono = "✨", duracion = 2700) {
+  const prev = document.getElementById("toastDiscretoGlobal");
+  if (prev) prev.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "toastDiscretoGlobal";
+  toast.className = "terrosa-toast-discreto";
+  toast.innerHTML = `
+    <span style="font-size:15px; flex-shrink:0;">${icono}</span>
+    <span style="overflow:hidden; text-overflow:ellipsis;">${escaparTexto(mensaje)}</span>
+  `;
+  document.body.appendChild(toast);
+
+  // Animación de entrada
+  setTimeout(() => {
+    toast.classList.add("mostrar");
+  }, 15);
+
+  // Animación de salida
+  setTimeout(() => {
+    toast.classList.remove("mostrar");
+    setTimeout(() => {
+      if (document.body.contains(toast)) document.body.removeChild(toast);
+    }, 240);
+  }, duracion);
+};
+
+window.mostrarConfirmacionModal = function ({
+  titulo = "¿Estás seguro?",
+  mensaje = "",
+  icono = "🗑️",
+  textoConfirmar = "Confirmar",
+  textoCancelar = "Cancelar",
+  peligro = true,
+  onConfirm,
+  onCancel
+}) {
+  const prev = document.getElementById("modalConfirmacionGlobal");
+  if (prev) prev.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "modalConfirmacionGlobal";
+  modal.className = "terrosa-modal-overlay";
+  modal.style.zIndex = "1000005";
+
+  modal.innerHTML = `
+    <div class="terrosa-modal-card" style="max-width:320px; padding:22px 20px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:8px;">${icono}</div>
+      <h3 style="margin:0 0 6px 0; font-size:17.5px; font-weight:800; color:#0f172a;">${escaparTexto(titulo)}</h3>
+      <p style="margin:0 0 18px 0; font-size:13.5px; color:#64748b; line-height:1.4;">${escaparTexto(mensaje)}</p>
+      <div style="display:flex; gap:8px;">
+        <button id="btnCancelConfirmModal" style="flex:1; height:42px; border-radius:12px; border:1px solid #cbd5e1; background:#f1f5f9; color:#475569; font-weight:700; font-size:13.5px; cursor:pointer; outline:none;">
+          ${escaparTexto(textoCancelar)}
+        </button>
+        <button id="btnAcceptConfirmModal" style="flex:1; height:42px; border-radius:12px; border:none; background:${peligro ? '#dc2626' : '#2563eb'}; color:#ffffff; font-weight:800; font-size:13.5px; cursor:pointer; outline:none; box-shadow:0 3px 10px ${peligro ? 'rgba(220,38,38,0.25)' : 'rgba(37,99,235,0.25)'};">
+          ${escaparTexto(textoConfirmar)}
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const cerrar = () => {
+    if (document.body.contains(modal)) document.body.removeChild(modal);
+  };
+
+  modal.querySelector("#btnCancelConfirmModal").onclick = () => {
+    cerrar();
+    if (onCancel) onCancel();
+  };
+
+  modal.querySelector("#btnAcceptConfirmModal").onclick = () => {
+    cerrar();
+    if (onConfirm) onConfirm();
+  };
+
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      cerrar();
+      if (onCancel) onCancel();
+    }
+  };
+};
 
 // --------------------------------------------------------------------------------------
 // Utilidades de Datos de Revisitas (100% locales en el dispositivo del publicador)
@@ -27,7 +116,8 @@ window.guardarRevisitasLocales = function (arr) {
 };
 
 // --------------------------------------------------------------------------------------
-// Función para refrescar indicadores en el mapa al instante
+// Indicadores en el Mapa con Clic Interactivo
+// (Al picarle al icono 👥 o 📒 muestra la información de esa cuadra)
 // --------------------------------------------------------------------------------------
 window.refrescarIndicadoresNotas = function () {
   if (window.indicadoresNotas && window.indicadoresNotas.length > 0) {
@@ -57,26 +147,206 @@ window.refrescarIndicadoresNotas = function () {
           const cLat = centroide.geometry.coordinates[1];
           const cLng = centroide.geometry.coordinates[0];
 
-          // Si tiene revisitas mostramos el icono de personas 👥, si solo notas 📒
           const iconChar = tieneRevisitas ? "👥" : "📒";
           const bgBadge = tieneRevisitas ? "#eff6ff" : "#fef3c7";
           const borderBadge = tieneRevisitas ? "#3b82f6" : "#f59e0b";
 
+          // Marcador INTERACTIVO para que al tocarlo abra la información
           const marker = L.marker([cLat, cLng], {
-            interactive: false,
+            interactive: true,
             icon: L.divIcon({
-              className: "indicador-nota",
-              html: `<div style="background:${bgBadge}; border:1.5px solid ${borderBadge}; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,0.18);">${iconChar}</div>`,
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
+              className: "indicador-nota-clickable",
+              html: `<div style="background:${bgBadge}; border:1.8px solid ${borderBadge}; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:13px; box-shadow:0 3px 8px rgba(0,0,0,0.22); cursor:pointer;">${iconChar}</div>`,
+              iconSize: [26, 26],
+              iconAnchor: [13, 13]
             })
           }).addTo(map);
+
+          marker.on("click", (e) => {
+            if (e && e.originalEvent) {
+              e.originalEvent.stopPropagation();
+            }
+            if (tieneRevisitas) {
+              window.mostrarRevisitasDeCuadra(territorio._id, pol._id, pol);
+            } else if (tieneNotas) {
+              window.verNotas(pol._id, territorio._id);
+            }
+          });
 
           window.indicadoresNotas.push(marker);
         } catch (e) {}
       }
     });
   });
+};
+
+// --------------------------------------------------------------------------------------
+// Modal Discreto: Ver Revisitas de una Cuadra Específica (al tocar el icono 👥 en el mapa)
+// --------------------------------------------------------------------------------------
+window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
+  if (typeof window.reproducirSonidoClick === "function") {
+    window.reproducirSonidoClick("tap");
+  }
+
+  const prevModal = document.getElementById("modalRevisitasCuadraDetalle");
+  if (prevModal) prevModal.remove();
+
+  const todas = window.obtenerRevisitasLocales();
+  const revsDeCuadra = todas.filter(r => r.territorioId === territorioId && r.cuadraId === cuadraId);
+
+  // Título legible
+  let nombreTerritorio = "Territorio";
+  const numMatch = String(territorioId || "").match(/(\d+)/);
+  if (numMatch) {
+    nombreTerritorio = `Territorio ${numMatch[1]}`;
+  } else if (String(territorioId || "").toLowerCase().includes("negocios")) {
+    nombreTerritorio = "Negocios";
+  }
+
+  const rawLabel = pol && pol._label ? String(pol._label).trim() : "";
+  const nombreCuadra = rawLabel
+    ? (/^cuadra/i.test(rawLabel) ? rawLabel : `Cuadra ${rawLabel}`)
+    : (cuadraId ? String(cuadraId).replace(/^.*?Cuadra/i, "Cuadra ") : "Cuadra");
+  const tituloCompleto = `${nombreTerritorio}, ${nombreCuadra}`;
+
+  const modal = document.createElement("div");
+  modal.id = "modalRevisitasCuadraDetalle";
+  modal.className = "terrosa-modal-overlay";
+
+  modal.innerHTML = `
+    <div class="terrosa-modal-card terrosa-modal-large" style="max-height:86vh; display:flex; flex-direction:column; padding:18px 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
+        <div>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👥 Revisitas (${revsDeCuadra.length})</h3>
+          <span style="font-size:12px; font-weight:700; color:#2563eb;">${escaparTexto(tituloCompleto)}</span>
+        </div>
+        <button id="btnCerrarDetalleCuadra" class="btn-icon-square">✕</button>
+      </div>
+
+      <div id="listaRevsCuadraCont" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px; padding-right:2px;"></div>
+
+      <div style="margin-top:12px; flex-shrink:0;">
+        <button id="btnAgregarOtraRevAqui" style="width:100%; height:40px; border-radius:12px; background:#eff6ff; color:#2563eb; border:1.5px dashed #93c5fd; font-weight:700; font-size:13.5px; cursor:pointer;">
+          ➕ Agregar otra revisita en esta cuadra
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const cerrar = () => {
+    if (document.body.contains(modal)) document.body.removeChild(modal);
+  };
+
+  modal.querySelector("#btnCerrarDetalleCuadra").onclick = cerrar;
+
+  modal.querySelector("#btnAgregarOtraRevAqui").onclick = () => {
+    cerrar();
+    let cLat = 0, cLng = 0;
+    if (pol && pol.getBounds) {
+      try {
+        const c = pol.getBounds().getCenter();
+        cLat = c.lat;
+        cLng = c.lng;
+      } catch (e) {}
+    }
+    window.abrirModalCrearRevisita(territorioId, cuadraId, tituloCompleto, cLat, cLng);
+  };
+
+  const cont = modal.querySelector("#listaRevsCuadraCont");
+
+  function renderizarRevsCuadra() {
+    cont.innerHTML = "";
+    const actualizadas = window.obtenerRevisitasLocales().filter(r => r.territorioId === territorioId && r.cuadraId === cuadraId);
+
+    if (actualizadas.length === 0) {
+      cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:24px 10px; font-size:13.5px;">No hay revisitas registradas en esta cuadra.</div>';
+      return;
+    }
+
+    actualizadas.forEach(rev => {
+      const card = document.createElement("div");
+      card.className = "revisita-card";
+      const iconoCat = rev.categoria === "Mujer" ? "👩" : (rev.categoria === "Joven" ? "🧑" : (rev.categoria === "Adulto Mayor" ? "👵" : (rev.categoria === "Familia" ? "🏠" : "👨")));
+      const ultVisita = (rev.visitas && rev.visitas.length > 0) ? rev.visitas[0] : { fecha: rev.fechaCreacion, notas: "" };
+      const numVisitas = (rev.visitas && rev.visitas.length > 0) ? rev.visitas.length : 1;
+
+      card.innerHTML = `
+        <div class="revisita-card-header">
+          <div>
+            <div class="revisita-persona-titulo">
+              <span>${iconoCat}</span>
+              <span>${escaparTexto(rev.nombre)}</span>
+            </div>
+            <div class="revisita-direccion-row" style="margin-top:2px;">
+              <span>${escaparTexto(rev.direccion || "Sin dirección fija")}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="revisita-notas-preview">
+          <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:2px;">Última conversación (${escaparTexto(ultVisita.fecha)}):</div>
+          <div>${escaparTexto(ultVisita.notas)}</div>
+        </div>
+
+        <div class="revisita-actions-row">
+          <button class="btn-revisita-action add btn-add-v">
+            ➕ Visita
+          </button>
+          <button class="btn-revisita-action nav btn-nav-v">
+            🧭 Cómo llegar
+          </button>
+          <button class="btn-revisita-action del btn-del-v">
+            🗑️
+          </button>
+        </div>
+      `;
+
+      card.querySelector(".btn-add-v").onclick = () => {
+        window.abrirModalAgregarVisita(rev.id, () => {
+          renderizarRevsCuadra();
+        });
+      };
+
+      card.querySelector(".btn-nav-v").onclick = () => {
+        let destLat = rev.lat;
+        let destLng = rev.lng;
+        if (!destLat || !destLng) {
+          if (pol && pol.getBounds) {
+            const c = pol.getBounds().getCenter();
+            destLat = c.lat;
+            destLng = c.lng;
+          }
+        }
+        if (destLat && destLng && typeof window.comoLlegarACoord === "function") {
+          window.comoLlegarACoord(destLat, destLng, rev.nombre);
+        } else {
+          window.mostrarToastDiscreto("Ubicación no disponible para trazar ruta", "🧭");
+        }
+      };
+
+      card.querySelector(".btn-del-v").onclick = () => {
+        window.mostrarConfirmacionModal({
+          titulo: "¿Eliminar revisita?",
+          mensaje: `¿Deseas eliminar la revisita de "${rev.nombre}"?`,
+          icono: "🗑️",
+          textoConfirmar: "Eliminar",
+          peligro: true,
+          onConfirm: () => {
+            const todasRestantes = window.obtenerRevisitasLocales().filter(r => r.id !== rev.id);
+            window.guardarRevisitasLocales(todasRestantes);
+            window.mostrarToastDiscreto(`Revisita de "${rev.nombre}" eliminada`, "🗑️");
+            renderizarRevsCuadra();
+          }
+        });
+      };
+
+      cont.appendChild(card);
+    });
+  }
+
+  renderizarRevsCuadra();
 };
 
 // --------------------------------------------------------------------------------------
@@ -111,7 +381,6 @@ function irACuadra(territorioId, cuadraId) {
             maxZoom: 18,
             duration: 0.6
           });
-          // Destello para destacar la cuadra
           let count = 0;
           _intervaloDestello = setInterval(() => {
             count++;
@@ -244,9 +513,9 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
       if (!inputDir.value.trim()) {
         inputDir.value = "Ubicación GPS fijada";
       }
-      alert("📍 Ubicación GPS guardada con éxito para esta revisita.");
+      window.mostrarToastDiscreto("Ubicación GPS fijada para esta revisita", "📍");
     } else {
-      alert("Enciende primero tu ubicación GPS en el mapa para capturar las coordenadas exactas.");
+      window.mostrarToastDiscreto("Enciende primero tu ubicación GPS en el mapa", "📍");
     }
   };
 
@@ -254,7 +523,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
   modal.querySelector("#btnGuardarNuevaRevisita").onclick = () => {
     const nombre = modal.querySelector("#revNombrePersona").value.trim();
     if (!nombre) {
-      alert("Por favor escribe el nombre de la persona o familia.");
+      window.mostrarToastDiscreto("Por favor escribe el nombre de la persona o familia", "⚠️");
       modal.querySelector("#revNombrePersona").focus();
       return;
     }
@@ -291,7 +560,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
     }
 
     cerrar();
-    alert(`✅ Revisita de "${nombre}" guardada con éxito.`);
+    window.mostrarToastDiscreto(`Revisita de "${nombre}" guardada con éxito`, "✅");
   };
 };
 
@@ -351,7 +620,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
     const notas = modal.querySelector("#inputNotasNuevaVisita").value.trim();
 
     if (!notas) {
-      alert("Por favor escribe una breve nota de lo que platicaron.");
+      window.mostrarToastDiscreto("Por favor escribe una breve nota de lo que platicaron", "⚠️");
       modal.querySelector("#inputNotasNuevaVisita").focus();
       return;
     }
@@ -366,6 +635,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
     }
 
     cerrar();
+    window.mostrarToastDiscreto("Visita registrada con éxito", "✅");
     if (onGuardado) onGuardado();
   };
 };
@@ -380,7 +650,7 @@ function abrirModalTodasNotas() {
 
   if (document.getElementById("modalGlobalTodasNotas")) return;
 
-  let pestanaActiva = "revisitas"; // "revisitas" o "notas"
+  let pestanaActiva = "revisitas";
   let busquedaTexto = "";
 
   const modal = document.createElement("div");
@@ -466,7 +736,6 @@ function abrirModalTodasNotas() {
     if (pestanaActiva === "revisitas") {
       let revisitas = window.obtenerRevisitasLocales();
 
-      // Filtrar por búsqueda
       if (busquedaTexto) {
         revisitas = revisitas.filter(r => {
           const nom = (r.nombre || "").toLowerCase();
@@ -477,7 +746,6 @@ function abrirModalTodasNotas() {
         });
       }
 
-      // Ordenar por proximidad si GPS está activo
       if (window.userCurrentLocation && window.userCurrentLocation.lat) {
         revisitas.sort((a, b) => {
           const distA = (a.lat && a.lng) ? turf.distance(turf.point([window.userCurrentLocation.lon, window.userCurrentLocation.lat]), turf.point([a.lng, a.lat])) : 9999;
@@ -501,7 +769,6 @@ function abrirModalTodasNotas() {
         const card = document.createElement("div");
         card.className = "revisita-card";
 
-        // Distancia calculada
         let distanciaBadge = "";
         if (rev.lat && rev.lng && typeof window.calcularDistanciaAUsuario === "function") {
           const distStr = window.calcularDistanciaAUsuario(rev.lat, rev.lng);
@@ -510,10 +777,7 @@ function abrirModalTodasNotas() {
           }
         }
 
-        // Icono categoría
         const iconoCat = rev.categoria === "Mujer" ? "👩" : (rev.categoria === "Joven" ? "🧑" : (rev.categoria === "Adulto Mayor" ? "👵" : (rev.categoria === "Familia" ? "🏠" : "👨")));
-
-        // Última visita
         const ultVisita = (rev.visitas && rev.visitas.length > 0) ? rev.visitas[0] : { fecha: rev.fechaCreacion, notas: "" };
         const numVisitas = (rev.visitas && rev.visitas.length > 0) ? rev.visitas.length : 1;
 
@@ -539,7 +803,6 @@ function abrirModalTodasNotas() {
             <div>${escaparTexto(ultVisita.notas)}</div>
           </div>
 
-          <!-- Historial desplegable si tiene más de 1 visita -->
           <div id="historialVisitas_${rev.id}" style="display:none;" class="revisita-historial-visitas">
             ${(rev.visitas || []).slice(1).map(v => `
               <div class="revisita-item-visita">
@@ -570,7 +833,6 @@ function abrirModalTodasNotas() {
           </div>
         `;
 
-        // Eventos de botones
         card.querySelector(".btn-agregar-visita-accion").onclick = () => {
           window.abrirModalAgregarVisita(rev.id, () => {
             renderizarContenido();
@@ -598,7 +860,6 @@ function abrirModalTodasNotas() {
           let destLat = rev.lat;
           let destLng = rev.lng;
 
-          // Si la revisita no tenía lat/lng guardado, buscar el centroide del polígono
           if (!destLat || !destLng) {
             const terr = window.todosLosTerritorios.find(t => t._id === rev.territorioId);
             if (terr) {
@@ -615,19 +876,27 @@ function abrirModalTodasNotas() {
           if (destLat && destLng && typeof window.comoLlegarACoord === "function") {
             window.comoLlegarACoord(destLat, destLng, rev.nombre);
           } else {
-            alert("Ubicación geográfica no disponible para trazar ruta a esta revisita.");
+            window.mostrarToastDiscreto("Ubicación geográfica no disponible", "🧭");
           }
         };
 
         card.querySelector(".btn-borrar-revisita").onclick = () => {
-          if (confirm(`¿Eliminar la revisita de "${rev.nombre}"?`)) {
-            const todas = window.obtenerRevisitasLocales().filter(r => r.id !== rev.id);
-            window.guardarRevisitasLocales(todas);
-            if (typeof window.reproducirSonidoClick === "function") {
-              window.reproducirSonidoClick("delete");
+          window.mostrarConfirmacionModal({
+            titulo: "¿Eliminar revisita?",
+            mensaje: `¿Estás seguro de eliminar la revisita de "${rev.nombre}" y todo su historial de visitas?`,
+            icono: "🗑️",
+            textoConfirmar: "Eliminar",
+            peligro: true,
+            onConfirm: () => {
+              const todas = window.obtenerRevisitasLocales().filter(r => r.id !== rev.id);
+              window.guardarRevisitasLocales(todas);
+              if (typeof window.reproducirSonidoClick === "function") {
+                window.reproducirSonidoClick("delete");
+              }
+              window.mostrarToastDiscreto(`Revisita de "${rev.nombre}" eliminada`, "🗑️");
+              renderizarContenido();
             }
-            renderizarContenido();
-          }
+          });
         };
 
         cont.appendChild(card);
@@ -707,19 +976,27 @@ function abrirModalTodasNotas() {
       };
 
       card.querySelector(".btn-eliminar-nota").onclick = () => {
-        if (confirm("¿Eliminar esta nota?")) {
-          const notasTerr = JSON.parse(localStorage.getItem(n.territorioId + "_notas") || "{}");
-          if (notasTerr[n.cuadraId]) {
-            notasTerr[n.cuadraId].splice(n.index, 1);
-            if (notasTerr[n.cuadraId].length === 0) delete notasTerr[n.cuadraId];
-            localStorage.setItem(n.territorioId + "_notas", JSON.stringify(notasTerr));
+        window.mostrarConfirmacionModal({
+          titulo: "¿Eliminar nota?",
+          mensaje: "¿Deseas eliminar esta nota de la cuadra?",
+          icono: "🗑️",
+          textoConfirmar: "Eliminar",
+          peligro: true,
+          onConfirm: () => {
+            const notasTerr = JSON.parse(localStorage.getItem(n.territorioId + "_notas") || "{}");
+            if (notasTerr[n.cuadraId]) {
+              notasTerr[n.cuadraId].splice(n.index, 1);
+              if (notasTerr[n.cuadraId].length === 0) delete notasTerr[n.cuadraId];
+              localStorage.setItem(n.territorioId + "_notas", JSON.stringify(notasTerr));
+            }
+            if (typeof window.reproducirSonidoClick === "function") {
+              window.reproducirSonidoClick("delete");
+            }
+            window.mostrarToastDiscreto("Nota eliminada", "🗑️");
+            window.refrescarIndicadoresNotas();
+            renderizarContenido();
           }
-          if (typeof window.reproducirSonidoClick === "function") {
-            window.reproducirSonidoClick("delete");
-          }
-          window.refrescarIndicadoresNotas();
-          renderizarContenido();
-        }
+        });
       };
 
       cont.appendChild(card);
@@ -745,19 +1022,16 @@ function inicializarEventosNotas() {
   const btnNotas = document.getElementById("btnMostrarTodasNotas");
   if (!btnNotas) return;
 
-  // Un solo toque abre inmediatamente el modal de Revisitas y Notas
   btnNotas.addEventListener("click", (e) => {
     e.preventDefault();
     abrirModalTodasNotas();
   });
 
-  // Mantener presionado o click derecho también abre el modal
   btnNotas.addEventListener("contextmenu", function (e) {
     e.preventDefault();
     abrirModalTodasNotas();
   });
 
-  // Refrescar indicadores al iniciar
   setTimeout(() => {
     window.refrescarIndicadoresNotas();
   }, 1000);

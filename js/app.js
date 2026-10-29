@@ -416,7 +416,11 @@ function formatearUbicacionBanner(info) {
 // Navegación / Cómo llegar (Abre Google Maps / Apple Maps con ruta paso a paso)
 window.comoLlegarACoord = function (destLat, destLng, titulo) {
   if (!destLat || !destLng) {
-    alert("Coordenadas no disponibles para trazar ruta.");
+    if (typeof window.mostrarToastDiscreto === "function") {
+      window.mostrarToastDiscreto("Coordenadas no disponibles para trazar ruta", "🧭");
+    } else {
+      alert("Coordenadas no disponibles para trazar ruta.");
+    }
     return;
   }
   const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -460,7 +464,11 @@ function activarUbicacion() {
   const bannerText = document.getElementById("gpsBannerText");
 
   if (!navigator.geolocation) {
-    alert("Tu dispositivo o navegador no soporta geolocalización.");
+    if (typeof window.mostrarToastDiscreto === "function") {
+      window.mostrarToastDiscreto("Tu dispositivo no soporta geolocalización", "⚠️");
+    } else {
+      alert("Tu dispositivo o navegador no soporta geolocalización.");
+    }
     return;
   }
 
@@ -577,7 +585,11 @@ function activarUbicacion() {
       if (loaderActivo) loaderActivo.remove();
     },
     function (err) {
-      alert("No se pudo obtener la ubicación: " + err.message);
+      if (typeof window.mostrarToastDiscreto === "function") {
+        window.mostrarToastDiscreto("No se pudo obtener la ubicación GPS", "⚠️");
+      } else {
+        alert("No se pudo obtener la ubicación: " + err.message);
+      }
       seguimientoActivo = false;
       if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
       if (btnFloatingGps) btnFloatingGps.classList.remove("activo");
@@ -681,4 +693,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+window.confirmarResetLocal = function () {
+  const menuPanel = document.getElementById('menu-panel');
+  if (menuPanel && menuPanel.classList.contains('show')) menuPanel.classList.remove('show');
+
+  if (typeof window.mostrarConfirmacionModal === "function") {
+    window.mostrarConfirmacionModal({
+      titulo: "¿Borrar datos locales?",
+      mensaje: "Se borrarán tus revisitas y notas guardadas exclusivamente en este dispositivo. ¿Deseas continuar?",
+      icono: "🗑️",
+      textoConfirmar: "Borrar todo",
+      peligro: true,
+      onConfirm: () => {
+        localStorage.removeItem("terrosa_revisitas_data");
+        Object.keys(localStorage).forEach(k => {
+          if (k.endsWith("_notas")) localStorage.removeItem(k);
+        });
+        if (typeof window.refrescarIndicadoresNotas === "function") {
+          window.refrescarIndicadoresNotas();
+        }
+        if (typeof window.mostrarToastDiscreto === "function") {
+          window.mostrarToastDiscreto("Datos locales borrados con éxito", "🗑️");
+        }
+      }
+    });
+  }
+};
+
 

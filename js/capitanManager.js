@@ -2799,11 +2799,11 @@ ${lineas.join("\n")}`;
     const lbl = document.getElementById("txtFiltroAnioLabel");
     if (!lbl) return;
     if (anioFiltroActivo === "2026") {
-      lbl.textContent = "📅 Serv. 2026";
+      lbl.textContent = "2026";
     } else if (anioFiltroActivo === "2025") {
-      lbl.textContent = "📅 Serv. 2025";
+      lbl.textContent = "2025";
     } else {
-      lbl.textContent = "📅 Años: Todos";
+      lbl.textContent = "Todos";
     }
   }
 
@@ -2969,15 +2969,15 @@ ${lineas.join("\n")}`;
     } else if (mesesFiltroActivos.size === 1) {
       const num = Array.from(mesesFiltroActivos)[0];
       const mObj = NOMBRES_MESES.find(m => m.num === num);
-      lbl.textContent = `Mes: ${mObj ? mObj.nombre : num}`;
-    } else if (mesesFiltroActivos.size === 2) {
+      lbl.textContent = mObj ? mObj.nombre : num;
+    } else if (mesesFiltroActivos.size <= 3) {
       const arr = Array.from(mesesFiltroActivos).map(num => {
         const mObj = NOMBRES_MESES.find(m => m.num === num);
         return mObj ? mObj.abrev : num;
       });
-      lbl.textContent = `Mes: ${arr.join(", ")}`;
+      lbl.textContent = arr.join(", ");
     } else {
-      lbl.textContent = `Mes (${mesesFiltroActivos.size})`;
+      lbl.textContent = `${mesesFiltroActivos.size} meses`;
     }
 
     if (btnLimpiar) {

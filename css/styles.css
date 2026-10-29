@@ -206,10 +206,12 @@ path:not(.leaflet-interactive) {
   display: none; /* Oculto en modo publicador */
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 5px;
   pointer-events: auto !important;
-  margin-top: 7px;
+  margin-top: 5px;
   flex-wrap: nowrap;
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 
 body.modo-capitan .header-buttons-toolbar {
@@ -355,21 +357,21 @@ body.modo-capitan .header-buttons-toolbar {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 50px;
-  padding: 0 12px;
-  font-size: 12px;
+  padding: 0 9px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #1e293b;
   outline: none;
   font-family: inherit;
   cursor: pointer;
   pointer-events: auto !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  height: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  height: 29px;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
@@ -384,13 +386,13 @@ body.modo-capitan .header-buttons-toolbar {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
+  width: 27px;
+  height: 27px;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: #64748b;
   cursor: pointer;
@@ -1262,8 +1264,8 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 /* ============================================================================================================================== */
 .floating-gps-btn {
   position: fixed;
-  right: 18px;
-  bottom: 84px;
+  right: 16px;
+  bottom: calc(105px + env(safe-area-inset-bottom, 0px));
   width: 46px;
   height: 46px;
   border-radius: 50%;
@@ -1274,7 +1276,7 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 9998;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
@@ -1593,4 +1595,41 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   color: #dc2626;
   margin-left: auto;
 }
+
+/* ============================================================================================================================== */
+/* === TOAST DISCRETO (Sustituto de alerts nativos del navegador) === */
+/* ============================================================================================================================== */
+.terrosa-toast-discreto {
+  position: fixed;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 50px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 1000000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  max-width: 88vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.terrosa-toast-discreto.mostrar {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 

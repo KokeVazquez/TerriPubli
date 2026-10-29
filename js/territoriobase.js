@@ -186,7 +186,11 @@ window.abrirUbicacionCuadra = function () {
   if (link && link.trim() !== "" && link !== "undefined") {
     window.open(link, "_blank");
   } else {
-    alert("Ubicación de Google Maps no disponible para esta cuadra.");
+    if (typeof window.mostrarToastDiscreto === "function") {
+      window.mostrarToastDiscreto("Ubicación de Google Maps no disponible para esta cuadra", "📍");
+    } else {
+      alert("Ubicación de Google Maps no disponible para esta cuadra.");
+    }
   }
   ocultarMenu(true);
 };
