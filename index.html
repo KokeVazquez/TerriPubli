@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=54" />
+  <link rel="stylesheet" href="css/styles.css?v=55" />
 </head>
 
 <body>
@@ -71,10 +71,27 @@
         </button>
       </div>
 
+      <!-- Filtro Territorios con Pendientes / Incompletos -->
+      <div class="filtro-pildora-wrapper">
+        <button type="button" id="btnFiltroIncompletos" class="filtro-pildora-btn" title="Mostrar territorios con cuadras pendientes">
+          <span id="txtFiltroIncompletosLabel">⏳ Con pendientes</span>
+        </button>
+      </div>
+
       <!-- Limpiar filtro de fecha -->
       <button type="button" id="btnLimpiarFiltroFecha" class="filtro-fecha-btn-limpiar" title="Limpiar filtro de fecha" style="display:none;">✕</button>
     </div>
   </header>
+
+  <!-- Banner Discreto de Ubicación GPS ("¿Dónde estoy parado?") -->
+  <div id="gpsBannerTop" class="gps-banner-top" style="display:none;">
+    <div class="gps-banner-pill">
+      <span class="gps-pulse-dot"></span>
+      <span id="gpsBannerText" class="gps-banner-text">📍 Calculando ubicación...</span>
+      <button id="btnGpsCentrar" class="gps-banner-btn" title="Centrar mapa en mi ubicación">🎯</button>
+      <button id="btnGpsCerrar" class="gps-banner-btn-close" title="Ocultar indicador">✕</button>
+    </div>
+  </div>
 
   <!-- Barra Flotante Inferior Tipo Píldora (Dock Bottom) -->
   <div class="bottom-bar-container">
@@ -281,12 +298,12 @@
         <span>Área</span>
       </button>
 
-      <!-- 4. Botón Notas (Modo Publicador) -->
-      <button id="btnMostrarTodasNotas" class="pill-btn publicador-only" title="Todas las notas">
+      <!-- 4. Botón Revisitas (Modo Publicador) -->
+      <button id="btnMostrarTodasNotas" class="pill-btn publicador-only" title="Mis Revisitas y Notas">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
         </svg>
-        <span>Notas</span>
+        <span>Revisitas</span>
       </button>
 
       <!-- 4.1. Botón Historial de Registros (Modo Capitán) -->
@@ -309,6 +326,13 @@
 
   <!-- Contenedor del Mapa Leaflet -->
   <div id="map"></div>
+
+  <!-- Botón Flotante GPS -->
+  <button id="btnFloatingGps" class="floating-gps-btn" title="Mi ubicación GPS en tiempo real">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+      <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+    </svg>
+  </button>
 
   <!-- Menú Contextual (Click derecho en polígonos) -->
   <div id="menuContextual" class="menu-contextual" style="display:none; position:fixed; z-index:999999;"></div>
@@ -333,19 +357,19 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=46"></script>
+  <script src="js/territoriobase.js?v=55"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=46"></script>
+  <script src="js/territoriosData.js?v=55"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=46"></script>
+  <script src="js/territoriosManager.js?v=55"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=46"></script>
+  <script src="js/notas.js?v=55"></script>
   <!-- 5. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=46"></script>
+  <script src="js/capitanManager.js?v=55"></script>
   <!-- 6. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=46"></script>
+  <script src="js/app.js?v=55"></script>
   <!-- 7. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=46"></script>
+  <script src="js/pwa.js?v=55"></script>
 </body>
 
 </html>

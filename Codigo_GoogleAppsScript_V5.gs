@@ -23,8 +23,8 @@ const CUADRAS_MAP = {
 };
 
 const CAPITANES_DB = [
-  ["Jorge Vázquez", "Administrador / Auxiliar", "SÍ", "1234"],
-  ["Merari Rosales", "Administrador / Capitán", "SÍ", "1234"],
+  ["Jorge Vázquez", "Administrador / Auxiliar", "SÍ", "8318"],
+  ["Merari Rosales", "Administrador / Capitán", "SÍ", "8318"],
   ["Alex García", "Capitán", "NO", ""],
   ["Alfredo Dávila", "Capitán", "NO", ""],
   ["César Pineda", "Capitán", "NO", ""],

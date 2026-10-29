@@ -354,18 +354,113 @@ function closeAllCustomSelects(exception = null) {
 );
 
 // ==============================================================================================================================
-// 10. Geolocalización
+// 10. Geolocalización en Tiempo Real y "¿Dónde estoy parado?"
 // ==============================================================================================================================
 let marcadorUbicacion = null;
+let circuloPrecision = null;
 let seguimientoActivo = false;
 let watchId = null;
+window.userCurrentLocation = null;
+
+// Determinar en qué territorio y cuadra se encuentra un punto GPS
+window.obtenerUbicacionEnTerritorios = function (lat, lon) {
+  if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return null;
+  try {
+    const pt = turf.point([lon, lat]);
+    for (let i = 0; i < window.todosLosTerritorios.length; i++) {
+      const grupo = window.todosLosTerritorios[i];
+      let match = null;
+      grupo.eachLayer(pol => {
+        if (match) return;
+        try {
+          if (!pol.getLatLngs) return;
+          const latlngs = pol.getLatLngs()[0];
+          const coords = latlngs.map(ll => [ll.lng, ll.lat]);
+          coords.push([coords[0][0], coords[0][1]]);
+          const poly = turf.polygon([coords]);
+          if (turf.booleanPointInPolygon(pt, poly)) {
+            match = {
+              territorioId: grupo._id,
+              cuadraId: pol._id,
+              label: pol._label || pol._id,
+              poligono: pol
+            };
+          }
+        } catch (e) {}
+      });
+      if (match) return match;
+    }
+  } catch (e) {}
+  return null;
+};
+
+// Formateador amigable de nombres (ej: "Territorio 3, Cuadra 1")
+function formatearUbicacionBanner(info) {
+  if (!info) return "📍 Fuera de los territorios";
+  let tNom = "Territorio";
+  const numMatch = String(info.territorioId || "").match(/(\d+)/);
+  if (numMatch) {
+    tNom = `Territorio ${numMatch[1]}`;
+  } else if (String(info.territorioId || "").toLowerCase().includes("negocios")) {
+    tNom = "Negocios";
+  }
+
+  const rawLbl = info.label ? String(info.label).trim() : "";
+  const cNom = rawLbl
+    ? (/^cuadra/i.test(rawLbl) ? rawLbl : `Cuadra ${rawLbl}`)
+    : (info.cuadraId ? String(info.cuadraId).replace(/^.*?Cuadra/i, "Cuadra ") : "Cuadra");
+
+  return `📍 ${tNom}, ${cNom}`;
+}
+
+// Navegación / Cómo llegar (Abre Google Maps / Apple Maps con ruta paso a paso)
+window.comoLlegarACoord = function (destLat, destLng, titulo) {
+  if (!destLat || !destLng) {
+    alert("Coordenadas no disponibles para trazar ruta.");
+    return;
+  }
+  const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  let url = "";
+  if (esIOS) {
+    // Abre Apple Maps en modo caminar con fallback directo
+    url = `maps://?daddr=${destLat},${destLng}&dirflg=w`;
+  } else {
+    // Abre Google Maps en modo navegación a pie
+    url = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=walking`;
+  }
+
+  // Si en iOS no se abre con el esquema custom, abrir link de Google Maps
+  const win = window.open(url, "_blank");
+  if (!win && esIOS) {
+    window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=walking`;
+  }
+};
+
+// Calcular distancia relativa desde el usuario hasta un punto
+window.calcularDistanciaAUsuario = function (targetLat, targetLng) {
+  if (!window.userCurrentLocation || !window.userCurrentLocation.lat || !targetLat || !targetLng) return null;
+  try {
+    const from = turf.point([window.userCurrentLocation.lon, window.userCurrentLocation.lat]);
+    const to = turf.point([targetLng, targetLat]);
+    const distKm = turf.distance(from, to, { units: 'kilometers' });
+    if (distKm < 1) {
+      return Math.round(distKm * 1000) + " m";
+    }
+    return distKm.toFixed(1) + " km";
+  } catch (e) {
+    return null;
+  }
+};
 
 function activarUbicacion() {
   const menuPanel = document.getElementById("menu-panel");
   const btnUbicacion = document.getElementById("btnUbicacion");
+  const btnFloatingGps = document.getElementById("btnFloatingGps");
+  const bannerTop = document.getElementById("gpsBannerTop");
+  const bannerText = document.getElementById("gpsBannerText");
 
   if (!navigator.geolocation) {
-    alert("Tu navegador no soporta geolocalización.");
+    alert("Tu dispositivo o navegador no soporta geolocalización.");
     return;
   }
 
@@ -373,11 +468,18 @@ function activarUbicacion() {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
     seguimientoActivo = false;
+    window.userCurrentLocation = null;
     if (marcadorUbicacion) {
       map.removeLayer(marcadorUbicacion);
       marcadorUbicacion = null;
     }
+    if (circuloPrecision) {
+      map.removeLayer(circuloPrecision);
+      circuloPrecision = null;
+    }
     if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
+    if (btnFloatingGps) btnFloatingGps.classList.remove("activo");
+    if (bannerTop) bannerTop.style.display = "none";
     if (menuPanel && menuPanel.classList.contains("show")) {
       menuPanel.classList.remove("show");
     }
@@ -410,6 +512,11 @@ function activarUbicacion() {
 
   seguimientoActivo = true;
   if (btnUbicacion) btnUbicacion.textContent = "📍 Detener Ubicación";
+  if (btnFloatingGps) btnFloatingGps.classList.add("activo");
+  if (bannerTop) {
+    bannerTop.style.display = "flex";
+    if (bannerText) bannerText.textContent = "📍 Obteniendo señal GPS...";
+  }
 
   const iconoGps = L.divIcon({
     className: "marcador-gps-usuario",
@@ -422,12 +529,48 @@ function activarUbicacion() {
     function (pos) {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy || 20;
 
+      // Detectar cuadra y territorio exactos
+      const ubicacionTerritorial = window.obtenerUbicacionEnTerritorios(lat, lon);
+      window.userCurrentLocation = {
+        lat: lat,
+        lon: lon,
+        accuracy: accuracy,
+        info: ubicacionTerritorial
+      };
+
+      // Actualizar marcador y círculo de precisión
       if (marcadorUbicacion) {
         marcadorUbicacion.setLatLng([lat, lon]);
       } else {
         marcadorUbicacion = L.marker([lat, lon], { icon: iconoGps, interactive: false }).addTo(map);
-        map.flyTo([lat, lon], 17, { duration: 0.7 });
+        map.flyTo([lat, lon], 17.5, { duration: 0.7 });
+      }
+
+      if (circuloPrecision) {
+        circuloPrecision.setLatLng([lat, lon]);
+        circuloPrecision.setRadius(accuracy);
+      } else {
+        circuloPrecision = L.circle([lat, lon], {
+          radius: accuracy,
+          color: "#38bdf8",
+          fillColor: "#38bdf8",
+          fillOpacity: 0.12,
+          weight: 1,
+          interactive: false
+        }).addTo(map);
+      }
+
+      // Actualizar banner discreto superior
+      if (bannerTop && bannerText) {
+        bannerTop.style.display = "flex";
+        bannerText.textContent = formatearUbicacionBanner(ubicacionTerritorial);
+      }
+
+      // Refrescar distancias en revisitas si el modal está abierto
+      if (typeof window.actualizarDistanciasEnRevisitas === "function") {
+        window.actualizarDistanciasEnRevisitas();
       }
 
       const loaderActivo = document.getElementById("loaderUbicacion");
@@ -437,10 +580,12 @@ function activarUbicacion() {
       alert("No se pudo obtener la ubicación: " + err.message);
       seguimientoActivo = false;
       if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
+      if (btnFloatingGps) btnFloatingGps.classList.remove("activo");
+      if (bannerTop) bannerTop.style.display = "none";
       const loaderActivo = document.getElementById("loaderUbicacion");
       if (loaderActivo) loaderActivo.remove();
     },
-    { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 4000 }
   );
 }
 
@@ -490,6 +635,41 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!menuPanel.contains(e.target) && e.target !== hamburgerBtn) {
         cerrarMenu();
       }
+    });
+  }
+
+  // Botón flotante GPS directo en el mapa
+  const btnFloatingGps = document.getElementById('btnFloatingGps');
+  if (btnFloatingGps) {
+    btnFloatingGps.addEventListener('click', (e) => {
+      e.stopPropagation();
+      activarUbicacion();
+    });
+  }
+
+  // Centrar en ubicación desde el banner superior
+  const btnGpsCentrar = document.getElementById('btnGpsCentrar');
+  if (btnGpsCentrar) {
+    btnGpsCentrar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window.userCurrentLocation && window.userCurrentLocation.lat) {
+        map.flyTo([window.userCurrentLocation.lat, window.userCurrentLocation.lon], 18, { duration: 0.6 });
+        if (window.userCurrentLocation.info && window.userCurrentLocation.info.territorioId) {
+          if (typeof window.seleccionarTerritorioDirecto === 'function') {
+            window.seleccionarTerritorioDirecto(window.userCurrentLocation.info.territorioId);
+          }
+        }
+      }
+    });
+  }
+
+  // Cerrar banner superior de GPS
+  const btnGpsCerrar = document.getElementById('btnGpsCerrar');
+  const gpsBannerTop = document.getElementById('gpsBannerTop');
+  if (btnGpsCerrar && gpsBannerTop) {
+    btnGpsCerrar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      gpsBannerTop.style.display = 'none';
     });
   }
 

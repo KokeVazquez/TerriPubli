@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v54';
+const CACHE_NAME = 'territorios-cache-v55';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -22,14 +22,28 @@ const ASSETS_TO_CACHE = [
   'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js',
-  'https://unpkg.com/@turf/turf/turf.min.js'
+  'https://unpkg.com/@turf/turf/turf.min.js',
+  // Pre-caché offline de los mapas base de la zona de Congregación Rosario (Zoom 13 y 14)
+  'https://a.tile.openstreetmap.org/13/1681/3415.png',
+  'https://a.tile.openstreetmap.org/13/1682/3415.png',
+  'https://a.tile.openstreetmap.org/13/1681/3416.png',
+  'https://a.tile.openstreetmap.org/13/1682/3416.png',
+  'https://b.tile.openstreetmap.org/14/3363/6831.png',
+  'https://b.tile.openstreetmap.org/14/3364/6831.png',
+  'https://b.tile.openstreetmap.org/14/3365/6831.png',
+  'https://b.tile.openstreetmap.org/14/3363/6832.png',
+  'https://b.tile.openstreetmap.org/14/3364/6832.png',
+  'https://b.tile.openstreetmap.org/14/3365/6832.png'
 ];
 
 // Instalación: cachear archivos críticos
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      // Usar allSettled para no abortar si alguna tile falla
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn("Cache fail:", url, e)))
+      );
     }).then(() => self.skipWaiting())
   );
 });
@@ -49,15 +63,36 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: estrategia Network-First con fallback a Cache
+// Fetch: Cache-First para mosaicos del mapa (OSM) y Network-First para la app
 self.addEventListener('fetch', (event) => {
-  // Evitar interceptar peticiones no GET o esquemas extraños
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+
+  // Mosaicos de OpenStreetMap: Cache-First para máximo rendimiento offline y velocidad
+  if (url.hostname.includes('tile.openstreetmap.org') || url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) => {
+        return cache.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => null);
+        });
+      })
+    );
+    return;
+  }
+
+  // Archivos de la aplicación: Network-First con fallback a Caché
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        // Si la respuesta es válida, la clonamos y actualizamos el caché
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -67,9 +102,7 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // En caso de estar sin internet, responder desde el caché
         return caches.match(event.request);
       })
   );
 });
-

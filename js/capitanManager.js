@@ -8,7 +8,7 @@
   const PIN_ENCARGADO_DEFAULT = "8318";
   const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbysLvd2KoADFWNsFflNolxQjrHVFn7rW9oDdewPyt7MfPoPbZ3w6qEALYoypQVJTerCmg/exec";
 
-  // Usuarios con permiso de ingresar al Modo Capitán (con código 1234)
+  // Usuarios con permiso de ingresar al Modo Capitán
   const USUARIOS_ACCESO_CAPITAN = [
     "Koke",
     "Merari Rosales"
@@ -2704,6 +2704,7 @@ ${lineas.join("\n")}`;
   ];
 
   let _filtroFechaBarraInicializado = false;
+  let filtroIncompletosActivo = false;
   let mesesFiltroActivos = new Set();
 
   // Función para determinar si una fecha ISO pertenece al Año de Servicio seleccionado
@@ -3027,24 +3028,72 @@ ${lineas.join("\n")}`;
       }
     });
 
+    let territoriosIncompletosCount = 0;
+
     window.todosLosTerritorios.forEach(grupo => {
       const tId = grupo._id;
       const setMatch = cuadrasCoincidentes[tId] || new Set();
 
+      // Contar cuadras totales y hechas para detectar incompletos
+      let totalPredicables = 0;
+      let hechas = 0;
+      grupo.eachLayer(pol => {
+        if (pol._esPredicable !== false) {
+          totalPredicables++;
+          if (setMatch.has(pol._id)) hechas++;
+        }
+      });
+
+      const esIncompleto = (totalPredicables > 0 && hechas > 0 && hechas < totalPredicables);
+      if (esIncompleto) territoriosIncompletosCount++;
+
       grupo.eachLayer(pol => {
         if (!pol._originalStyle) return;
 
-        if ((pol._esPredicable !== false) && setMatch.has(pol._id)) {
-          pol._selected = true;
-          pol.setStyle({
-            color: "#334155",
-            fillColor: "#64748b",
-            fillOpacity: 0.9,
-            weight: 2
-          });
+        const fueHecha = (pol._esPredicable !== false) && setMatch.has(pol._id);
+
+        if (filtroIncompletosActivo) {
+          if (esIncompleto) {
+            // Territorio incompleto: destacar cuadras hechas en gris y pendientes en naranja/ámbar
+            if (fueHecha) {
+              pol.setStyle({
+                color: "#334155",
+                fillColor: "#64748b",
+                fillOpacity: 0.85,
+                weight: 2
+              });
+            } else {
+              pol.setStyle({
+                color: "#d97706",
+                fillColor: "#fef3c7",
+                fillOpacity: 0.82,
+                weight: 2.5
+              });
+            }
+          } else {
+            // Territorios completos (100%) o sin iniciar (0%): atenuar
+            pol.setStyle({
+              color: "#cbd5e1",
+              fillColor: fueHecha ? "#94a3b8" : "#f1f5f9",
+              fillOpacity: 0.12,
+              opacity: 0.28,
+              weight: 1
+            });
+          }
         } else {
-          pol._selected = false;
-          pol.setStyle(pol._originalStyle);
+          // Vista normal de filtro
+          if (fueHecha) {
+            pol._selected = true;
+            pol.setStyle({
+              color: "#334155",
+              fillColor: "#64748b",
+              fillOpacity: 0.9,
+              weight: 2
+            });
+          } else {
+            pol._selected = false;
+            pol.setStyle(pol._originalStyle);
+          }
         }
       });
     });
@@ -3088,6 +3137,19 @@ ${lineas.join("\n")}`;
       if (btnMeses) {
         btnMeses.onclick = () => {
           abrirModalSeleccionarMeses();
+        };
+      }
+
+      const btnIncompletos = document.getElementById("btnFiltroIncompletos");
+      if (btnIncompletos) {
+        btnIncompletos.onclick = () => {
+          window.reproducirSonidoClick("tap");
+          filtroIncompletosActivo = !filtroIncompletosActivo;
+          btnIncompletos.classList.toggle("incompletos-activo", filtroIncompletosActivo);
+          window.ejecutarFiltroFecha();
+          if (filtroIncompletosActivo) {
+            mostrarToastDiscreto("⏳ Territorios incompletos destacados en el mapa");
+          }
         };
       }
 

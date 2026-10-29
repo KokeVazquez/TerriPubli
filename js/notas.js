@@ -1,11 +1,34 @@
 // ==============================================================================================================================
-// === GESTIÓN DE NOTAS ===
-// === Indicadores en mapa, visor de notas globales y edición/eliminación reactiva ===
+// === GESTIÓN DE REVISITAS Y NOTAS ===
+// === Módulo completo de Revisitas personales, historial de visitas, proximidad GPS y notas ===
 // ==============================================================================================================================
 
-let notasMostradas = false;
+let notasMostradas = true; // Mostrar iconos de revisitas y notas en el mapa
+const KEY_REVISITAS = "terrosa_revisitas_data";
 
+// --------------------------------------------------------------------------------------
+// Utilidades de Datos de Revisitas (100% locales en el dispositivo del publicador)
+// --------------------------------------------------------------------------------------
+window.obtenerRevisitasLocales = function () {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_REVISITAS) || "[]");
+  } catch (e) {
+    return [];
+  }
+};
+
+window.guardarRevisitasLocales = function (arr) {
+  try {
+    localStorage.setItem(KEY_REVISITAS, JSON.stringify(arr));
+  } catch (e) {}
+  if (typeof window.refrescarIndicadoresNotas === "function") {
+    window.refrescarIndicadoresNotas();
+  }
+};
+
+// --------------------------------------------------------------------------------------
 // Función para refrescar indicadores en el mapa al instante
+// --------------------------------------------------------------------------------------
 window.refrescarIndicadoresNotas = function () {
   if (window.indicadoresNotas && window.indicadoresNotas.length > 0) {
     window.indicadoresNotas.forEach(m => {
@@ -14,48 +37,47 @@ window.refrescarIndicadoresNotas = function () {
     window.indicadoresNotas = [];
   }
 
-  if (notasMostradas) {
-    window.todosLosTerritorios.forEach(territorio => {
-      const notasTerritorio = JSON.parse(localStorage.getItem(territorio._id + "_notas") || "{}");
-      territorio.eachLayer(function (pol) {
-        if (notasTerritorio[pol._id] && notasTerritorio[pol._id].length > 0) {
-          try {
-            const latlngs = pol.getLatLngs()[0];
-            const coords = latlngs.map(ll => [ll.lng, ll.lat]);
-            coords.push([coords[0][0], coords[0][1]]);
-            const centroide = turf.centroid(turf.polygon([coords]));
-            const cLat = centroide.geometry.coordinates[1];
-            const cLng = centroide.geometry.coordinates[0];
-            const marker = L.marker([cLat, cLng], {
-              interactive: false,
-              icon: L.divIcon({
-                className: "indicador-nota",
-                html: "📒",
-                iconSize: [22, 22],
-                iconAnchor: [11, 11]
-              })
-            }).addTo(map);
-            window.indicadoresNotas.push(marker);
-          } catch (e) {}
-        }
-      });
+  if (!notasMostradas) return;
+
+  const revisitas = window.obtenerRevisitasLocales();
+
+  window.todosLosTerritorios.forEach(territorio => {
+    const notasTerritorio = JSON.parse(localStorage.getItem(territorio._id + "_notas") || "{}");
+    territorio.eachLayer(function (pol) {
+      const tieneNotas = (notasTerritorio[pol._id] && notasTerritorio[pol._id].length > 0);
+      const revsDeCuadra = revisitas.filter(r => r.territorioId === territorio._id && r.cuadraId === pol._id);
+      const tieneRevisitas = revsDeCuadra.length > 0;
+
+      if (tieneRevisitas || tieneNotas) {
+        try {
+          const latlngs = pol.getLatLngs()[0];
+          const coords = latlngs.map(ll => [ll.lng, ll.lat]);
+          coords.push([coords[0][0], coords[0][1]]);
+          const centroide = turf.centroid(turf.polygon([coords]));
+          const cLat = centroide.geometry.coordinates[1];
+          const cLng = centroide.geometry.coordinates[0];
+
+          // Si tiene revisitas mostramos el icono de personas 👥, si solo notas 📒
+          const iconChar = tieneRevisitas ? "👥" : "📒";
+          const bgBadge = tieneRevisitas ? "#eff6ff" : "#fef3c7";
+          const borderBadge = tieneRevisitas ? "#3b82f6" : "#f59e0b";
+
+          const marker = L.marker([cLat, cLng], {
+            interactive: false,
+            icon: L.divIcon({
+              className: "indicador-nota",
+              html: `<div style="background:${bgBadge}; border:1.5px solid ${borderBadge}; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,0.18);">${iconChar}</div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            })
+          }).addTo(map);
+
+          window.indicadoresNotas.push(marker);
+        } catch (e) {}
+      }
     });
-  }
+  });
 };
-
-// Alternar visualización de iconos de notas en el mapa
-function toggleIconosNotas() {
-  if (typeof window.reproducirSonidoClick === "function") {
-    window.reproducirSonidoClick("tap");
-  }
-  notasMostradas = !notasMostradas;
-  window.refrescarIndicadoresNotas();
-
-  const btn = document.getElementById("btnMostrarTodasNotas");
-  if (btn) {
-    btn.classList.toggle("active", notasMostradas);
-  }
-}
 
 // --------------------------------------------------------------------------------------
 // Función para navegar y enfocar la cuadra exacta con animación de destello
@@ -89,12 +111,12 @@ function irACuadra(territorioId, cuadraId) {
             maxZoom: 18,
             duration: 0.6
           });
-          // Efecto de pulso / destello para destacar la cuadra
+          // Destello para destacar la cuadra
           let count = 0;
           _intervaloDestello = setInterval(() => {
             count++;
             if (count % 2 === 1) {
-              pol.setStyle({ color: "#e11d48", fillColor: "#fb7185", fillOpacity: 0.92, weight: 4 });
+              pol.setStyle({ color: "#2563eb", fillColor: "#60a5fa", fillOpacity: 0.92, weight: 4 });
             } else if (pol._originalStyle) {
               pol.setStyle(pol._originalStyle);
             }
@@ -115,27 +137,278 @@ function irACuadra(territorioId, cuadraId) {
 }
 
 // --------------------------------------------------------------------------------------
-// Modal Rediseñado de Todas las Notas (Moderno, Minimalista y con botón "Ir")
+// Modal: Crear Nueva Revisita
+// --------------------------------------------------------------------------------------
+window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra, lat, lng) {
+  if (typeof window.reproducirSonidoClick === "function") {
+    window.reproducirSonidoClick("tap");
+  }
+
+  const prevModal = document.getElementById("modalCrearRevisita");
+  if (prevModal) prevModal.remove();
+
+  const fechaHoy = new Date().toISOString().split("T")[0];
+
+  const modal = document.createElement("div");
+  modal.id = "modalCrearRevisita";
+  modal.className = "terrosa-modal-overlay";
+
+  modal.innerHTML = `
+    <div class="terrosa-modal-card" style="max-width:360px; max-height:90vh; overflow-y:auto; padding:20px 18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;">👤</span>
+          <div>
+            <h3 style="margin:0; font-size:17.5px; font-weight:800; color:#0f172a;">Nueva Revisita</h3>
+            <span style="font-size:12px; font-weight:700; color:#2563eb;">${escaparTexto(tituloCuadra || "Cuadra")}</span>
+          </div>
+        </div>
+        <button id="btnCerrarCrearRevisita" class="btn-icon-square">✕</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <!-- Nombre de la persona -->
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Nombre de la persona / Familia *</label>
+          <input type="text" id="revNombrePersona" placeholder="Ej: Juan Pérez" style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+        </div>
+
+        <!-- Categoría / Tipo de persona -->
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Categoría</label>
+          <div class="chips-categoria-container" id="revChipsCategoria">
+            <button type="button" class="chip-categoria seleccionado" data-cat="Hombre">👨 Hombre</button>
+            <button type="button" class="chip-categoria" data-cat="Mujer">👩 Mujer</button>
+            <button type="button" class="chip-categoria" data-cat="Joven">🧑 Joven</button>
+            <button type="button" class="chip-categoria" data-cat="Adulto Mayor">👵 Adulto Mayor</button>
+            <button type="button" class="chip-categoria" data-cat="Familia">🏠 Familia</button>
+          </div>
+        </div>
+
+        <!-- Dirección y Número Exterior -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label style="font-size:12px; font-weight:700; color:#475569;">Dirección / Calle y Número</label>
+            <button type="button" id="btnAutollenarGpsRev" style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:700; cursor:pointer; padding:0;">📍 Usar mi GPS</button>
+          </div>
+          <input type="text" id="revDireccion" placeholder="Ej: Calle 16 #2408 (Casa azul)" style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+        </div>
+
+        <!-- Fecha primera visita -->
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Fecha de visita</label>
+          <input type="date" id="revFechaVisita" value="${fechaHoy}" style="width:100%; height:38px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+        </div>
+
+        <!-- Tema platicado / Publicación dejada -->
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">¿De qué hablaron? / Pregunta pendiente</label>
+          <textarea id="revNotasConversacion" rows="3" placeholder="Ej: Aceptó el folleto Disfrute de la vida. Muy amable. Quedamos de contestar la pregunta 2." style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
+        </div>
+
+        <!-- Botón Guardar -->
+        <button id="btnGuardarNuevaRevisita" style="width:100%; height:44px; border-radius:14px; background:#2563eb; color:#ffffff; font-size:15px; font-weight:800; border:none; cursor:pointer; margin-top:4px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+          💾 Guardar Revisita
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const cerrar = () => {
+    if (document.body.contains(modal)) document.body.removeChild(modal);
+  };
+
+  modal.querySelector("#btnCerrarCrearRevisita").onclick = cerrar;
+
+  // Selección de chip de categoría
+  let categoriaSeleccionada = "Hombre";
+  modal.querySelectorAll(".chip-categoria").forEach(chip => {
+    chip.onclick = () => {
+      modal.querySelectorAll(".chip-categoria").forEach(c => c.classList.remove("seleccionado"));
+      chip.classList.add("seleccionado");
+      categoriaSeleccionada = chip.getAttribute("data-cat");
+    };
+  });
+
+  // Usar GPS si está disponible
+  let revLat = lat || (window.userCurrentLocation ? window.userCurrentLocation.lat : null);
+  let revLng = lng || (window.userCurrentLocation ? window.userCurrentLocation.lon : null);
+
+  modal.querySelector("#btnAutollenarGpsRev").onclick = () => {
+    if (window.userCurrentLocation && window.userCurrentLocation.lat) {
+      revLat = window.userCurrentLocation.lat;
+      revLng = window.userCurrentLocation.lon;
+      const inputDir = modal.querySelector("#revDireccion");
+      if (!inputDir.value.trim()) {
+        inputDir.value = "Ubicación GPS fijada";
+      }
+      alert("📍 Ubicación GPS guardada con éxito para esta revisita.");
+    } else {
+      alert("Enciende primero tu ubicación GPS en el mapa para capturar las coordenadas exactas.");
+    }
+  };
+
+  // Guardar revisita
+  modal.querySelector("#btnGuardarNuevaRevisita").onclick = () => {
+    const nombre = modal.querySelector("#revNombrePersona").value.trim();
+    if (!nombre) {
+      alert("Por favor escribe el nombre de la persona o familia.");
+      modal.querySelector("#revNombrePersona").focus();
+      return;
+    }
+
+    const direccion = modal.querySelector("#revDireccion").value.trim();
+    const fecha = modal.querySelector("#revFechaVisita").value || fechaHoy;
+    const notas = modal.querySelector("#revNotasConversacion").value.trim();
+
+    const nuevaRevisita = {
+      id: "rev_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+      territorioId: territorioId,
+      cuadraId: cuadraId,
+      tituloCuadra: tituloCuadra,
+      nombre: nombre,
+      categoria: categoriaSeleccionada,
+      direccion: direccion,
+      lat: revLat,
+      lng: revLng,
+      fechaCreacion: fecha,
+      visitas: [
+        {
+          fecha: fecha,
+          notas: notas || "Primera conversación."
+        }
+      ]
+    };
+
+    const lista = window.obtenerRevisitasLocales();
+    lista.unshift(nuevaRevisita);
+    window.guardarRevisitasLocales(lista);
+
+    if (typeof window.reproducirSonidoClick === "function") {
+      window.reproducirSonidoClick("success");
+    }
+
+    cerrar();
+    alert(`✅ Revisita de "${nombre}" guardada con éxito.`);
+  };
+};
+
+// --------------------------------------------------------------------------------------
+// Modal: Agregar Nueva Visita a una Revisita Existente
+// --------------------------------------------------------------------------------------
+window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
+  const lista = window.obtenerRevisitasLocales();
+  const rev = lista.find(r => r.id === revisitaId);
+  if (!rev) return;
+
+  const fechaHoy = new Date().toISOString().split("T")[0];
+
+  const modal = document.createElement("div");
+  modal.id = "modalAgregarVisita";
+  modal.className = "terrosa-modal-overlay";
+  modal.style.zIndex = "1000002";
+
+  modal.innerHTML = `
+    <div class="terrosa-modal-card" style="max-width:340px; padding:20px 18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div>
+          <h3 style="margin:0; font-size:17px; font-weight:800; color:#0f172a;">➕ Registrar Visita</h3>
+          <span style="font-size:12.5px; font-weight:700; color:#2563eb;">${escaparTexto(rev.nombre)}</span>
+        </div>
+        <button id="btnCerrarVisitaX" class="btn-icon-square">✕</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Fecha</label>
+          <input type="date" id="inputFechaNuevaVisita" value="${fechaHoy}" style="width:100%; height:38px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+        </div>
+
+        <div>
+          <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Notas de la visita / Publicación dejada</label>
+          <textarea id="inputNotasNuevaVisita" rows="4" placeholder="¿Qué se habló en esta visita? ¿Qué pregunta quedó pendiente?" style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
+        </div>
+
+        <button id="btnGuardarVisitaItem" style="width:100%; height:42px; border-radius:14px; background:#2563eb; color:#ffffff; font-size:14.5px; font-weight:800; border:none; cursor:pointer; margin-top:4px;">
+          💾 Guardar Visita
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const cerrar = () => {
+    if (document.body.contains(modal)) document.body.removeChild(modal);
+  };
+
+  modal.querySelector("#btnCerrarVisitaX").onclick = cerrar;
+
+  modal.querySelector("#btnGuardarVisitaItem").onclick = () => {
+    const fecha = modal.querySelector("#inputFechaNuevaVisita").value || fechaHoy;
+    const notas = modal.querySelector("#inputNotasNuevaVisita").value.trim();
+
+    if (!notas) {
+      alert("Por favor escribe una breve nota de lo que platicaron.");
+      modal.querySelector("#inputNotasNuevaVisita").focus();
+      return;
+    }
+
+    if (!Array.isArray(rev.visitas)) rev.visitas = [];
+    rev.visitas.unshift({ fecha, notas });
+
+    window.guardarRevisitasLocales(lista);
+
+    if (typeof window.reproducirSonidoClick === "function") {
+      window.reproducirSonidoClick("success");
+    }
+
+    cerrar();
+    if (onGuardado) onGuardado();
+  };
+};
+
+// --------------------------------------------------------------------------------------
+// Modal Principal: "Mis Revisitas y Notas" (con Pestañas, Búsqueda y Proximidad GPS)
 // --------------------------------------------------------------------------------------
 function abrirModalTodasNotas() {
   if (typeof window.reproducirSonidoClick === "function") {
     window.reproducirSonidoClick("tap");
   }
 
-  // Evitar abrir modales duplicados si ya está abierto
   if (document.getElementById("modalGlobalTodasNotas")) return;
+
+  let pestanaActiva = "revisitas"; // "revisitas" o "notas"
+  let busquedaTexto = "";
 
   const modal = document.createElement("div");
   modal.id = "modalGlobalTodasNotas";
   modal.className = "terrosa-modal-overlay";
+
   modal.innerHTML = `
-    <div class="terrosa-modal-card terrosa-modal-large" style="max-height:85vh; display:flex; flex-direction:column; padding:20px 18px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-shrink:0;">
-        <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">📒 Notas del Territorio</h3>
+    <div class="terrosa-modal-card terrosa-modal-large" style="max-height:88vh; display:flex; flex-direction:column; padding:18px 16px;">
+      <!-- Header Superior con Tabs -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
+        <div style="display:flex; gap:8px;">
+          <button id="tabBtnRevisitas" class="filtro-pildora-btn" style="background:#2563eb; color:#ffffff; border-color:#2563eb; font-size:13px; height:34px; padding:0 14px;">
+            👥 Revisitas
+          </button>
+          <button id="tabBtnNotas" class="filtro-pildora-btn" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1; font-size:13px; height:34px; padding:0 14px;">
+            📒 Notas
+          </button>
+        </div>
         <button id="btnCerrarModalNotasGen" class="btn-icon-square">✕</button>
       </div>
 
-      <div id="contenedorListaNotas" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:2px;"></div>
+      <!-- Buscador rápido -->
+      <div style="margin-bottom:12px; flex-shrink:0;">
+        <input type="text" id="inputBuscarRevisitas" placeholder="🔍 Buscar por nombre, calle o territorio..." style="width:100%; height:38px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+      </div>
+
+      <!-- Contenedor scrolleable de lista -->
+      <div id="contenedorListaNotas" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px; padding-right:2px;"></div>
     </div>
   `;
 
@@ -147,19 +420,225 @@ function abrirModalTodasNotas() {
 
   modal.querySelector("#btnCerrarModalNotasGen").onclick = cerrar;
 
+  const tabRev = modal.querySelector("#tabBtnRevisitas");
+  const tabNot = modal.querySelector("#tabBtnNotas");
+  const inputBusqueda = modal.querySelector("#inputBuscarRevisitas");
   const cont = modal.querySelector("#contenedorListaNotas");
 
-  function escaparTexto(str) {
-    return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
+  tabRev.onclick = () => {
+    pestanaActiva = "revisitas";
+    tabRev.style.background = "#2563eb";
+    tabRev.style.color = "#ffffff";
+    tabRev.style.borderColor = "#2563eb";
+    tabNot.style.background = "#f1f5f9";
+    tabNot.style.color = "#475569";
+    tabNot.style.borderColor = "#cbd5e1";
+    inputBusqueda.placeholder = "🔍 Buscar revisita por nombre, calle o territorio...";
+    renderizarContenido();
+  };
 
-  function renderizarNotas() {
-    let todas = [];
+  tabNot.onclick = () => {
+    pestanaActiva = "notas";
+    tabNot.style.background = "#2563eb";
+    tabNot.style.color = "#ffffff";
+    tabNot.style.borderColor = "#2563eb";
+    tabRev.style.background = "#f1f5f9";
+    tabRev.style.color = "#475569";
+    tabRev.style.borderColor = "#cbd5e1";
+    inputBusqueda.placeholder = "🔍 Buscar en notas de cuadras...";
+    renderizarContenido();
+  };
+
+  inputBusqueda.oninput = (e) => {
+    busquedaTexto = e.target.value.toLowerCase().trim();
+    renderizarContenido();
+  };
+
+  window.actualizarDistanciasEnRevisitas = function () {
+    if (pestanaActiva === "revisitas" && document.getElementById("modalGlobalTodasNotas")) {
+      renderizarContenido();
+    }
+  };
+
+  function renderizarContenido() {
+    cont.innerHTML = "";
+
+    if (pestanaActiva === "revisitas") {
+      let revisitas = window.obtenerRevisitasLocales();
+
+      // Filtrar por búsqueda
+      if (busquedaTexto) {
+        revisitas = revisitas.filter(r => {
+          const nom = (r.nombre || "").toLowerCase();
+          const dir = (r.direccion || "").toLowerCase();
+          const terr = (r.territorioId || "").toLowerCase();
+          const tit = (r.tituloCuadra || "").toLowerCase();
+          return nom.includes(busquedaTexto) || dir.includes(busquedaTexto) || terr.includes(busquedaTexto) || tit.includes(busquedaTexto);
+        });
+      }
+
+      // Ordenar por proximidad si GPS está activo
+      if (window.userCurrentLocation && window.userCurrentLocation.lat) {
+        revisitas.sort((a, b) => {
+          const distA = (a.lat && a.lng) ? turf.distance(turf.point([window.userCurrentLocation.lon, window.userCurrentLocation.lat]), turf.point([a.lng, a.lat])) : 9999;
+          const distB = (b.lat && b.lng) ? turf.distance(turf.point([window.userCurrentLocation.lon, window.userCurrentLocation.lat]), turf.point([b.lng, b.lat])) : 9999;
+          return distA - distB;
+        });
+      }
+
+      if (revisitas.length === 0) {
+        cont.innerHTML = `
+          <div style="text-align:center; color:#94a3b8; padding:36px 16px;">
+            <div style="font-size:32px; margin-bottom:8px;">👤</div>
+            <div style="font-size:14px; font-weight:700; color:#64748b;">No tienes revisitas registradas aún.</div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Haz clic derecho o mantén presionada una cuadra en el mapa y selecciona <b>"👤 Agregar Revisita"</b>.</div>
+          </div>
+        `;
+        return;
+      }
+
+      revisitas.forEach(rev => {
+        const card = document.createElement("div");
+        card.className = "revisita-card";
+
+        // Distancia calculada
+        let distanciaBadge = "";
+        if (rev.lat && rev.lng && typeof window.calcularDistanciaAUsuario === "function") {
+          const distStr = window.calcularDistanciaAUsuario(rev.lat, rev.lng);
+          if (distStr) {
+            distanciaBadge = `<span class="revisita-badge-distancia">📍 a ${distStr}</span>`;
+          }
+        }
+
+        // Icono categoría
+        const iconoCat = rev.categoria === "Mujer" ? "👩" : (rev.categoria === "Joven" ? "🧑" : (rev.categoria === "Adulto Mayor" ? "👵" : (rev.categoria === "Familia" ? "🏠" : "👨")));
+
+        // Última visita
+        const ultVisita = (rev.visitas && rev.visitas.length > 0) ? rev.visitas[0] : { fecha: rev.fechaCreacion, notas: "" };
+        const numVisitas = (rev.visitas && rev.visitas.length > 0) ? rev.visitas.length : 1;
+
+        card.innerHTML = `
+          <div class="revisita-card-header">
+            <div style="min-width:0; flex:1;">
+              <div class="revisita-persona-titulo">
+                <span>${iconoCat}</span>
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparTexto(rev.nombre)}</span>
+              </div>
+              <div class="revisita-direccion-row" style="margin-top:2px;">
+                <span>${escaparTexto(rev.direccion || "Sin dirección fijada")}</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
+              <span class="revisita-badge-territorio">${escaparTexto(rev.tituloCuadra || rev.territorioId)}</span>
+              ${distanciaBadge}
+            </div>
+          </div>
+
+          <div class="revisita-notas-preview">
+            <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:2px;">Última conversación (${escaparTexto(ultVisita.fecha)}):</div>
+            <div>${escaparTexto(ultVisita.notas)}</div>
+          </div>
+
+          <!-- Historial desplegable si tiene más de 1 visita -->
+          <div id="historialVisitas_${rev.id}" style="display:none;" class="revisita-historial-visitas">
+            ${(rev.visitas || []).slice(1).map(v => `
+              <div class="revisita-item-visita">
+                <div class="revisita-item-fecha">📅 ${escaparTexto(v.fecha)}</div>
+                <div>${escaparTexto(v.notas)}</div>
+              </div>
+            `).join("")}
+          </div>
+
+          <div class="revisita-actions-row">
+            <button class="btn-revisita-action add btn-agregar-visita-accion" title="Registrar que volviste a visitar">
+              ➕ Visita
+            </button>
+            ${numVisitas > 1 ? `
+              <button class="btn-revisita-action map btn-toggle-historial" title="Ver visitas anteriores">
+                📖 Historial (${numVisitas})
+              </button>
+            ` : ''}
+            <button class="btn-revisita-action map btn-ir-revisita" title="Ver en el mapa">
+              📍 Ir
+            </button>
+            <button class="btn-revisita-action nav btn-como-llegar-revisita" title="Abrir ruta paso a paso">
+              🧭 Cómo llegar
+            </button>
+            <button class="btn-revisita-action del btn-borrar-revisita" title="Eliminar revisita">
+              🗑️
+            </button>
+          </div>
+        `;
+
+        // Eventos de botones
+        card.querySelector(".btn-agregar-visita-accion").onclick = () => {
+          window.abrirModalAgregarVisita(rev.id, () => {
+            renderizarContenido();
+          });
+        };
+
+        const btnHistorial = card.querySelector(".btn-toggle-historial");
+        if (btnHistorial) {
+          btnHistorial.onclick = () => {
+            const histDiv = card.querySelector(`#historialVisitas_${rev.id}`);
+            if (histDiv) {
+              const visible = histDiv.style.display !== "none";
+              histDiv.style.display = visible ? "none" : "flex";
+              btnHistorial.textContent = visible ? `📖 Historial (${numVisitas})` : `📖 Ocultar (${numVisitas})`;
+            }
+          };
+        }
+
+        card.querySelector(".btn-ir-revisita").onclick = () => {
+          cerrar();
+          irACuadra(rev.territorioId, rev.cuadraId);
+        };
+
+        card.querySelector(".btn-como-llegar-revisita").onclick = () => {
+          let destLat = rev.lat;
+          let destLng = rev.lng;
+
+          // Si la revisita no tenía lat/lng guardado, buscar el centroide del polígono
+          if (!destLat || !destLng) {
+            const terr = window.todosLosTerritorios.find(t => t._id === rev.territorioId);
+            if (terr) {
+              terr.eachLayer(pol => {
+                if (pol._id === rev.cuadraId && pol.getBounds) {
+                  const c = pol.getBounds().getCenter();
+                  destLat = c.lat;
+                  destLng = c.lng;
+                }
+              });
+            }
+          }
+
+          if (destLat && destLng && typeof window.comoLlegarACoord === "function") {
+            window.comoLlegarACoord(destLat, destLng, rev.nombre);
+          } else {
+            alert("Ubicación geográfica no disponible para trazar ruta a esta revisita.");
+          }
+        };
+
+        card.querySelector(".btn-borrar-revisita").onclick = () => {
+          if (confirm(`¿Eliminar la revisita de "${rev.nombre}"?`)) {
+            const todas = window.obtenerRevisitasLocales().filter(r => r.id !== rev.id);
+            window.guardarRevisitasLocales(todas);
+            if (typeof window.reproducirSonidoClick === "function") {
+              window.reproducirSonidoClick("delete");
+            }
+            renderizarContenido();
+          }
+        };
+
+        cont.appendChild(card);
+      });
+      return;
+    }
+
+    // ----------------------------------------------------
+    // Pestaña: "Notas de Cuadra" (Notas de cuadras generales)
+    // ----------------------------------------------------
+    let todasNotas = [];
     window.todosLosTerritorios.forEach(territorio => {
       const notasTerritorio = JSON.parse(localStorage.getItem(territorio._id + "_notas") || "{}");
       territorio.eachLayer(function (pol) {
@@ -170,7 +649,7 @@ function abrirModalTodasNotas() {
             if (!txt.startsWith("Trabajado por:")) {
               const rawLbl = pol._label ? String(pol._label).trim() : "";
               const cuadraClean = rawLbl || String(pol._id).replace(/^.*?Cuadra/i, "").replace(/^[a-zA-Z0-9]+_c/i, "");
-              todas.push({
+              todasNotas.push({
                 territorioId: territorio._id,
                 territorioNum: territorio._id.replace(/\D/g, "") || "Neg",
                 cuadraId: pol._id,
@@ -184,14 +663,16 @@ function abrirModalTodasNotas() {
       });
     });
 
-    cont.innerHTML = "";
+    if (busquedaTexto) {
+      todasNotas = todasNotas.filter(n => n.texto.toLowerCase().includes(busquedaTexto) || String(n.territorioNum).includes(busquedaTexto));
+    }
 
-    if (todas.length === 0) {
+    if (todasNotas.length === 0) {
       cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:36px 16px; font-size:14px; font-weight:600;">No tienes notas guardadas en este momento.</div>';
       return;
     }
 
-    todas.forEach(n => {
+    todasNotas.forEach(n => {
       const card = document.createElement("div");
       card.className = "card-historial-minimal";
       const etiquetaCuadra = /^cuadra/i.test(String(n.cuadraNum)) ? n.cuadraNum : `Cuadra ${n.cuadraNum}`;
@@ -237,7 +718,7 @@ function abrirModalTodasNotas() {
             window.reproducirSonidoClick("delete");
           }
           window.refrescarIndicadoresNotas();
-          renderizarNotas();
+          renderizarContenido();
         }
       };
 
@@ -245,55 +726,39 @@ function abrirModalTodasNotas() {
     });
   }
 
-  renderizarNotas();
+  renderizarContenido();
+}
+
+function escaparTexto(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // --------------------------------------------------------------------------------------
-// Vinculación de eventos al botón de Notas
+// Vinculación de eventos al botón de Revisitas (en barra inferior)
 // --------------------------------------------------------------------------------------
 function inicializarEventosNotas() {
   const btnNotas = document.getElementById("btnMostrarTodasNotas");
   if (!btnNotas) return;
 
-  let pressTimer = null;
-  let longPressTriggered = false;
-
-  // Click normal: alternar iconos en el mapa (solo si no fue pulsación larga)
+  // Un solo toque abre inmediatamente el modal de Revisitas y Notas
   btnNotas.addEventListener("click", (e) => {
-    if (longPressTriggered) {
-      longPressTriggered = false;
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    toggleIconosNotas();
-  });
-
-  // Click derecho (PC): abrir modal de gestión
-  btnNotas.addEventListener("contextmenu", function (e) {
     e.preventDefault();
-    clearTimeout(pressTimer);
     abrirModalTodasNotas();
   });
 
-  // Mantener presionado (móvil y táctil)
-  function iniciarPresion() {
-    longPressTriggered = false;
-    clearTimeout(pressTimer);
-    pressTimer = setTimeout(() => {
-      longPressTriggered = true;
-      abrirModalTodasNotas();
-    }, 550);
-  }
+  // Mantener presionado o click derecho también abre el modal
+  btnNotas.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+    abrirModalTodasNotas();
+  });
 
-  function cancelarPresion() {
-    clearTimeout(pressTimer);
-  }
-
-  btnNotas.addEventListener("touchstart", iniciarPresion, { passive: true });
-  btnNotas.addEventListener("touchend", cancelarPresion, { passive: true });
-  btnNotas.addEventListener("touchcancel", cancelarPresion, { passive: true });
-  btnNotas.addEventListener("mousedown", iniciarPresion);
-  btnNotas.addEventListener("mouseup", cancelarPresion);
-  btnNotas.addEventListener("mouseleave", cancelarPresion);
+  // Refrescar indicadores al iniciar
+  setTimeout(() => {
+    window.refrescarIndicadoresNotas();
+  }, 1000);
 }
