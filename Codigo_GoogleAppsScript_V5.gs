@@ -527,12 +527,13 @@ function llenarHojaS13PorBloque(ss, nombreHoja, anioServicioTxt, datosS13) {
     var idxSup = (terr - 1) * 2;
     var idxInf = idxSup + 1;
 
+    // Si no tiene asignaciones trabajadas en este año de servicio, no poner fecha previa para no confundir
+    if (ciclos.length === 0) continue;
+
     // Columna B (índice 0 de la matriz): Última fecha en que se completó*
     if (ultimaFechaCompletada) {
       matriz[idxSup][0] = formatearFechaCorta(ultimaFechaCompletada);
     }
-
-    if (ciclos.length === 0) continue;
 
     var inicioIdx = 0;
     if (ciclos.length > 4) {
