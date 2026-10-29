@@ -417,6 +417,39 @@ function obtenerFechaLocalISO() {
 }
 window.obtenerFechaLocalISO = obtenerFechaLocalISO;
 
+// Geocodificación inversa con OpenStreetMap (Nominatim) para obtener nombre real de calle
+async function obtenerDireccionDesdeCoordenadas(lat, lng) {
+  if (!lat || !lng) return null;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=18&addressdetails=1`;
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "Accept": "application/json" }
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const addr = data.address || {};
+    let partes = [];
+    if (addr.road) {
+      let calle = addr.road;
+      if (addr.house_number) calle += " #" + addr.house_number;
+      partes.push(calle);
+    }
+    const barrio = addr.neighbourhood || addr.suburb || addr.residential;
+    if (barrio) {
+      partes.push(barrio.replace(/^Colonia\s+/i, "Col. "));
+    }
+    if (partes.length > 0) return partes.join(", ");
+    if (data.display_name) return data.display_name.split(",").slice(0, 2).join(",").trim();
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // --------------------------------------------------------------------------------------
 // Modal: Crear Nueva Revisita
 // --------------------------------------------------------------------------------------
@@ -517,17 +550,49 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
   let revLat = lat || (window.userCurrentLocation ? window.userCurrentLocation.lat : null);
   let revLng = lng || (window.userCurrentLocation ? window.userCurrentLocation.lon : null);
 
-  modal.querySelector("#btnAutollenarGpsRev").onclick = () => {
-    if (window.userCurrentLocation && window.userCurrentLocation.lat) {
-      revLat = window.userCurrentLocation.lat;
-      revLng = window.userCurrentLocation.lon;
-      const inputDir = modal.querySelector("#revDireccion");
-      if (!inputDir.value.trim()) {
-        inputDir.value = "Ubicación GPS fijada";
+  const btnGps = modal.querySelector("#btnAutollenarGpsRev");
+  btnGps.onclick = async () => {
+    const inputDir = modal.querySelector("#revDireccion");
+
+    const resolverDireccion = async (cLat, cLng) => {
+      revLat = cLat;
+      revLng = cLng;
+      btnGps.textContent = "⏳ Detectando calle...";
+      btnGps.style.pointerEvents = "none";
+
+      const dirDetectada = await obtenerDireccionDesdeCoordenadas(cLat, cLng);
+      btnGps.textContent = "📍 Usar mi GPS";
+      btnGps.style.pointerEvents = "auto";
+
+      if (dirDetectada) {
+        inputDir.value = dirDetectada;
+        window.mostrarToastDiscreto("Calle detectada: " + dirDetectada, "📍", 3000);
+      } else {
+        if (!inputDir.value.trim()) {
+          inputDir.value = "Ubicación GPS fijada";
+        }
+        window.mostrarToastDiscreto("Ubicación GPS fijada para esta revisita", "📍");
       }
-      window.mostrarToastDiscreto("Ubicación GPS fijada para esta revisita", "📍");
+    };
+
+    if (window.userCurrentLocation && window.userCurrentLocation.lat) {
+      await resolverDireccion(window.userCurrentLocation.lat, window.userCurrentLocation.lon);
+    } else if (navigator.geolocation) {
+      btnGps.textContent = "⏳ Obteniendo GPS...";
+      btnGps.style.pointerEvents = "none";
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          await resolverDireccion(pos.coords.latitude, pos.coords.longitude);
+        },
+        (err) => {
+          btnGps.textContent = "📍 Usar mi GPS";
+          btnGps.style.pointerEvents = "auto";
+          window.mostrarToastDiscreto("No se pudo obtener la señal GPS", "⚠️");
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
     } else {
-      window.mostrarToastDiscreto("Enciende primero tu ubicación GPS en el mapa", "📍");
+      window.mostrarToastDiscreto("Tu dispositivo no soporta GPS", "⚠️");
     }
   };
 

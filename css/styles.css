@@ -450,6 +450,95 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   transform: scale(0.93);
 }
 
+/* Tarjeta flotante con información del territorio en Modo Capitán */
+.tarjeta-info-capitan {
+  position: fixed;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  max-width: calc(100vw - 28px);
+  width: max-content;
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
+  padding: 8px 14px 8px 12px;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tarjeta-info-capitan.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tarjeta-info-capitan .info-icon {
+  font-size: 19px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tarjeta-info-capitan .info-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.tarjeta-info-capitan .info-titulo {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tarjeta-info-capitan .info-subtexto {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tarjeta-info-capitan .info-btn-cerrar {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tarjeta-info-capitan .info-btn-cerrar:hover,
+.tarjeta-info-capitan .info-btn-cerrar:active {
+  color: #ffffff;
+}
+
 /* --------------------------------------------------------------------------
    3. Barra Inferior Estilo Maps (Full Width con Parte Superior Redondeada)
    -------------------------------------------------------------------------- */

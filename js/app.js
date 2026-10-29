@@ -141,6 +141,11 @@ function enfocarTerritorio(grupo) {
   }
 
   mostrarEtiquetas();
+
+  // En Modo Capitán: mostrar cintillo informativo con estado del territorio
+  if (typeof window.mostrarTarjetaInfoCapitan === "function") {
+    window.mostrarTarjetaInfoCapitan(grupo);
+  }
 }
 
 function mostrarEtiquetas() {
@@ -253,6 +258,9 @@ function inicializarAreaGrande() {
 
   btnArea.addEventListener("click", function () {
     map.closePopup();
+    if (typeof window.ocultarTarjetaInfoCapitan === "function") {
+      window.ocultarTarjetaInfoCapitan();
+    }
     const selTerr = document.getElementById("selectorTerritorios");
     if (selTerr) selTerr.value = "";
     if (typeof ocultarMenu === "function") ocultarMenu(true);

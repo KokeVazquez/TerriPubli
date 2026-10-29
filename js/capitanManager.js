@@ -566,10 +566,24 @@
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
       window.actualizarColoresCuadrasCapitan();
     }
+
+    // Ocultar tarjeta informativa si salimos de Modo Capitán
+    if (!esCapitan && typeof window.ocultarTarjetaInfoCapitan === "function") {
+      window.ocultarTarjetaInfoCapitan();
+    }
   }
 
   // 4. Conmutar entre Publicador y Capitán
   function vincularEventosModo() {
+    // Botón cerrar de la tarjeta informativa de Capitán
+    const btnCerrarInfo = document.getElementById("btnCerrarInfoCapitan");
+    if (btnCerrarInfo) {
+      btnCerrarInfo.onclick = () => {
+        if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
+        window.ocultarTarjetaInfoCapitan();
+      };
+    }
+
     // Botón Perfil / Ingreso en la cabecera (asignación única idempotente)
     const btnIngresar = document.getElementById("btnIngresarHeader");
     if (btnIngresar) {
@@ -2736,6 +2750,104 @@ ${lineas.join("\n")}`;
         }
       });
     });
+
+    // Refrescar tarjeta informativa de territorio si hay uno enfocado
+    if (window.territorioActivo && typeof window.mostrarTarjetaInfoCapitan === "function") {
+      window.mostrarTarjetaInfoCapitan(window.territorioActivo);
+    }
+  };
+
+  // 13.5 Tarjeta Informativa de Territorio enfocado en Modo Capitán
+  window.mostrarTarjetaInfoCapitan = function (grupo) {
+    if (window.getModoActual() !== "capitan") {
+      window.ocultarTarjetaInfoCapitan();
+      return;
+    }
+    const tarjeta = document.getElementById("tarjetaInfoCapitan");
+    if (!tarjeta) return;
+
+    if (!grupo || !grupo._id) {
+      window.ocultarTarjetaInfoCapitan();
+      return;
+    }
+
+    const tId = String(grupo._id).trim();
+    const match = tId.match(/^territorio(\d+)$/i);
+    const numTLimpio = match ? match[1] : (tId.toLowerCase().includes("negocios") ? "Negocios" : tId);
+    const tituloTerr = match ? `Territorio ${numTLimpio}` : (tId.toLowerCase().includes("negocios") ? "Negocios" : tId);
+
+    // Contar cuadras predicables en este grupo
+    let totalCuadras = 0;
+    if (typeof grupo.getLayers === "function") {
+      totalCuadras = grupo.getLayers().filter(p => p._esPredicable !== false).length;
+    }
+
+    // Obtener reportes guardados
+    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const anioFiltro = (typeof anioFiltroActivo !== "undefined" && anioFiltroActivo && anioFiltroActivo !== "todos") ? anioFiltroActivo : "2026";
+
+    // Filtrar reportes para este territorio y año de servicio activo
+    const repsT = reportes.filter(r => {
+      if (!perteneceAVersionActiva(r)) return false;
+      const numR = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
+      if (String(numR) !== String(numTLimpio)) return false;
+      const p = parsearFechaReporte(r.fecha);
+      if (anioFiltro !== "todos" && p.anio && String(p.anio) !== String(anioFiltro)) return false;
+      return true;
+    });
+
+    const iconoEl = document.getElementById("infoCapitanIcono");
+    const tituloEl = document.getElementById("infoCapitanTitulo");
+    const subtextoEl = document.getElementById("infoCapitanSubtexto");
+
+    if (repsT.length === 0) {
+      iconoEl.textContent = "⚪";
+      tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#cbd5e1; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.1);">Sin trabajar</span>`;
+      subtextoEl.textContent = `No se ha reportado en el año ${anioFiltro}`;
+    } else {
+      // Ordenar por fecha más reciente
+      repsT.sort((a, b) => {
+        const fa = parsearFechaReporte(a.fecha).fechaISO || "";
+        const fb = parsearFechaReporte(b.fecha).fechaISO || "";
+        return fb.localeCompare(fa);
+      });
+      const rep = repsT[0];
+      const pFecha = parsearFechaReporte(rep.fecha);
+      const fechaDisp = pFecha.fechaDisplay || rep.fecha;
+      const capitan = rep.capitan || "No asignado";
+
+      // Determinar si está 100% completado o pendiente
+      const cuadrasTrabajadas = (Array.isArray(rep.cuadras) ? rep.cuadras.length : (rep.cuadrasTotal || 0));
+      const totRef = totalCuadras || rep.totalCuadrasTerritorio || cuadrasTrabajadas;
+      const esCompleto = totRef > 0 && cuadrasTrabajadas >= totRef;
+
+      if (esCompleto) {
+        iconoEl.textContent = "✅";
+        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#4ade80; padding:1px 6px; border-radius:6px; background:rgba(74,222,128,0.15);">Completado</span>`;
+        subtextoEl.textContent = `Terminado el ${fechaDisp} por ${capitan}`;
+      } else {
+        iconoEl.textContent = "⏳";
+        const faltantes = Math.max(1, totRef - cuadrasTrabajadas);
+        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#fbbf24; padding:1px 6px; border-radius:6px; background:rgba(251,191,36,0.15);">Pendiente (${cuadrasTrabajadas}/${totRef})</span>`;
+        subtextoEl.textContent = `Faltan ${faltantes} cuadras • Último: ${capitan} (${fechaDisp})`;
+      }
+    }
+
+    tarjeta.style.display = "flex";
+    requestAnimationFrame(() => {
+      tarjeta.classList.add("visible");
+    });
+  };
+
+  window.ocultarTarjetaInfoCapitan = function () {
+    const tarjeta = document.getElementById("tarjetaInfoCapitan");
+    if (!tarjeta) return;
+    tarjeta.classList.remove("visible");
+    setTimeout(() => {
+      if (!tarjeta.classList.contains("visible")) {
+        tarjeta.style.display = "none";
+      }
+    }, 220);
   };
 
   // 14. Filtro de Fecha en Barra Superior (Año y Selector Múltiple de Meses)
@@ -3148,6 +3260,11 @@ ${lineas.join("\n")}`;
         }
       });
     });
+
+    // Refrescar tarjeta informativa de territorio si hay uno enfocado
+    if (window.territorioActivo && typeof window.mostrarTarjetaInfoCapitan === "function") {
+      window.mostrarTarjetaInfoCapitan(window.territorioActivo);
+    }
   };
 
   function inicializarFiltroFechaBarra() {
