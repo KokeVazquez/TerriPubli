@@ -12,6 +12,7 @@ var myRenderer = L.svg({ padding: 1.5 });
 
 var map = L.map("map", {
   renderer: myRenderer,
+  tap: false,               // Desactiva emulación antigua de tap en iOS para permitir toques nativos precisos
   maxZoom: 22,
   minZoom: 10,
   zoomControl: false,
