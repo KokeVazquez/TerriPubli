@@ -545,6 +545,8 @@
     capitanOnlyElements.forEach(el => {
       if (el.id === "filtroFechaBarra") {
         el.style.display = esCapitan ? "flex" : "none";
+      } else if (el.id === "btnMenuTarjetaS12") {
+        el.style.display = esCapitan ? "flex" : "none";
       } else {
         el.style.display = esCapitan ? "inline-flex" : "none";
       }
@@ -591,6 +593,18 @@
         if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
         if (typeof window.compartirTerritorioLink === "function") {
           window.compartirTerritorioLink(window.territorioActivo ? window.territorioActivo._id : null);
+        }
+      };
+    }
+
+    const btnTarjetaS12 = document.getElementById("btnTarjetaS12Capitan");
+    if (btnTarjetaS12) {
+      btnTarjetaS12.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
+        const tId = window.territorioActivo ? window.territorioActivo._id : "territorio1";
+        if (typeof window.abrirModalTarjetaS12 === "function") {
+          window.abrirModalTarjetaS12(tId);
         }
       };
     }
@@ -1171,6 +1185,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
           <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">Territorios trabajados</h3>
           <div style="display:flex; align-items:center; gap:6px;">
+            <button id="btnHistorialVerS12" class="btn-icon-square" title="Ver e Imprimir Tarjeta S-12 (PDF)" style="width:auto; padding:0 10px; font-size:12px; font-weight:700; background:#f0fdf4; color:#166534; border:1.5px solid #bbf7d0;">📄 Tarjeta S-12</button>
             <button id="btnSyncHistorialModal" class="btn-icon-square" title="Sincronizar con la nube">🔄</button>
             <button id="btnCerrarHistorial" class="btn-icon-square" title="Cerrar">✕</button>
           </div>
@@ -1242,6 +1257,17 @@
           btnSync.classList.remove("sync-spinning");
           renderizarListaFiltrada();
         });
+      };
+    }
+
+    const btnHistS12 = modal.querySelector("#btnHistorialVerS12");
+    if (btnHistS12) {
+      btnHistS12.onclick = () => {
+        window.reproducirSonidoClick("tap");
+        const valSel = selectTerritorio ? selectTerritorio.value : "";
+        if (typeof window.abrirModalTarjetaS12 === "function") {
+          window.abrirModalTarjetaS12(valSel || (window.territorioActivo ? window.territorioActivo._id : "1"));
+        }
       };
     }
 
@@ -1340,11 +1366,23 @@
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <button class="btn-action-square btn-s12-item" title="Ver e imprimir tarjeta S-12 (PDF)" data-terr="${rep.territorioNumero || rep.territorioId}">📄</button>
             <button class="btn-action-square btn-editar" title="Editar" data-id="${rep.id}">✏️</button>
             <button class="btn-action-square btn-eliminar" title="Eliminar" data-id="${rep.id}">🗑️</button>
           </div>
         `;
         cont.appendChild(card);
+      });
+
+      cont.querySelectorAll(".btn-s12-item").forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          window.reproducirSonidoClick("tap");
+          const tNum = btn.dataset.terr;
+          if (typeof window.abrirModalTarjetaS12 === "function") {
+            window.abrirModalTarjetaS12(tNum);
+          }
+        };
       });
 
       cont.querySelectorAll(".btn-editar").forEach(btn => {
@@ -3504,6 +3542,513 @@ ${lineas.join("\n")}`;
     } catch (err) {
       console.warn("Modo offline o error al sincronizar con Google Sheets:", err);
       if (mostrarFeedback) mostrarToastDiscreto("Sin conexión a la nube ⚠️");
+    }
+  };
+
+  // ==========================================================================
+  // 17. GENERADOR VECTORIAL SVG Y MODAL DE TARJETA DE TERRITORIO OFICIAL S-12
+  // ==========================================================================
+
+  function obtenerPoligonosTerritorio(tId) {
+    const s = String(tId || "").trim().toLowerCase();
+    const esNeg = s.includes("negocios");
+    const m = s.match(/\d+/);
+    const numClean = esNeg ? "negocios" : (m ? m[0] : "1");
+    const normId = esNeg ? "territorionegocios" : `territorio${numClean}`;
+
+    let poligonos = [];
+
+    // 1. Intentar desde Leaflet FeatureGroup si ya está instanciado en el mapa
+    const grupo = (window.todosLosTerritorios || []).find(g => {
+      const gId = String(g._id || "").toLowerCase();
+      return gId === normId || (esNeg && gId.includes("negocios")) || (!esNeg && gId === `territorio${numClean}`);
+    });
+
+    if (grupo && typeof grupo.getLayers === "function" && grupo.getLayers().length > 0) {
+      grupo.getLayers().forEach(layer => {
+        let coords = [];
+        if (typeof layer.getLatLngs === "function") {
+          const ll = layer.getLatLngs();
+          if (Array.isArray(ll) && ll.length > 0) {
+            if (Array.isArray(ll[0])) {
+              coords = ll[0].map(p => [p.lat, p.lng]);
+            } else if (typeof ll[0].lat === "number") {
+              coords = ll.map(p => [p.lat, p.lng]);
+            }
+          }
+        }
+        if (coords.length >= 3) {
+          poligonos.push({
+            id: layer._id || "",
+            coords: coords,
+            label: layer._label || "",
+            color: (layer.options && layer.options.color) || "#2563eb",
+            esPredicable: layer._esPredicable !== false
+          });
+        }
+      });
+    }
+
+    // 2. Si no hay del grupo o faltan datos, buscar directamente en window.TERRITORIOS_DATA
+    if (poligonos.length === 0 && window.TERRITORIOS_DATA && Array.isArray(window.TERRITORIOS_DATA)) {
+      const itemData = window.TERRITORIOS_DATA.find(it => {
+        const dId = String(it.datos && it.datos.id || "").toLowerCase();
+        return dId === normId || (esNeg && dId.includes("negocios")) || (!esNeg && dId === `territorio${numClean}`);
+      });
+
+      if (itemData && itemData.datos && Array.isArray(itemData.datos.poligonos)) {
+        itemData.datos.poligonos.forEach(p => {
+          let coords = [];
+          if (Array.isArray(p.coords) && p.coords.length > 0) {
+            if (typeof p.coords[0][0] === "number") {
+              coords = p.coords;
+            } else if (Array.isArray(p.coords[0]) && typeof p.coords[0][0][0] === "number") {
+              coords = p.coords[0];
+            }
+          }
+          if (coords.length >= 3) {
+            const esPred = typeof window.esCuadraPredicable === "function" ? window.esCuadraPredicable(p) : (p.label !== undefined);
+            poligonos.push({
+              id: p.id || "",
+              coords: coords,
+              label: p.label || "",
+              color: p.color || "#2563eb",
+              esPredicable: esPred
+            });
+          }
+        });
+      }
+    }
+
+    return { numClean, normId, poligonos };
+  }
+
+  // Generador de SVG vectorial de alta definición para el croquis de la tarjeta S-12
+  window.generarSvgCroquisTerritorio = function (tId, width = 640, height = 360) {
+    const { poligonos } = obtenerPoligonosTerritorio(tId);
+
+    if (!poligonos || poligonos.length === 0) {
+      return `
+        <svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; display:block; background:#f8fafc;">
+          <text x="${width / 2}" y="${height / 2}" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#64748b">Croquis no disponible</text>
+        </svg>
+      `;
+    }
+
+    // 1. Calcular caja envolvente (Bounding Box) en coordenadas lat/lng
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    poligonos.forEach(p => {
+      p.coords.forEach(([lat, lng]) => {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+      });
+    });
+
+    const midLat = (minLat + maxLat) / 2;
+    const cosMid = Math.cos((midLat * Math.PI) / 180);
+    const spanX = Math.max((maxLng - minLng) * cosMid, 0.0001);
+    const spanY = Math.max(maxLat - minLat, 0.0001);
+
+    const padX = 40;
+    const padY = 36;
+    const availW = width - padX * 2;
+    const availH = height - padY * 2;
+
+    const scale = Math.min(availW / spanX, availH / spanY);
+    const offsetX = padX + (availW - spanX * scale) / 2;
+    const offsetY = padY + (availH - spanY * scale) / 2;
+
+    const project = (lat, lng) => {
+      const x = offsetX + (lng - minLng) * cosMid * scale;
+      const y = offsetY + (maxLat - lat) * scale;
+      return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+    };
+
+    // 2. Proyectar polígonos y calcular centroides de cuadras
+    let svgPaths = "";
+    let svgBadges = "";
+
+    poligonos.forEach(pol => {
+      const ptsProy = pol.coords.map(([lat, lng]) => project(lat, lng));
+      const ptsStr = ptsProy.map(([x, y]) => `${x},${y}`).join(" ");
+
+      if (!pol.esPredicable) {
+        // Hitos de referencia (Escuelas, Parques, Plazas)
+        svgPaths += `
+          <polygon points="${ptsStr}" fill="rgba(203, 213, 225, 0.45)" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" />
+        `;
+      } else {
+        // Cuadra predicable oficial
+        svgPaths += `
+          <polygon points="${ptsStr}" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+        `;
+
+        // Calcular centroide para la insignia de número de cuadra
+        let sumX = 0, sumY = 0;
+        ptsProy.forEach(([x, y]) => { sumX += x; sumY += y; });
+        const cx = Math.round((sumX / ptsProy.length) * 10) / 10;
+        const cy = Math.round((sumY / ptsProy.length) * 10) / 10;
+
+        let lbl = pol.label;
+        if (!lbl) {
+          const match = String(pol.id || "").match(/cuadra\s*(\d+[a-z]?)/i);
+          if (match) lbl = match[1];
+        }
+
+        if (lbl) {
+          svgBadges += `
+            <g class="s12-quadra-badge">
+              <circle cx="${cx}" cy="${cy}" r="11" fill="#2563eb" stroke="#ffffff" stroke-width="2" />
+              <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="900" fill="#ffffff">${lbl}</text>
+            </g>
+          `;
+        }
+      }
+    });
+
+    // 3. Barra de escala métrica real (1 grado latitud ~ 110,800m en Chihuahua)
+    const metrosPorPixel = 110800 / scale;
+    const targetMetros = 75 * metrosPorPixel;
+    let escalaMetros = 50;
+    if (targetMetros > 350) escalaMetros = 500;
+    else if (targetMetros > 175) escalaMetros = 200;
+    else if (targetMetros > 75) escalaMetros = 100;
+    else if (targetMetros > 35) escalaMetros = 50;
+    else escalaMetros = 25;
+
+    const escalaPixeles = Math.round((escalaMetros / 110800) * scale);
+    const scaleX = 26;
+    const scaleY = height - 20;
+
+    const svgScale = `
+      <g transform="translate(${scaleX}, ${scaleY})">
+        <line x1="0" y1="0" x2="${escalaPixeles}" y2="0" stroke="#475569" stroke-width="2.5" stroke-linecap="round" />
+        <line x1="0" y1="-4" x2="0" y2="4" stroke="#475569" stroke-width="2" />
+        <line x1="${escalaPixeles}" y1="-4" x2="${escalaPixeles}" y2="4" stroke="#475569" stroke-width="2" />
+        <text x="${escalaPixeles / 2}" y="-6" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="800" fill="#475569">${escalaMetros} m</text>
+      </g>
+    `;
+
+    // 4. Rosa de los vientos / Brújula Norte (Elegante y Arquitectónica)
+    const compassX = width - 42;
+    const compassY = 44;
+    const svgCompass = `
+      <g transform="translate(${compassX}, ${compassY})">
+        <circle r="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <polygon points="0,-13 4.5,-2 0,-5" fill="#dc2626" />
+        <polygon points="0,-13 -4.5,-2 0,-5" fill="#b91c1c" />
+        <polygon points="0,13 4.5,2 0,5" fill="#94a3b8" />
+        <polygon points="0,13 -4.5,2 0,5" fill="#64748b" />
+        <circle r="2" fill="#0f172a" />
+        <text x="0" y="-16" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="900" fill="#dc2626">N</text>
+      </g>
+    `;
+
+    return `
+      <svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; display:block;">
+        <defs>
+          <pattern id="s12Grid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#f1f5f9" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="${width}" height="${height}" fill="#ffffff" />
+        <rect width="${width}" height="${height}" fill="url(#s12Grid)" />
+        <g class="s12-polygons">${svgPaths}</g>
+        <g class="s12-badges">${svgBadges}</g>
+        ${svgScale}
+        ${svgCompass}
+      </svg>
+    `;
+  };
+
+  // Modal Principal de la Tarjeta Oficial S-12 con Selector, Historial y Exportación a PDF/Impresión
+  window.abrirModalTarjetaS12 = function (preTerritorioId) {
+    window.reproducirSonidoClick("tap");
+
+    // Eliminar cualquier modal S-12 previo para evitar duplicados
+    document.querySelectorAll(".s12-modal-overlay").forEach(m => m.remove());
+
+    // Determinar territorio inicial
+    let tInicial = preTerritorioId;
+    if (!tInicial && window.territorioActivo && window.territorioActivo._id) {
+      tInicial = window.territorioActivo._id;
+    }
+    let numInicial = obtenerNumeroTerritorioLimpio(tInicial, tInicial);
+    if (!numInicial || numInicial === "desconocido") numInicial = "1";
+
+    const modal = document.createElement("div");
+    modal.className = "s12-modal-overlay";
+    modal.id = "modalTarjetaS12";
+
+    modal.innerHTML = `
+      <div class="s12-modal-container">
+        <!-- Barra de herramientas superior (No se imprime) -->
+        <div class="s12-modal-toolbar">
+          <div class="s12-toolbar-left">
+            <select id="s12SelectTerritorio" class="s12-modal-select" title="Seleccionar territorio">
+              ${Array.from({ length: 84 }, (_, i) => `<option value="${i + 1}">Territorio ${i + 1}</option>`).join("")}
+              <option value="negocios">Territorio Negocios</option>
+            </select>
+            <button type="button" id="s12BtnImprimir" class="s12-btn-print" title="Imprimir tarjeta o Guardar como archivo PDF">
+              <span>🖨️</span> <span>Imprimir / Guardar PDF</span>
+            </button>
+            <button type="button" id="s12BtnCompartir" class="s12-btn-share" title="Compartir enlace directo a este territorio">
+              <span>📲</span> <span>Compartir</span>
+            </button>
+          </div>
+          <button type="button" id="s12BtnCerrar" class="btn-icon-square" title="Cerrar vista previa">✕</button>
+        </div>
+
+        <!-- Contenedor con scroll para la tarjeta en pantalla -->
+        <div class="s12-modal-scroll">
+          <div class="s12-card" id="tarjetaS12Card">
+            <!-- Cabecera de la Tarjeta S-12 -->
+            <div class="s12-header">
+              <div class="s12-header-top">
+                <span class="s12-cong-name">CONGREGACIÓN ROSARIO</span>
+                <span class="s12-form-code">FORMULARIO S-12</span>
+              </div>
+              <div class="s12-title-row">
+                <h2 class="s12-main-title">TARJETA DE TERRITORIO</h2>
+                <div class="s12-terr-badge">
+                  <span class="s12-badge-lbl">TERRITORIO</span>
+                  <span class="s12-badge-num" id="s12BadgeNumero">#</span>
+                </div>
+              </div>
+              <div class="s12-chips-row">
+                <span class="s12-chip">📍 Manzanas: <strong id="s12TotalCuadras">0</strong></span>
+                <span class="s12-chip">🏛️ Tipo: <strong id="s12TipoTerritorio">Urbano</strong></span>
+                <span class="s12-chip" id="s12ChipEstado">⚪ Sin trabajar</span>
+                <span class="s12-chip s12-chip-url">🌐 <span id="s12UrlDisplay">kokevazquez.github.io/TerriPubli/</span></span>
+              </div>
+            </div>
+
+            <!-- Croquis Vectorial SVG -->
+            <div class="s12-croquis-box" id="s12CroquisContainer"></div>
+
+            <!-- Fila Intermedia con Instrucciones y Código QR Oficial -->
+            <div class="s12-qr-info-row">
+              <div class="s12-instructions">
+                <div class="s12-ins-heading">📌 Instrucciones para el publicador:</div>
+                <div class="s12-ins-body">
+                  Predique únicamente las cuadras numeradas en este croquis. Guarde notas de revisitas en la app o libreta. Al terminar de trabajar este territorio, notifique a su capitán o devuelva esta tarjeta.
+                </div>
+              </div>
+              <div class="s12-qr-wrapper">
+                <img id="s12QrImg" src="" alt="QR Territorio" class="s12-qr-image" />
+                <span class="s12-qr-caption">Escanear para abrir</span>
+              </div>
+            </div>
+
+            <!-- Sección de Historial de Asignaciones (Tabla S-12) -->
+            <div class="s12-table-section">
+              <div class="s12-table-header-title">
+                <span>HISTORIAL DE ASIGNACIONES (S-12)</span>
+                <span style="font-size:10px; font-weight:700; color:#64748b; text-transform:none;">Registros oficiales</span>
+              </div>
+              <table class="s12-table">
+                <thead>
+                  <tr>
+                    <th style="width: 32%;">Publicador / Capitán</th>
+                    <th style="width: 22%;">Fecha Entrega</th>
+                    <th style="width: 22%;">Fecha Devolución</th>
+                    <th style="width: 24%;">Manzanas / Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="s12TableBody"></tbody>
+              </table>
+            </div>
+
+            <!-- Pie de Tarjeta -->
+            <div class="s12-footer">
+              <span>Congregación Rosario • Sistema TerRosa S-12</span>
+              <span>Conservar esta tarjeta limpia y sin doblar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const selectTerr = modal.querySelector("#s12SelectTerritorio");
+    const btnImprimir = modal.querySelector("#s12BtnImprimir");
+    const btnCompartir = modal.querySelector("#s12BtnCompartir");
+    const btnCerrar = modal.querySelector("#s12BtnCerrar");
+
+    const cerrarModal = () => {
+      window.reproducirSonidoClick("tap");
+      if (document.body.contains(modal)) modal.remove();
+    };
+
+    btnCerrar.onclick = cerrarModal;
+    modal.onclick = (e) => {
+      if (e.target === modal) cerrarModal();
+    };
+
+    // Función reactiva para actualizar toda la tarjeta al cambiar de territorio
+    const actualizarTarjeta = (targetId) => {
+      const numTLimpio = obtenerNumeroTerritorioLimpio(targetId, targetId);
+      const esNegocios = String(numTLimpio).toLowerCase().includes("negocios");
+
+      // Actualizar select si es necesario
+      if (selectTerr) {
+        selectTerr.value = esNegocios ? "negocios" : numTLimpio;
+      }
+
+      // 1. Número y tipo de territorio
+      const badgeNumero = modal.querySelector("#s12BadgeNumero");
+      const tipoTerr = modal.querySelector("#s12TipoTerritorio");
+      if (badgeNumero) badgeNumero.textContent = esNegocios ? "NEGOCIOS" : numTLimpio;
+      if (tipoTerr) tipoTerr.textContent = esNegocios ? "Comercial / Negocios" : "Urbano";
+
+      // 2. Extraer polígonos y contar cuadras predicables
+      const { poligonos } = obtenerPoligonosTerritorio(numTLimpio);
+      const totalPred = poligonos.filter(p => p.esPredicable).length;
+      const totalCuadrasEl = modal.querySelector("#s12TotalCuadras");
+      if (totalCuadrasEl) totalCuadrasEl.textContent = totalPred || poligonos.length || 0;
+
+      // 3. Generar SVG Croquis
+      const croquisBox = modal.querySelector("#s12CroquisContainer");
+      if (croquisBox) {
+        croquisBox.innerHTML = window.generarSvgCroquisTerritorio(numTLimpio, 640, 360);
+      }
+
+      // 4. URL de Deep Link y Código QR
+      const deepUrl = `https://kokevazquez.github.io/TerriPubli/?t=${numTLimpio}`;
+      const urlDisplay = modal.querySelector("#s12UrlDisplay");
+      if (urlDisplay) urlDisplay.textContent = `kokevazquez.github.io/TerriPubli/?t=${numTLimpio}`;
+
+      const qrImg = modal.querySelector("#s12QrImg");
+      if (qrImg) {
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=2&data=${encodeURIComponent(deepUrl)}`;
+        qrImg.onerror = () => { qrImg.style.display = "none"; };
+      }
+
+      // 5. Historial de Asignaciones desde LocalStorage
+      const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+      const repsT = reportes.filter(r => {
+        if (!perteneceAVersionActiva(r)) return false;
+        const numR = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
+        return String(numR) === String(numTLimpio);
+      });
+
+      // Ordenar cronológicamente (más antiguo al más reciente para formato de tarjeta física)
+      repsT.sort((a, b) => {
+        const fa = parsearFechaReporte(a.fecha).fechaISO || "";
+        const fb = parsearFechaReporte(b.fecha).fechaISO || "";
+        return fa.localeCompare(fb);
+      });
+
+      // Chip de Estado general del territorio
+      const chipEstado = modal.querySelector("#s12ChipEstado");
+      if (chipEstado) {
+        if (repsT.length === 0) {
+          chipEstado.innerHTML = "⚪ Sin trabajar en 2026";
+          chipEstado.style.background = "#f1f5f9";
+          chipEstado.style.color = "#475569";
+        } else {
+          const ultimoRep = repsT[repsT.length - 1];
+          const cuadrasTrab = (Array.isArray(ultimoRep.cuadras) ? ultimoRep.cuadras.length : (ultimoRep.cuadrasTotal || 0));
+          const totRef = totalPred || ultimoRep.totalCuadrasTerritorio || cuadrasTrab;
+          const completo = totRef > 0 && cuadrasTrab >= totRef;
+
+          if (completo) {
+            chipEstado.innerHTML = "✅ Completado";
+            chipEstado.style.background = "#dcfce7";
+            chipEstado.style.color = "#166534";
+          } else {
+            chipEstado.innerHTML = `⏳ Pendiente (${cuadrasTrab}/${totRef})`;
+            chipEstado.style.background = "#fef3c7";
+            chipEstado.style.color = "#92400e";
+          }
+        }
+      }
+
+      // Llenar tabla S-12
+      const tbody = modal.querySelector("#s12TableBody");
+      if (tbody) {
+        let rowsHtml = "";
+        repsT.forEach(rep => {
+          const p = parsearFechaReporte(rep.fecha);
+          const fDisp = p.fechaDisplay || rep.fecha;
+          const cuadrasTrab = (Array.isArray(rep.cuadras) ? rep.cuadras.length : (rep.cuadrasTotal || 0));
+          const totRef = totalPred || rep.totalCuadrasTerritorio || cuadrasTrab;
+          const esComp = totRef > 0 && cuadrasTrab >= totRef;
+          const estadoTexto = esComp ? `✅ ${cuadrasTrab}/${totRef} compl.` : `⏳ ${cuadrasTrab}/${totRef} pend.`;
+          const extraInfo = rep.comentario ? ` • ${escaparTextoSeguro(rep.comentario)}` : "";
+
+          rowsHtml += `
+            <tr>
+              <td style="font-weight:700; color:#0f172a;">${escaparTextoSeguro(rep.capitan || "Capitán")}</td>
+              <td>${fDisp}</td>
+              <td>${esComp ? fDisp : "En progreso"}</td>
+              <td>${estadoTexto}${extraInfo}</td>
+            </tr>
+          `;
+        });
+
+        // Completar con renglones punteados en blanco para escritura manual cuando se imprima
+        const filasVacias = Math.max(5, 7 - repsT.length);
+        for (let i = 0; i < filasVacias; i++) {
+          rowsHtml += `
+            <tr class="s12-row-blank">
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+          `;
+        }
+
+        tbody.innerHTML = rowsHtml;
+      }
+    };
+
+    // Cargar territorio seleccionado inicialmente
+    actualizarTarjeta(numInicial);
+
+    // Evento selector de territorio
+    if (selectTerr) {
+      selectTerr.onchange = (e) => {
+        window.reproducirSonidoClick("tap");
+        actualizarTarjeta(e.target.value);
+      };
+    }
+
+    // Botón Imprimir / Guardar como PDF
+    if (btnImprimir) {
+      btnImprimir.onclick = () => {
+        window.reproducirSonidoClick("tap");
+        window.print();
+      };
+    }
+
+    // Botón Compartir
+    if (btnCompartir) {
+      btnCompartir.onclick = () => {
+        window.reproducirSonidoClick("tap");
+        const valSel = selectTerr ? selectTerr.value : numInicial;
+        const numTLimpio = obtenerNumeroTerritorioLimpio(valSel, valSel);
+        const deepUrl = `https://kokevazquez.github.io/TerriPubli/?t=${numTLimpio}`;
+        const textoShare = `📍 Tarjeta S-12: Territorio ${numTLimpio} — Congregación Rosario\n🔗 Ver mapa y croquis: ${deepUrl}`;
+
+        if (navigator.share) {
+          navigator.share({
+            title: `Tarjeta S-12 • Territorio ${numTLimpio}`,
+            text: textoShare,
+            url: deepUrl
+          }).catch(() => {});
+        } else {
+          navigator.clipboard.writeText(deepUrl).then(() => {
+            mostrarToastDiscreto("Enlace copiado al portapapeles 📋", "✅");
+          }).catch(() => {
+            window.prompt("Copia este enlace de territorio:", deepUrl);
+          });
+        }
+      };
     }
   };
 

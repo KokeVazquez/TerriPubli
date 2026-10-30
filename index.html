@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=65" />
+  <link rel="stylesheet" href="css/styles.css?v=66" />
 </head>
 
 <body>
@@ -101,6 +101,7 @@
       <div class="info-titulo" id="infoCapitanTitulo">Territorio • Completado</div>
       <div class="info-subtexto" id="infoCapitanSubtexto">Detalles del territorio</div>
     </div>
+    <button type="button" class="info-btn-s12" id="btnTarjetaS12Capitan" title="Tarjeta de Territorio S-12 (PDF / Imprimir)">📄 S-12</button>
     <button type="button" class="info-btn-compartir" id="btnCompartirTerritorioCapitan" title="Compartir este territorio por WhatsApp o enlace">📲 Compartir</button>
     <button type="button" class="info-btn-cerrar" id="btnCerrarInfoCapitan" title="Cerrar">✕</button>
   </div>
@@ -130,6 +131,7 @@
             </button>
           </div>
           <div class="menu-panel-divider"></div>
+          <button id="btnMenuTarjetaS12" class="capitan-only" style="display:none;" onclick="if (typeof window.abrirModalTarjetaS12 === 'function') window.abrirModalTarjetaS12();">📄 Tarjeta S-12 (PDF)</button>
           <button id="btnMenuCompartirApp" onclick="if (typeof window.compartirTerritorioLink === 'function') window.compartirTerritorioLink();">📲 Compartir enlace</button>
           <button id="btnMenuLimpiarDatos" onclick="if (typeof window.confirmarResetLocal === 'function') window.confirmarResetLocal();">🗑️ Borrar datos locales</button>
         </div>
@@ -384,19 +386,19 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=65"></script>
+  <script src="js/territoriobase.js?v=66"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=65"></script>
+  <script src="js/territoriosData.js?v=66"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=65"></script>
+  <script src="js/territoriosManager.js?v=66"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=65"></script>
+  <script src="js/notas.js?v=66"></script>
   <!-- 5. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=65"></script>
+  <script src="js/capitanManager.js?v=66"></script>
   <!-- 6. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=65"></script>
+  <script src="js/app.js?v=66"></script>
   <!-- 7. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=65"></script>
+  <script src="js/pwa.js?v=66"></script>
 </body>
 
 </html>

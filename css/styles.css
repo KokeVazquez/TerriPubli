@@ -546,6 +546,35 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   background: #1e40af;
 }
 
+.tarjeta-info-capitan .info-btn-s12 {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+  margin-left: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tarjeta-info-capitan .info-btn-s12:hover {
+  background: #047857;
+}
+
+.tarjeta-info-capitan .info-btn-s12:active {
+  transform: scale(0.92);
+  background: #065f46;
+}
+
 .tarjeta-info-capitan .info-btn-cerrar {
   background: none;
   border: none;
@@ -2025,6 +2054,522 @@ body.modo-oscuro .etiqueta-poligono {
   color: #f8fafc !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
+
+/* ==========================================================================
+   TARJETA DE TERRITORIO S-12 (MODAL, VISTA PREVIA Y FORMATO DE IMPRESIÓN PDF)
+   ========================================================================== */
+
+.s12-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.s12-modal-container {
+  background: #f1f5f9;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 760px;
+  max-height: 94vh;
+  max-height: 94dvh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: terrosaScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.s12-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border-bottom: 1.5px solid #e2e8f0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.s12-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.s12-modal-select {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.s12-modal-select:focus {
+  border-color: #2563eb;
+}
+
+.s12-btn-print {
+  height: 38px;
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+}
+
+.s12-btn-print:hover {
+  background: #047857;
+}
+
+.s12-btn-print:active {
+  transform: scale(0.96);
+}
+
+.s12-btn-share {
+  height: 38px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+.s12-btn-share:hover {
+  background: #1d4ed8;
+}
+
+.s12-btn-share:active {
+  transform: scale(0.96);
+}
+
+.s12-modal-scroll {
+  overflow-y: auto;
+  padding: 16px;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tarjeta S-12 Propiamente Dicha (Contenedor Imprimible) */
+.s12-card {
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 18px;
+  padding: 22px 24px;
+  max-width: 680px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #0f172a;
+}
+
+/* Cabecera de la Tarjeta S-12 */
+.s12-header {
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.s12-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.s12-cong-name {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #475569;
+  text-transform: uppercase;
+}
+
+.s12-form-code {
+  font-size: 11px;
+  font-weight: 800;
+  border: 1.5px solid #0f172a;
+  border-radius: 5px;
+  padding: 2px 8px;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.s12-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.s12-main-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+  line-height: 1.15;
+}
+
+.s12-terr-badge {
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.s12-badge-lbl {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  opacity: 0.85;
+}
+
+.s12-badge-num {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.s12-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.s12-chip {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.s12-chip strong {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.s12-chip-url {
+  font-size: 11px;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  word-break: break-all;
+}
+
+/* Croquis SVG Map */
+.s12-croquis-box {
+  width: 100%;
+  border: 1.5px solid #0f172a;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.s12-croquis-box svg {
+  width: 100%;
+  height: auto;
+  max-height: 380px;
+  display: block;
+}
+
+/* Bloque Intermedio (Instrucciones y Código QR) */
+.s12-qr-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+}
+
+.s12-instructions {
+  flex: 1;
+  min-width: 0;
+}
+
+.s12-ins-heading {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.s12-ins-body {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.s12-qr-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 3px;
+}
+
+.s12-qr-image {
+  width: 68px;
+  height: 68px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  display: block;
+}
+
+.s12-qr-caption {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Sección de Historial de Asignaciones (Tabla S-12) */
+.s12-table-section {
+  margin-bottom: 12px;
+}
+
+.s12-table-header-title {
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #0f172a;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.s12-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  border: 1.5px solid #0f172a;
+}
+
+.s12-table th {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 6px 8px;
+  font-weight: 800;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  border: 1px solid #0f172a;
+}
+
+.s12-table td {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.s12-table tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.s12-row-blank td {
+  border-bottom: 1.5px dashed #94a3b8 !important;
+  height: 25px;
+  background: transparent !important;
+}
+
+/* Pie de Tarjeta */
+.s12-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1.5px solid #0f172a;
+  padding-top: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   REGLAS DE IMPRESIÓN (@media print): PDF Y PAPEL
+   ========================================================================== */
+@media print {
+  /* Ocultar todos los elementos de la aplicación */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  #map,
+  .top-header-bar,
+  .bottom-bar-container,
+  .floating-gps-btn,
+  .gps-banner-top,
+  .tarjeta-info-capitan,
+  #menu-panel,
+  #loader,
+  .s12-modal-toolbar,
+  .btn-icon-square,
+  .terrosa-modal-overlay:not(.s12-modal-overlay) {
+    display: none !important;
+  }
+
+  .s12-modal-overlay {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  .s12-modal-container {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    animation: none !important;
+  }
+
+  .s12-modal-scroll {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .s12-card {
+    border: 2px solid #000000 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    padding: 16px 20px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 680px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .s12-header,
+  .s12-footer,
+  .s12-croquis-box,
+  .s12-table {
+    border-color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .s12-terr-badge {
+    background: #000000 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .s12-table th {
+    background: #1e293b !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .s12-table td {
+    border-color: #64748b !important;
+    color: #000000 !important;
+  }
+
+  .s12-croquis-box svg {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: letter portrait;
+    margin: 8mm;
+  }
+}
+
 
 
 

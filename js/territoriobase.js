@@ -338,7 +338,10 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   _ultimoMenuAbierto = Date.now();
 
   const esModoCapitan = (typeof window.getModoActual === "function" && window.getModoActual() === "capitan");
-  const botonReportarCapitan = esModoCapitan ? `<button onclick="ocultarMenu(true); if (typeof abrirModalRegistroTerritorio === 'function') abrirModalRegistroTerritorio('${tId}', '${pId}');" style="color:#1a73e8; font-weight:700;">📝 Reportar cuadra</button>` : "";
+  const botonReportarCapitan = esModoCapitan ? `
+    <button onclick="ocultarMenu(true); if (typeof abrirModalRegistroTerritorio === 'function') abrirModalRegistroTerritorio('${tId}', '${pId}');" style="color:#1a73e8; font-weight:700;">📝 Reportar cuadra</button>
+    <button onclick="ocultarMenu(true); if (typeof abrirModalTarjetaS12 === 'function') abrirModalTarjetaS12('${tId}');" style="color:#059669; font-weight:700;">📄 Tarjeta S-12 (PDF)</button>
+  ` : "";
 
   menu.innerHTML = `
     <div class="menu-contextual-header">
