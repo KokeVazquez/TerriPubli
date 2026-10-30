@@ -210,13 +210,37 @@ window.navegarCuadraMenu = function () {
 
 window.compartirWhatsAppCuadra = function () {
   const menu = document.getElementById("menuContextual");
-  const link = menu ? menu.getAttribute("data-link") : "";
+  const linkMaps = menu ? menu.getAttribute("data-link") : "";
   const titulo = menu ? menu.getAttribute("data-titulo") : "Cuadra de Territorio";
+  const tId = menu ? menu.getAttribute("data-territorio-id") : "";
+  const cLabel = menu ? menu.getAttribute("data-cuadra-label") : "";
 
-  const mensaje = `📍 *${titulo}*\n\n🗺️ Abrir ubicación en Google Maps:\n${link || 'Ubicación no disponible'}`;
-  const urlWhatsapp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`;
+  // Generar enlace directo a la App de Territorios Rosario
+  const loc = window.location;
+  const baseUrl = loc.protocol + "//" + loc.host + loc.pathname;
+  let numT = (String(tId).match(/(\d+)/) || [,""])[1];
+  if (!numT && String(tId).toLowerCase().includes("negocios")) numT = "negocios";
 
-  window.open(urlWhatsapp, "_blank");
+  let linkApp = `${baseUrl}?t=${numT || tId}`;
+  if (cLabel) linkApp += `&c=${encodeURIComponent(cLabel)}`;
+
+  const mensaje = `📍 *${titulo}* (Territorios Rosario)\n\n📲 *Abrir directo en la App:* \n${linkApp}` +
+    (linkMaps && linkMaps !== "undefined" && linkMaps.trim() !== "" ? `\n\n🗺️ *Abrir en Google Maps:* \n${linkMaps}` : "");
+
+  // Soporte nativo para iPhone Safari y Android (menú compartir del sistema)
+  if (navigator.share) {
+    navigator.share({
+      title: `${titulo} - Territorios Rosario`,
+      text: mensaje,
+      url: linkApp
+    }).catch(err => {
+      if (err && err.name !== "AbortError") {
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, "_blank");
+      }
+    });
+  } else {
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, "_blank");
+  }
   ocultarMenu(true);
 };
 
@@ -257,6 +281,8 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
   menu.setAttribute("data-titulo", tituloCompleto);
   menu.setAttribute("data-lat", cLat);
   menu.setAttribute("data-lng", cLng);
+  menu.setAttribute("data-territorio-id", tId);
+  menu.setAttribute("data-cuadra-label", rawLabel || pId);
 
   let x = window.innerWidth / 2;
   let y = window.innerHeight / 2;

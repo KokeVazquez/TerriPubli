@@ -106,6 +106,18 @@ function enfocarTerritorio(grupo) {
   territorioActivo = grupo;
   window.territorioActivo = grupo;
 
+  // Actualizar URL en barra del navegador con deep link (?t=X) sin recargar la página
+  try {
+    if (grupo && grupo._id && window.history && window.history.replaceState) {
+      const numMatch = String(grupo._id).match(/(\d+)/);
+      const paramVal = numMatch ? numMatch[1] : (String(grupo._id).toLowerCase().includes("negocios") ? "negocios" : grupo._id);
+      const url = new URL(window.location);
+      url.searchParams.set("t", paramVal);
+      url.searchParams.delete("c");
+      window.history.replaceState(null, "", url.toString());
+    }
+  } catch (e) {}
+
   // Asegurar que los colores correspondan al modo activo (colorido en Publicador, grises en Capitán)
   if (typeof window.ejecutarFiltroFecha === "function" && window.hayFiltroFechaActivo && window.hayFiltroFechaActivo()) {
     window.ejecutarFiltroFecha();
@@ -179,7 +191,7 @@ function mostrarEtiquetas() {
 }
 
 // Selección directa de territorio desde cualquier cuadra
-window.seleccionarTerritorioDirecto = function (territorioId) {
+window.seleccionarTerritorioDirecto = function (territorioId, callbackOnEnfocado) {
   if (!territorioId) return;
 
   const match = territorioId.match(/^territorio(\d+)$/);
@@ -214,6 +226,9 @@ window.seleccionarTerritorioDirecto = function (territorioId) {
 
   flyWithLoader(grupo.getBounds(), function () {
     enfocarTerritorio(grupo);
+    if (typeof callbackOnEnfocado === "function") {
+      callbackOnEnfocado();
+    }
   });
 };
 
@@ -246,6 +261,156 @@ function cambiarTerritorio() {
     flyWithLoader(grupo.getBounds(), function () {
       enfocarTerritorio(grupo);
     });
+  }
+}
+
+// ==============================================================================================================================
+// 7.5 Enlaces Directos / Deep Links y Compartir Territorio (WhatsApp / Web Share)
+// ==============================================================================================================================
+
+// Compartir enlace directo a un territorio (o al territorio actualmente enfocado)
+window.compartirTerritorioLink = async function (territorioId, cuadraLabel) {
+  let targetId = territorioId;
+  if (!targetId && window.territorioActivo) {
+    targetId = window.territorioActivo._id;
+  }
+
+  const loc = window.location;
+  const baseUrl = loc.protocol + "//" + loc.host + loc.pathname;
+
+  let link = baseUrl;
+  let nomVisible = "Territorios Rosario";
+  let textoCuadra = "";
+
+  if (targetId) {
+    const numMatch = String(targetId).match(/(\d+)/);
+    const numT = numMatch ? numMatch[1] : (String(targetId).toLowerCase().includes("negocios") ? "negocios" : targetId);
+    nomVisible = formatearNombreTerritorioCorto(targetId);
+    link = `${baseUrl}?t=${numT}`;
+
+    if (cuadraLabel) {
+      link += `&c=${encodeURIComponent(cuadraLabel)}`;
+      textoCuadra = ` • Cuadra ${cuadraLabel}`;
+    }
+  }
+
+  const mensajeTexto = `📍 *${nomVisible}${textoCuadra}* (Congregación Rosario)\n\n📲 Abre el mapa directamente aquí:\n${link}`;
+
+  // Intentar compartir con Web Share API nativo (100% compatible con iPhone Safari y Android)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `${nomVisible} - Territorios Rosario`,
+        text: mensajeTexto,
+        url: link
+      });
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+    }
+  }
+
+  // Fallback 1: Copiar enlace al portapapeles
+  let copiado = false;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(link);
+      copiado = true;
+    } catch (e) {}
+  }
+
+  if (copiado) {
+    if (typeof window.mostrarToastDiscreto === "function") {
+      window.mostrarToastDiscreto("📋 Enlace copiado al portapapeles. ¡Listo para pegar en WhatsApp!", "✅");
+    }
+  } else {
+    // Fallback 2: Abrir WhatsApp Web con el texto preparado
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensajeTexto)}`;
+    window.open(waUrl, "_blank");
+  }
+};
+
+// Enfocar una cuadra específica dentro de un territorio por su letra o número (?c=B o ?c=2)
+function enfocarCuadraEspecifica(territorioId, cuadraQuery) {
+  if (!window.todosLosTerritorios || !cuadraQuery) return;
+  const tGrupo = window.todosLosTerritorios.find(t => t._id === territorioId);
+  if (!tGrupo) return;
+
+  const q = String(cuadraQuery).trim().toLowerCase();
+  let polEncontrado = null;
+
+  tGrupo.eachLayer(pol => {
+    if (polEncontrado) return;
+    const label = pol._label ? String(pol._label).trim().toLowerCase() : "";
+    const id = pol._id ? String(pol._id).trim().toLowerCase() : "";
+    if (label === q || id.endsWith(q) || id === q || id.includes("cuadra" + q)) {
+      polEncontrado = pol;
+    }
+  });
+
+  if (polEncontrado && polEncontrado.getBounds) {
+    map.flyToBounds(polEncontrado.getBounds(), { maxZoom: 18.5, duration: 0.8 });
+    try {
+      const origStyle = polEncontrado._originalStyle || { weight: 2, dashArray: null, color: polEncontrado.options.color };
+      polEncontrado.setStyle({ weight: 4, dashArray: "6, 4", color: "#2563eb", opacity: 1 });
+      const el = (polEncontrado.getElement && polEncontrado.getElement()) || polEncontrado._path;
+      if (el) el.classList.add("gps-cuadra-activa");
+      setTimeout(() => {
+        polEncontrado.setStyle(origStyle);
+        if (el) el.classList.remove("gps-cuadra-activa");
+      }, 5000);
+    } catch (e) {}
+  }
+}
+
+// Analizar parámetros de URL al abrir la app (?t=24 o ?t=negocios &c=B)
+function procesarDeepLink() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    let tParam = params.get('t') || params.get('territorio');
+    let cuadraParam = params.get('c') || params.get('cuadra');
+
+    // Soporte para formato de hash (#t=24 o #t=24&c=1)
+    if (!tParam && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#\??/, ''));
+      tParam = hashParams.get('t') || hashParams.get('territorio');
+      if (!cuadraParam) cuadraParam = hashParams.get('c') || hashParams.get('cuadra');
+    }
+
+    if (!tParam) return;
+
+    tParam = tParam.trim().toLowerCase();
+    let targetTerritorioId = "";
+    if (tParam === "negocios" || tParam === "territorionegocios") {
+      targetTerritorioId = "territorionegocios";
+    } else {
+      const numMatch = tParam.match(/(\d+)/);
+      if (numMatch) {
+        targetTerritorioId = "territorio" + numMatch[1];
+      }
+    }
+
+    if (!targetTerritorioId) return;
+
+    const cuadraParam = params.get('c') || params.get('cuadra');
+
+    // Dar tiempo al mapa para inicializar antes de enfocar el territorio
+    setTimeout(() => {
+      if (typeof window.seleccionarTerritorioDirecto === "function") {
+        window.seleccionarTerritorioDirecto(targetTerritorioId, function () {
+          if (cuadraParam) {
+            enfocarCuadraEspecifica(targetTerritorioId, cuadraParam);
+          }
+        });
+
+        const nomVisible = formatearNombreTerritorioCorto(targetTerritorioId);
+        if (typeof window.mostrarToastDiscreto === "function") {
+          window.mostrarToastDiscreto(`📍 Mostrando ${nomVisible}${cuadraParam ? ' (Cuadra ' + cuadraParam + ')' : ''}`, "🗺️");
+        }
+      }
+    }, 450);
+  } catch (e) {
+    console.error("Error al procesar deep link:", e);
   }
 }
 
@@ -288,6 +453,16 @@ function inicializarAreaGrande() {
 
     territorioActivo = null;
     window.territorioActivo = null;
+
+    // Limpiar parámetro ?t= de la URL al volver a Área Grande
+    try {
+      if (window.history && window.history.replaceState) {
+        const url = new URL(window.location);
+        url.searchParams.delete("t");
+        url.searchParams.delete("c");
+        window.history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+      }
+    } catch (e) {}
 
     // Volar suavemente al centro del área grande con fallback contra bloqueo del loader
     mostrarLoader();
@@ -748,8 +923,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicializar Control de Tema (Claro, Auto, Oscuro)
   inicializarSelectorTema();
 
+  // Procesar enlace directo / Deep Link al abrir la aplicación (?t=24 o ?t=negocios &c=B)
+  procesarDeepLink();
+
   if (hamburgerBtn && menuPanel) {
     hamburgerBtn.addEventListener('click', (e) => {
+      const btnShareMenu = document.getElementById('btnMenuCompartirApp');
+      if (btnShareMenu) {
+        if (window.territorioActivo && window.territorioActivo._id) {
+          const nom = formatearNombreTerritorioCorto(window.territorioActivo._id);
+          btnShareMenu.textContent = `📲 Compartir ${nom}`;
+        } else {
+          btnShareMenu.textContent = "📲 Compartir enlace de la app";
+        }
+      }
       menuPanel.classList.toggle('show');
       e.stopPropagation();
     });

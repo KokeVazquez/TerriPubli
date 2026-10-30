@@ -575,12 +575,23 @@
 
   // 4. Conmutar entre Publicador y Capitán
   function vincularEventosModo() {
-    // Botón cerrar de la tarjeta informativa de Capitán
+    // Botón cerrar y compartir de la tarjeta informativa de Capitán
     const btnCerrarInfo = document.getElementById("btnCerrarInfoCapitan");
     if (btnCerrarInfo) {
       btnCerrarInfo.onclick = () => {
         if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
         window.ocultarTarjetaInfoCapitan();
+      };
+    }
+
+    const btnCompartirInfo = document.getElementById("btnCompartirTerritorioCapitan");
+    if (btnCompartirInfo) {
+      btnCompartirInfo.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
+        if (typeof window.compartirTerritorioLink === "function") {
+          window.compartirTerritorioLink(window.territorioActivo ? window.territorioActivo._id : null);
+        }
       };
     }
 

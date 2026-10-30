@@ -517,6 +517,35 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   text-overflow: ellipsis;
 }
 
+.tarjeta-info-capitan .info-btn-compartir {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  margin-left: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tarjeta-info-capitan .info-btn-compartir:hover {
+  background: #1d4ed8;
+}
+
+.tarjeta-info-capitan .info-btn-compartir:active {
+  transform: scale(0.92);
+  background: #1e40af;
+}
+
 .tarjeta-info-capitan .info-btn-cerrar {
   background: none;
   border: none;
