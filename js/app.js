@@ -370,6 +370,34 @@ let seguimientoActivo = false;
 let watchId = null;
 window.userCurrentLocation = null;
 
+let cuadraResaltadaPorGps = null;
+let ultimaNotificacionTerritorio = null;
+let ultimoTiempoNotificacion = 0;
+
+function limpiarResaltadoCuadraGps() {
+  if (cuadraResaltadaPorGps) {
+    try {
+      if (cuadraResaltadaPorGps._originalStyle) {
+        cuadraResaltadaPorGps.setStyle(cuadraResaltadaPorGps._originalStyle);
+      } else {
+        cuadraResaltadaPorGps.setStyle({ weight: 2, dashArray: null });
+      }
+      const el = cuadraResaltadaPorGps.getElement ? cuadraResaltadaPorGps.getElement() : null;
+      if (el) el.classList.remove("gps-cuadra-activa");
+    } catch (e) {}
+    cuadraResaltadaPorGps = null;
+  }
+}
+
+// Formateador amigable de nombres de territorio
+function formatearNombreTerritorioCorto(territorioId) {
+  if (!territorioId) return "Territorio";
+  const numMatch = String(territorioId).match(/(\d+)/);
+  if (numMatch) return `Territorio ${numMatch[1]}`;
+  if (String(territorioId).toLowerCase().includes("negocios")) return "Territorio Negocios";
+  return String(territorioId);
+}
+
 // Determinar en qué territorio y cuadra se encuentra un punto GPS
 window.obtenerUbicacionEnTerritorios = function (lat, lon) {
   if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return null;
@@ -382,9 +410,18 @@ window.obtenerUbicacionEnTerritorios = function (lat, lon) {
         if (match) return;
         try {
           if (!pol.getLatLngs) return;
-          const latlngs = pol.getLatLngs()[0];
+          let latlngs = pol.getLatLngs();
+          while (Array.isArray(latlngs) && Array.isArray(latlngs[0])) {
+            latlngs = latlngs[0];
+          }
+          if (!latlngs || latlngs.length < 3) return;
           const coords = latlngs.map(ll => [ll.lng, ll.lat]);
-          coords.push([coords[0][0], coords[0][1]]);
+          const first = coords[0];
+          const last = coords[coords.length - 1];
+          if (first[0] !== last[0] || first[1] !== last[1]) {
+            coords.push([first[0], first[1]]);
+          }
+          if (coords.length < 4) return;
           const poly = turf.polygon([coords]);
           if (turf.booleanPointInPolygon(pt, poly)) {
             match = {
@@ -402,24 +439,34 @@ window.obtenerUbicacionEnTerritorios = function (lat, lon) {
   return null;
 };
 
-// Formateador amigable de nombres (ej: "Territorio 3, Cuadra 1")
+// Formateador amigable de nombres (ej: "Territorio 3 • Cuadra 1")
 function formatearUbicacionBanner(info) {
-  if (!info) return "📍 Fuera de los territorios";
-  let tNom = "Territorio";
-  const numMatch = String(info.territorioId || "").match(/(\d+)/);
-  if (numMatch) {
-    tNom = `Territorio ${numMatch[1]}`;
-  } else if (String(info.territorioId || "").toLowerCase().includes("negocios")) {
-    tNom = "Negocios";
-  }
-
+  if (!info) return "📍 Estás fuera de los territorios";
+  const tNom = formatearNombreTerritorioCorto(info.territorioId);
   const rawLbl = info.label ? String(info.label).trim() : "";
   const cNom = rawLbl
     ? (/^cuadra/i.test(rawLbl) ? rawLbl : `Cuadra ${rawLbl}`)
     : (info.cuadraId ? String(info.cuadraId).replace(/^.*?Cuadra/i, "Cuadra ") : "Cuadra");
 
-  return `📍 ${tNom}, ${cNom}`;
+  return `📍 ${tNom} • ${cNom}`;
 }
+
+// Enfocar el territorio donde está parado el usuario y centrar la vista
+window.enfocarTerritorioActualUsuario = function () {
+  if (window.userCurrentLocation && window.userCurrentLocation.info && window.userCurrentLocation.info.territorioId) {
+    const tId = window.userCurrentLocation.info.territorioId;
+    if (typeof window.seleccionarTerritorioDirecto === 'function') {
+      window.seleccionarTerritorioDirecto(tId);
+    }
+    if (window.userCurrentLocation.lat && window.userCurrentLocation.lon) {
+      setTimeout(() => {
+        map.flyTo([window.userCurrentLocation.lat, window.userCurrentLocation.lon], 18, { duration: 0.6 });
+      }, 350);
+    }
+  } else if (window.userCurrentLocation && window.userCurrentLocation.lat) {
+    map.flyTo([window.userCurrentLocation.lat, window.userCurrentLocation.lon], 18, { duration: 0.6 });
+  }
+};
 
 // Navegación / Cómo llegar (Abre Google Maps / Apple Maps con ruta paso a paso)
 window.comoLlegarACoord = function (destLat, destLng, titulo) {
@@ -485,6 +532,8 @@ function activarUbicacion() {
     watchId = null;
     seguimientoActivo = false;
     window.userCurrentLocation = null;
+    limpiarResaltadoCuadraGps();
+    ultimaNotificacionTerritorio = null;
     if (marcadorUbicacion) {
       map.removeLayer(marcadorUbicacion);
       marcadorUbicacion = null;
@@ -578,10 +627,71 @@ function activarUbicacion() {
         }).addTo(map);
       }
 
-      // Actualizar banner discreto superior
+      // Actualizar banner discreto superior y botón de acción directa
       if (bannerTop && bannerText) {
         bannerTop.style.display = "flex";
         bannerText.textContent = formatearUbicacionBanner(ubicacionTerritorial);
+
+        const btnVerTerr = document.getElementById("btnGpsVerTerritorio");
+        const pulseDot = document.getElementById("gpsPulseDot");
+
+        if (ubicacionTerritorial && ubicacionTerritorial.territorioId) {
+          if (pulseDot) pulseDot.className = "gps-pulse-dot activo-territorio";
+
+          const terrActivoId = window.territorioActivo ? window.territorioActivo._id : "";
+          if (btnVerTerr) {
+            btnVerTerr.style.display = "inline-flex";
+            if (terrActivoId === ubicacionTerritorial.territorioId) {
+              btnVerTerr.textContent = "✓ Enfocado";
+              btnVerTerr.title = "Ya estás viendo este territorio";
+              btnVerTerr.style.opacity = "0.75";
+            } else {
+              btnVerTerr.textContent = "Ver territorio";
+              btnVerTerr.title = "Enfocar este territorio en el mapa";
+              btnVerTerr.style.opacity = "1";
+            }
+          }
+        } else {
+          if (pulseDot) pulseDot.className = "gps-pulse-dot fuera";
+          if (btnVerTerr) btnVerTerr.style.display = "none";
+        }
+      }
+
+      // Resaltado visual en el mapa de la cuadra donde está caminando el usuario
+      if (ubicacionTerritorial && ubicacionTerritorial.poligono) {
+        if (cuadraResaltadaPorGps !== ubicacionTerritorial.poligono) {
+          limpiarResaltadoCuadraGps();
+          cuadraResaltadaPorGps = ubicacionTerritorial.poligono;
+          try {
+            cuadraResaltadaPorGps.setStyle({
+              weight: 4,
+              dashArray: "6, 4",
+              color: "#2563eb",
+              opacity: 1
+            });
+            const el = cuadraResaltadaPorGps.getElement ? cuadraResaltadaPorGps.getElement() : null;
+            if (el) el.classList.add("gps-cuadra-activa");
+          } catch (e) {}
+        }
+      } else {
+        limpiarResaltadoCuadraGps();
+      }
+
+      // Notificación toast discreta al entrar a un territorio o cambiar de territorio
+      const ahora = Date.now();
+      if (ubicacionTerritorial && ubicacionTerritorial.territorioId) {
+        if (ultimaNotificacionTerritorio !== ubicacionTerritorial.territorioId && (ahora - ultimoTiempoNotificacion > 10000)) {
+          ultimaNotificacionTerritorio = ubicacionTerritorial.territorioId;
+          ultimoTiempoNotificacion = ahora;
+          const nomT = formatearNombreTerritorioCorto(ubicacionTerritorial.territorioId);
+          const rawLbl = ubicacionTerritorial.label ? String(ubicacionTerritorial.label).trim() : "";
+          const lblC = rawLbl ? (/^cuadra/i.test(rawLbl) ? rawLbl : `Cuadra ${rawLbl}`) : "";
+          if (typeof window.mostrarToastDiscreto === "function") {
+            window.mostrarToastDiscreto(`📍 ${nomT}${lblC ? ' • ' + lblC : ''}`, "🚶‍♂️");
+          }
+        }
+      } else {
+        ultimaNotificacionTerritorio = null;
       }
 
       // Refrescar distancias en revisitas si el modal está abierto
@@ -599,6 +709,8 @@ function activarUbicacion() {
         alert("No se pudo obtener la ubicación: " + err.message);
       }
       seguimientoActivo = false;
+      limpiarResaltadoCuadraGps();
+      ultimaNotificacionTerritorio = null;
       if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
       if (btnFloatingGps) btnFloatingGps.classList.remove("activo");
       if (bannerTop) bannerTop.style.display = "none";
@@ -670,18 +782,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Centrar en ubicación desde el banner superior
+  // Centrar o enfocar territorio desde el banner superior de GPS
   const btnGpsCentrar = document.getElementById('btnGpsCentrar');
+  const btnGpsVerTerr = document.getElementById('btnGpsVerTerritorio');
+  const gpsBannerText = document.getElementById('gpsBannerText');
+
   if (btnGpsCentrar) {
     btnGpsCentrar.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (window.userCurrentLocation && window.userCurrentLocation.lat) {
-        map.flyTo([window.userCurrentLocation.lat, window.userCurrentLocation.lon], 18, { duration: 0.6 });
-        if (window.userCurrentLocation.info && window.userCurrentLocation.info.territorioId) {
-          if (typeof window.seleccionarTerritorioDirecto === 'function') {
-            window.seleccionarTerritorioDirecto(window.userCurrentLocation.info.territorioId);
-          }
-        }
+      if (typeof window.enfocarTerritorioActualUsuario === 'function') {
+        window.enfocarTerritorioActualUsuario();
+      }
+    });
+  }
+
+  if (btnGpsVerTerr) {
+    btnGpsVerTerr.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof window.enfocarTerritorioActualUsuario === 'function') {
+        window.enfocarTerritorioActualUsuario();
+      }
+    });
+  }
+
+  if (gpsBannerText) {
+    gpsBannerText.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof window.enfocarTerritorioActualUsuario === 'function') {
+        window.enfocarTerritorioActualUsuario();
       }
     });
   }

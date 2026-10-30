@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=63" />
+  <link rel="stylesheet" href="css/styles.css?v=64" />
 </head>
 
 <body>
@@ -85,11 +85,12 @@
 
   <!-- Banner Discreto de Ubicación GPS ("¿Dónde estoy parado?") -->
   <div id="gpsBannerTop" class="gps-banner-top" style="display:none;">
-    <div class="gps-banner-pill">
-      <span class="gps-pulse-dot"></span>
-      <span id="gpsBannerText" class="gps-banner-text">📍 Calculando ubicación...</span>
-      <button id="btnGpsCentrar" class="gps-banner-btn" title="Centrar mapa en mi ubicación">🎯</button>
-      <button id="btnGpsCerrar" class="gps-banner-btn-close" title="Ocultar indicador">✕</button>
+    <div class="gps-banner-pill" id="gpsBannerPill">
+      <span class="gps-pulse-dot" id="gpsPulseDot"></span>
+      <span id="gpsBannerText" class="gps-banner-text" title="Toca para enfocar este territorio">📍 Calculando ubicación...</span>
+      <button type="button" id="btnGpsVerTerritorio" class="gps-banner-btn-action" style="display:none;" title="Ver y enfocar este territorio">Ver territorio</button>
+      <button type="button" id="btnGpsCentrar" class="gps-banner-btn" title="Centrar mapa en mi ubicación">🎯</button>
+      <button type="button" id="btnGpsCerrar" class="gps-banner-btn-close" title="Ocultar indicador">✕</button>
     </div>
   </div>
 
@@ -381,19 +382,19 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=63"></script>
+  <script src="js/territoriobase.js?v=64"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=63"></script>
+  <script src="js/territoriosData.js?v=64"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=63"></script>
+  <script src="js/territoriosManager.js?v=64"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=63"></script>
+  <script src="js/notas.js?v=64"></script>
   <!-- 5. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=63"></script>
+  <script src="js/capitanManager.js?v=64"></script>
   <!-- 6. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=63"></script>
+  <script src="js/app.js?v=64"></script>
   <!-- 7. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=63"></script>
+  <script src="js/pwa.js?v=64"></script>
 </body>
 
 </html>

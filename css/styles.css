@@ -1463,18 +1463,25 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 
 .gps-banner-pill {
   pointer-events: auto;
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(15, 23, 42, 0.90);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #ffffff;
   border-radius: 50px;
   padding: 6px 14px 6px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  max-width: 90vw;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  max-width: 92vw;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.dark-mode .gps-banner-pill {
+  background: rgba(30, 41, 59, 0.94);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .gps-pulse-dot {
@@ -1485,6 +1492,16 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
   flex-shrink: 0;
   animation: pulseDot 1.4s infinite;
+}
+
+.gps-pulse-dot.activo-territorio {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
+}
+
+.gps-pulse-dot.fuera {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
 }
 
 @keyframes pulseDot {
@@ -1500,6 +1517,39 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  max-width: 58vw;
+}
+
+.gps-banner-text:active {
+  opacity: 0.8;
+}
+
+.gps-banner-btn-action {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gps-banner-btn-action:hover {
+  background: #1d4ed8;
+}
+
+.gps-banner-btn-action:active {
+  transform: scale(0.93);
 }
 
 .gps-banner-btn {
@@ -1540,6 +1590,20 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 
 .gps-banner-btn-close:active {
   color: #ffffff;
+}
+
+/* Resaltado dinámico para la cuadra donde el usuario está caminando */
+.gps-cuadra-activa {
+  stroke: #2563eb !important;
+  stroke-width: 4px !important;
+  stroke-dasharray: 6 3 !important;
+  animation: dashPulseGps 2s linear infinite;
+}
+
+@keyframes dashPulseGps {
+  to {
+    stroke-dashoffset: -18;
+  }
 }
 
 /* ============================================================================================================================== */
