@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=61" />
+  <link rel="stylesheet" href="css/styles.css?v=62" />
 </head>
 
 <body>
@@ -114,6 +114,20 @@
           </svg>
         </button>
         <div id="menu-panel" class="menu-panel">
+          <!-- Selector de Modo / Tema -->
+          <div class="menu-panel-section-title">Tema del mapa</div>
+          <div class="menu-theme-options" id="menuThemeOptions">
+            <button type="button" class="btn-theme-opt" data-theme="claro">
+              <span>☀️</span> <span>Claro</span>
+            </button>
+            <button type="button" class="btn-theme-opt" data-theme="auto">
+              <span>⚙️</span> <span>Auto</span>
+            </button>
+            <button type="button" class="btn-theme-opt" data-theme="oscuro">
+              <span>🌙</span> <span>Oscuro</span>
+            </button>
+          </div>
+          <div class="menu-panel-divider"></div>
           <button id="btnMenuLimpiarDatos" onclick="if (typeof window.confirmarResetLocal === 'function') window.confirmarResetLocal();">🗑️ Borrar datos locales</button>
         </div>
       </div>
@@ -367,19 +381,19 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=61"></script>
+  <script src="js/territoriobase.js?v=62"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=61"></script>
+  <script src="js/territoriosData.js?v=62"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=61"></script>
+  <script src="js/territoriosManager.js?v=62"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=61"></script>
+  <script src="js/notas.js?v=62"></script>
   <!-- 5. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=61"></script>
+  <script src="js/capitanManager.js?v=62"></script>
   <!-- 6. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=61"></script>
+  <script src="js/app.js?v=62"></script>
   <!-- 7. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=61"></script>
+  <script src="js/pwa.js?v=62"></script>
 </body>
 
 </html>

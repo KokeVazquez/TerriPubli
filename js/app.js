@@ -633,6 +633,9 @@ document.addEventListener('DOMContentLoaded', () => {
   localStorage.setItem("territorios_version", "anterior");
   window.TERRITORIO_VERSION_ACTIVA = "anterior";
 
+  // Inicializar Control de Tema (Claro, Auto, Oscuro)
+  inicializarSelectorTema();
+
   if (hamburgerBtn && menuPanel) {
     hamburgerBtn.addEventListener('click', (e) => {
       menuPanel.classList.toggle('show');
@@ -728,5 +731,60 @@ window.confirmarResetLocal = function () {
     });
   }
 };
+
+// ==============================================================================================================================
+// 12. Gestión de Tema Visual (Claro / Auto / Oscuro)
+// ==============================================================================================================================
+function inicializarSelectorTema() {
+  const botonesTema = document.querySelectorAll(".btn-theme-opt");
+  const temaGuardado = localStorage.getItem("terrosa_tema_visual") || "auto";
+
+  function aplicarTema(modo) {
+    let esOscuro = false;
+    if (modo === "oscuro") {
+      esOscuro = true;
+    } else if (modo === "claro") {
+      esOscuro = false;
+    } else {
+      // Auto: basado en preferencia del sistema o noche (después de 7:30 PM o antes de 6:30 AM)
+      const prefiereOscuroSistema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const hora = new Date().getHours();
+      const esDeNoche = (hora >= 19 || hora < 7);
+      esOscuro = prefiereOscuroSistema || esDeNoche;
+    }
+
+    document.body.classList.toggle("modo-oscuro", esOscuro);
+
+    botonesTema.forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-theme") === modo);
+    });
+  }
+
+  botonesTema.forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
+      const nuevoModo = btn.getAttribute("data-theme");
+      localStorage.setItem("terrosa_tema_visual", nuevoModo);
+      aplicarTema(nuevoModo);
+
+      const nombres = { claro: "Modo Claro ☀️", auto: "Modo Automático ⚙️", oscuro: "Modo Oscuro 🌙" };
+      if (typeof window.mostrarToastDiscreto === "function") {
+        window.mostrarToastDiscreto(nombres[nuevoModo] || "Tema actualizado", "✨");
+      }
+    };
+  });
+
+  // Escuchar cambios de preferencia del sistema si está en 'auto'
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      const modoAct = localStorage.getItem("terrosa_tema_visual") || "auto";
+      if (modoAct === "auto") aplicarTema("auto");
+    });
+  }
+
+  aplicarTema(temaGuardado);
+}
+
 
 

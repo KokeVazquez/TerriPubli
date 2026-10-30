@@ -728,12 +728,65 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
-  padding: 8px;
+  padding: 10px;
   display: none;
   flex-direction: column;
   gap: 6px;
-  min-width: 210px;
+  min-width: 220px;
   z-index: 10002;
+}
+
+.menu-panel-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px 2px 8px;
+}
+
+.menu-theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 3px;
+  border-radius: 12px;
+}
+
+.btn-theme-opt {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  padding: 6px 2px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn-theme-opt span:first-child {
+  font-size: 14px;
+}
+
+.btn-theme-opt.active {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+.menu-panel-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 4px 0;
 }
 
 .menu-panel.show {
@@ -1719,5 +1772,166 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ============================================================================================================================== */
+/* === MODO OSCURO (DARK MODE) PARA TERROSA === */
+/* ============================================================================================================================== */
+body.modo-oscuro {
+  background-color: #0b0f19;
+  color: #f1f5f9;
+}
+
+body.modo-oscuro .top-header-bar {
+  background-color: #0f172a;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+body.modo-oscuro .top-header-title .header-title-row1 {
+  color: #f8fafc;
+}
+
+body.modo-oscuro .top-header-title .header-title-row2 {
+  color: #cbd5e1;
+}
+
+body.modo-oscuro .top-header-subtitle.modo-publicador {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+body.modo-oscuro .btn-ingresar-pill {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+body.modo-oscuro .btn-ingresar-pill:active {
+  background: #334155;
+}
+
+/* Barra inferior en modo oscuro */
+body.modo-oscuro .bottom-bar-container {
+  background: rgba(15, 23, 42, 0.94);
+  border-top-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.45);
+}
+
+body.modo-oscuro .pill-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+body.modo-oscuro .pill-btn:active {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.modo-oscuro .bottom-bar-pill .custom-select .selected {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.modo-oscuro .bottom-bar-pill .custom-select .options {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4);
+}
+
+body.modo-oscuro .bottom-bar-pill .custom-select .options li {
+  color: #f1f5f9;
+}
+
+body.modo-oscuro .bottom-bar-pill .custom-select .options li:hover,
+body.modo-oscuro .bottom-bar-pill .custom-select .options li:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Menú hamburguesa en modo oscuro */
+body.modo-oscuro .menu-panel {
+  background: rgba(15, 23, 42, 0.96);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+}
+
+body.modo-oscuro .menu-panel button {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+
+body.modo-oscuro .menu-panel button:hover,
+body.modo-oscuro .menu-panel button:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.modo-oscuro .menu-panel-section-title {
+  color: #94a3b8;
+}
+
+body.modo-oscuro .menu-theme-options {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.modo-oscuro .btn-theme-opt {
+  color: #cbd5e1 !important;
+}
+
+body.modo-oscuro .btn-theme-opt.active {
+  background: #334155 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.modo-oscuro .menu-panel-divider {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Modales en modo oscuro */
+body.modo-oscuro .terrosa-modal-card {
+  background: #1e293b;
+  color: #f8fafc;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+body.modo-oscuro .terrosa-modal-card h3 {
+  color: #f8fafc !important;
+}
+
+body.modo-oscuro .terrosa-modal-card p,
+body.modo-oscuro .terrosa-modal-card label {
+  color: #cbd5e1 !important;
+}
+
+body.modo-oscuro .terrosa-modal-card input,
+body.modo-oscuro .terrosa-modal-card select,
+body.modo-oscuro .terrosa-modal-card textarea {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+body.modo-oscuro .revisita-card,
+body.modo-oscuro .card-historial-minimal {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+body.modo-oscuro .card-historial-minimal span {
+  color: #f8fafc !important;
+}
+
+/* Filtro de satélite/mosaico oscuro en Leaflet */
+body.modo-oscuro .leaflet-tile-pane {
+  filter: brightness(0.68) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35);
+}
+
+body.modo-oscuro .etiqueta-poligono {
+  background: rgba(15, 23, 42, 0.88) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
 
 
