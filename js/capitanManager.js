@@ -3268,6 +3268,20 @@ ${lineas.join("\n")}`;
     }
 
     window.todosLosTerritorios.forEach(grupo => {
+      const tId = grupo._id;
+      const setMatch = cuadrasCoincidentes[tId] || new Set();
+
+      let totalPredicables = 0;
+      let hechas = 0;
+      grupo.eachLayer(pol => {
+        if (pol._esPredicable !== false) {
+          totalPredicables++;
+          if (setMatch.has(pol._id)) hechas++;
+        }
+      });
+      const esIncompleto = (totalPredicables > 0 && hechas > 0 && hechas < totalPredicables);
+
+      grupo.eachLayer(pol => {
         if (!pol._originalStyle) return;
 
         const fueHecha = (pol._esPredicable !== false) && setMatch.has(pol._id);
