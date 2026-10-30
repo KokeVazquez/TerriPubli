@@ -1165,30 +1165,44 @@
           </div>
         </div>
 
-        <!-- Buscador Rápido (Un solo emoji de lupa en el icono) -->
-        <div style="position:relative; margin-bottom:10px; flex-shrink:0;">
-          <input type="text" id="buscadorHistorial" placeholder="Buscar territorio o capitán..." autocomplete="off" style="
-            width:100%; padding:9px 12px 9px 34px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
+        <!-- Buscador Rápido con botón de limpiar -->
+        <div style="position:relative; margin-bottom:8px; flex-shrink:0;">
+          <input type="text" id="buscadorHistorial" placeholder="Buscar por capitán o territorio (ej. Koke, T14)..." autocomplete="off" style="
+            width:100%; padding:9px 34px 9px 34px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
           " />
           <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#94a3b8; pointer-events:none;">🔍</span>
+          <button type="button" id="btnLimpiarBuscadorHistorial" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; font-size:14px; font-weight:700; cursor:pointer; padding:4px;">✕</button>
         </div>
 
-        <!-- Dos Filtros: Año de Servicio y Selector de Mes (Soporta 1 mes, varios meses o todos) -->
-        <div style="display:flex; gap:8px; margin-bottom:12px; flex-shrink:0;">
+        <!-- Tres Filtros: Año de Servicio, Selector de Mes y Selector Rápido de Territorio -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1.25fr; gap:6px; margin-bottom:8px; flex-shrink:0;">
           <select id="filtroHistorialAnio" style="
-            flex:1; min-width:0; height:42px; min-height:42px; padding:0 10px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
+            height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
           ">
-            <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>📅 Serv. 2026</option>
-            <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>📅 Serv. 2025</option>
-            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>📅 Todos los años</option>
+            <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>📅 2026</option>
+            <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>📅 2025</option>
+            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>📅 Todos</option>
           </select>
 
           <button type="button" id="btnHistorialMesesFiltro" style="
-            flex:1; min-width:0; height:42px; min-height:42px; display:flex; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:0 12px; font-weight:700; font-size:13.5px; color:#0f172a; outline:none; white-space:nowrap; overflow:hidden; box-sizing:border-box;
+            height:38px; display:flex; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:0 8px; font-weight:700; font-size:12.5px; color:#0f172a; outline:none; white-space:nowrap; overflow:hidden; box-sizing:border-box;
           ">
             <span id="txtHistorialMesLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${obtenerTextoBotonMesesHistorial()}</span>
-            <span style="font-size:11px; margin-left:4px; opacity:0.7; flex-shrink:0;">▾</span>
+            <span style="font-size:10px; margin-left:2px; opacity:0.7; flex-shrink:0;">▾</span>
           </button>
+
+          <select id="filtroHistorialTerritorio" style="
+            height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
+          ">
+            <option value="">🏛️ Terr: Todos</option>
+            ${Array.from({ length: 84 }, (_, i) => `<option value="${i + 1}">Territorio ${i + 1}</option>`).join("")}
+            <option value="negocios">Negocios</option>
+          </select>
+        </div>
+
+        <!-- Contador dinámico de resultados -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:11.5px; color:#64748b; font-weight:700; padding:0 2px; flex-shrink:0;">
+          <span id="lblContadorHistorial">Cargando registros...</span>
         </div>
 
         <!-- Lista de Tarjetas Estéticas con Contenedor Fijo y Scroll Interno -->
@@ -1221,9 +1235,12 @@
     }
 
     const selectAnio = modal.querySelector("#filtroHistorialAnio");
+    const selectTerritorio = modal.querySelector("#filtroHistorialTerritorio");
     const btnMesesFiltro = modal.querySelector("#btnHistorialMesesFiltro");
     const txtMesLabel = modal.querySelector("#txtHistorialMesLabel");
     const inputBuscador = modal.querySelector("#buscadorHistorial");
+    const btnLimpiarBusq = modal.querySelector("#btnLimpiarBuscadorHistorial");
+    const lblContador = modal.querySelector("#lblContadorHistorial");
     const cont = modal.querySelector("#listaItemsHistorial");
 
     function renderizarListaFiltrada() {
@@ -1231,7 +1248,12 @@
         .filter(r => perteneceAVersionActiva(r));
 
       const query = (inputBuscador ? inputBuscador.value : "").trim().toLowerCase();
+      const terrFiltro = (selectTerritorio ? selectTerritorio.value : "").trim().toLowerCase();
       const filtrarMes = (mesesHistorialSel.size > 0 && mesesHistorialSel.size < 12);
+
+      if (btnLimpiarBusq) {
+        btnLimpiarBusq.style.display = query ? "block" : "none";
+      }
 
       const filtrados = reportes.filter(r => {
         const p = parsearFechaReporte(r.fecha);
@@ -1240,20 +1262,29 @@
         // Filtro de Año de Servicio
         if (filtroAnioSel !== "todos" && !perteneceAAnioServicio(r.fecha, filtroAnioSel)) return false;
 
-        // Filtro de Meses (Soporta 1 mes, varios meses o todos)
+        // Filtro de Meses
         if (filtrarMes && !mesesHistorialSel.has(p.mes)) return false;
+
+        // Filtro por selector rápido de territorio
+        const tNumRaw = String(r.territorioNumero || r.territorioId || "").replace(/^territorio/i, "").trim().toLowerCase();
+        if (terrFiltro && tNumRaw !== terrFiltro) return false;
 
         // Filtro de Búsqueda de Texto
         if (query) {
-          const tNum = String(r.territorioNumero || r.territorioId || "").toLowerCase();
           const cap = String(r.capitan || "").toLowerCase();
           const com = String(r.comentario || "").toLowerCase();
           const fechaStr = String(r.fecha || "").toLowerCase();
-          const matchTerr = (tNum === query) || tNum.includes(query) || `t-${tNum}`.includes(query) || `territorio ${tNum}`.includes(query);
+          const fechaDisp = (p.fechaDisplay || "").toLowerCase();
+
+          // Reconocer "t24", "t-24", "terr 24", "24"
+          const queryTerrLimpio = query.replace(/^(t|terr|territorio)[-\s]*/i, "").trim();
+          const matchTerrExacto = queryTerrLimpio && (tNumRaw === queryTerrLimpio);
+          const matchTerrTexto = tNumRaw.includes(query) || `territorio ${tNumRaw}`.includes(query) || `t${tNumRaw}`.includes(query);
           const matchCap = cap.includes(query);
           const matchCom = com.includes(query);
-          const matchFecha = fechaStr.includes(query);
-          if (!matchTerr && !matchCap && !matchCom && !matchFecha) return false;
+          const matchFecha = fechaStr.includes(query) || fechaDisp.includes(query);
+
+          if (!matchTerrExacto && !matchTerrTexto && !matchCap && !matchCom && !matchFecha) return false;
         }
 
         return true;
@@ -1261,6 +1292,10 @@
 
       const listaOrdenada = [...filtrados].reverse();
       cont.innerHTML = "";
+
+      if (lblContador) {
+        lblContador.textContent = `Mostrando ${listaOrdenada.length} de ${reportes.length} registros`;
+      }
 
       if (listaOrdenada.length === 0) {
         cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:50px 16px; font-size:15px; font-weight:700;">Sin resultados</div>';
@@ -1340,6 +1375,22 @@
 
     if (inputBuscador) {
       inputBuscador.addEventListener("input", () => {
+        renderizarListaFiltrada();
+      });
+    }
+
+    if (btnLimpiarBusq) {
+      btnLimpiarBusq.addEventListener("click", () => {
+        window.reproducirSonidoClick("tap");
+        inputBuscador.value = "";
+        renderizarListaFiltrada();
+        inputBuscador.focus();
+      });
+    }
+
+    if (selectTerritorio) {
+      selectTerritorio.addEventListener("change", () => {
+        window.reproducirSonidoClick("tap");
         renderizarListaFiltrada();
       });
     }
@@ -3168,7 +3219,7 @@ ${lineas.join("\n")}`;
     const anio = anioFiltroActivo || "2026";
 
     const filtrarPorMes = (mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12);
-    const hayFiltro = (filtrarPorMes || anio !== "todos");
+    const hayFiltro = (filtrarPorMes || anio !== "todos" || filtroIncompletosActivo);
     if (btnLimpiar) btnLimpiar.style.display = hayFiltro ? "inline-flex" : "none";
 
     const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
@@ -3209,8 +3260,14 @@ ${lineas.join("\n")}`;
 
       const esIncompleto = (totalPredicables > 0 && hechas > 0 && hechas < totalPredicables);
       if (esIncompleto) territoriosIncompletosCount++;
+    });
 
-      grupo.eachLayer(pol => {
+    const txtIncompletos = document.getElementById("txtFiltroIncompletosLabel");
+    if (txtIncompletos) {
+      txtIncompletos.textContent = `⏳ Pendientes (${territoriosIncompletosCount})`;
+    }
+
+    window.todosLosTerritorios.forEach(grupo => {
         if (!pol._originalStyle) return;
 
         const fueHecha = (pol._esPredicable !== false) && setMatch.has(pol._id);
@@ -3326,6 +3383,9 @@ ${lineas.join("\n")}`;
           window.reproducirSonidoClick("tap");
           mesesFiltroActivos.clear();
           localStorage.setItem("terrosa_filtro_meses", JSON.stringify([]));
+          filtroIncompletosActivo = false;
+          const btnIncomp = document.getElementById("btnFiltroIncompletos");
+          if (btnIncomp) btnIncomp.classList.remove("incompletos-activo");
           actualizarEtiquetaBotonMeses();
           window.ejecutarFiltroFecha();
         };

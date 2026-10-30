@@ -718,6 +718,167 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
 };
 
 // --------------------------------------------------------------------------------------
+// Modal: Respaldar / Compartir o Restaurar Revisitas (WhatsApp y JSON)
+// --------------------------------------------------------------------------------------
+window.abrirModalRespaldarRevisitas = function (onRestaurado) {
+  if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
+  const prev = document.getElementById("modalRespaldarRevisitas");
+  if (prev) prev.remove();
+
+  const revisitas = window.obtenerRevisitasLocales();
+
+  const modal = document.createElement("div");
+  modal.id = "modalRespaldarRevisitas";
+  modal.className = "terrosa-modal-overlay";
+  modal.style.zIndex = "1000008";
+
+  modal.innerHTML = `
+    <div class="terrosa-modal-card" style="max-width:350px; padding:22px 18px; text-align:center;">
+      <div style="font-size:32px; margin-bottom:6px;">📤</div>
+      <h3 style="margin:0 0 4px 0; font-size:18px; font-weight:800; color:#0f172a;">Respaldar Revisitas</h3>
+      <p style="margin:0 0 16px 0; font-size:12.5px; color:#64748b; line-height:1.4;">
+        Tienes <b>${revisitas.length} revisita${revisitas.length === 1 ? '' : 's'}</b> en este dispositivo. Puedes compartirlas o guardar una copia:
+      </p>
+
+      <div style="display:flex; flex-direction:column; gap:9px; text-align:left;">
+        <!-- Botón 1: WhatsApp -->
+        <button id="btnCompartirWhatsAppRev" style="
+          display:flex; align-items:center; gap:10px; width:100%; padding:11px 14px; border-radius:14px; border:1.5px solid #22c55e; background:#f0fdf4; color:#15803d; font-size:13.5px; font-weight:700; cursor:pointer; outline:none; box-sizing:border-box;
+        ">
+          <span style="font-size:22px;">📲</span>
+          <div>
+            <div style="font-weight:800; color:#15803d;">Enviar a mi WhatsApp</div>
+            <div style="font-size:11px; color:#16a34a;">Lista de texto limpia con nombres y notas</div>
+          </div>
+        </button>
+
+        <!-- Botón 2: Descargar JSON -->
+        <button id="btnDescargarRespaldoRev" style="
+          display:flex; align-items:center; gap:10px; width:100%; padding:11px 14px; border-radius:14px; border:1.5px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-size:13.5px; font-weight:700; cursor:pointer; outline:none; box-sizing:border-box;
+        ">
+          <span style="font-size:22px;">💾</span>
+          <div>
+            <div style="font-weight:800; color:#1d4ed8;">Guardar archivo de copia</div>
+            <div style="font-size:11px; color:#2563eb;">Descarga un archivo .json de seguridad</div>
+          </div>
+        </button>
+
+        <!-- Botón 3: Restaurar JSON -->
+        <button id="btnRestaurarArchivoRev" style="
+          display:flex; align-items:center; gap:10px; width:100%; padding:11px 14px; border-radius:14px; border:1.5px solid #94a3b8; background:#f8fafc; color:#334155; font-size:13.5px; font-weight:700; cursor:pointer; outline:none; box-sizing:border-box;
+        ">
+          <span style="font-size:22px;">📥</span>
+          <div>
+            <div style="font-weight:800; color:#0f172a;">Restaurar desde archivo</div>
+            <div style="font-size:11px; color:#64748b;">Cargar copia guardada previamente</div>
+          </div>
+        </button>
+        <input type="file" id="fileInputRestaurarRev" accept=".json" style="display:none;" />
+      </div>
+
+      <button id="btnCerrarModalRespaldo" style="
+        width:100%; height:40px; border-radius:12px; border:1px solid #cbd5e1; background:#f1f5f9; color:#475569; font-weight:700; font-size:13px; margin-top:14px; cursor:pointer; outline:none;
+      ">Cerrar</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const cerrar = () => {
+    if (document.body.contains(modal)) document.body.removeChild(modal);
+  };
+
+  modal.querySelector("#btnCerrarModalRespaldo").onclick = cerrar;
+
+  // Compartir en WhatsApp
+  modal.querySelector("#btnCompartirWhatsAppRev").onclick = () => {
+    if (revisitas.length === 0) {
+      window.mostrarToastDiscreto("No tienes revisitas registradas aún", "⚠️");
+      return;
+    }
+    let texto = `📋 *MIS REVISITAS - TERROSA*\nTotal: ${revisitas.length} personas\nFecha: ${obtenerFechaLocalISO()}\n\n`;
+    revisitas.forEach((r, idx) => {
+      const cat = r.categoria || "Persona";
+      const nom = r.nombre || "Sin nombre";
+      const dir = r.direccion ? `📍 ${r.direccion}` : "";
+      const terr = (r.tituloCuadra || r.territorioId) ? `🏛️ ${r.tituloCuadra || r.territorioId}` : "";
+      let ultNotas = "";
+      if (r.visitas && r.visitas.length > 0) {
+        const v = r.visitas[0];
+        ultNotas = `📅 ${v.fecha || ""}${v.notas ? " — " + v.notas : ""}`;
+      } else if (r.notasIniciales) {
+        ultNotas = `💬 ${r.notasIniciales}`;
+      }
+      texto += `*${idx + 1}. ${nom}* (${cat})\n`;
+      if (dir) texto += `   ${dir}\n`;
+      if (terr) texto += `   ${terr}\n`;
+      if (ultNotas) texto += `   ${ultNotas}\n`;
+      texto += `\n`;
+    });
+    const urlWa = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(urlWa, "_blank");
+  };
+
+  // Descargar JSON
+  modal.querySelector("#btnDescargarRespaldoRev").onclick = () => {
+    if (revisitas.length === 0) {
+      window.mostrarToastDiscreto("No tienes revisitas registradas para guardar", "⚠️");
+      return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(revisitas, null, 2));
+    const dlAnchor = document.createElement("a");
+    const fecha = obtenerFechaLocalISO();
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `terrosa_revisitas_respaldo_${fecha}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+    window.mostrarToastDiscreto("Copia de seguridad descargada", "💾");
+  };
+
+  // Restaurar desde JSON
+  const fileInput = modal.querySelector("#fileInputRestaurarRev");
+  modal.querySelector("#btnRestaurarArchivoRev").onclick = () => {
+    fileInput.click();
+  };
+
+  fileInput.onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importadas = JSON.parse(event.target.result);
+        if (!Array.isArray(importadas)) {
+          window.mostrarToastDiscreto("El archivo no tiene el formato correcto", "⚠️");
+          return;
+        }
+        const actuales = window.obtenerRevisitasLocales();
+        const mapaActuales = new Map(actuales.map(r => [r.id, r]));
+        let nuevasCount = 0;
+        importadas.forEach(imp => {
+          if (imp && imp.id) {
+            if (!mapaActuales.has(imp.id)) nuevasCount++;
+            mapaActuales.set(imp.id, imp);
+          }
+        });
+        const listaFinal = Array.from(mapaActuales.values());
+        localStorage.setItem("terrosa_revisitas_data", JSON.stringify(listaFinal));
+        if (typeof window.refrescarIndicadoresNotas === "function") {
+          window.refrescarIndicadoresNotas();
+        }
+        if (onRestaurado) onRestaurado();
+        cerrar();
+        window.mostrarToastDiscreto(`¡Restaurado! ${listaFinal.length} revisitas listas (${nuevasCount} nuevas) ✅`, "🎉", 3500);
+      } catch (err) {
+        window.mostrarToastDiscreto("Error al leer el archivo de respaldo", "⚠️");
+      }
+    };
+    reader.readAsText(file);
+  };
+};
+
+// --------------------------------------------------------------------------------------
 // Modal Principal: "Mis Revisitas y Notas" (con Pestañas, Búsqueda y Proximidad GPS)
 // --------------------------------------------------------------------------------------
 function abrirModalTodasNotas() {
@@ -736,7 +897,7 @@ function abrirModalTodasNotas() {
 
   modal.innerHTML = `
     <div class="terrosa-modal-card terrosa-modal-large" style="max-height:88vh; display:flex; flex-direction:column; padding:18px 16px;">
-      <!-- Header Superior con Tabs -->
+      <!-- Header Superior con Tabs y Respaldar -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
         <div style="display:flex; gap:8px;">
           <button id="tabBtnRevisitas" class="filtro-pildora-btn" style="background:#2563eb; color:#ffffff; border-color:#2563eb; font-size:13px; height:34px; padding:0 14px;">
@@ -746,7 +907,10 @@ function abrirModalTodasNotas() {
             📒 Notas
           </button>
         </div>
-        <button id="btnCerrarModalNotasGen" class="btn-icon-square">✕</button>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button id="btnRespaldarRevisitas" class="btn-icon-square" title="Respaldar, compartir o restaurar revisitas" style="font-size:15px; width:34px; height:34px;">📤</button>
+          <button id="btnCerrarModalNotasGen" class="btn-icon-square" style="width:34px; height:34px;">✕</button>
+        </div>
       </div>
 
       <!-- Buscador rápido -->
@@ -766,6 +930,13 @@ function abrirModalTodasNotas() {
   };
 
   modal.querySelector("#btnCerrarModalNotasGen").onclick = cerrar;
+
+  const btnRespaldar = modal.querySelector("#btnRespaldarRevisitas");
+  if (btnRespaldar) {
+    btnRespaldar.onclick = () => {
+      window.abrirModalRespaldarRevisitas(renderizarContenido);
+    };
+  }
 
   const tabRev = modal.querySelector("#tabBtnRevisitas");
   const tabNot = modal.querySelector("#tabBtnNotas");
