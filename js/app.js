@@ -746,11 +746,8 @@ function inicializarSelectorTema() {
     } else if (modo === "claro") {
       esOscuro = false;
     } else {
-      // Auto: basado en preferencia del sistema o noche (después de 7:30 PM o antes de 6:30 AM)
-      const prefiereOscuroSistema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const hora = new Date().getHours();
-      const esDeNoche = (hora >= 19 || hora < 7);
-      esOscuro = prefiereOscuroSistema || esDeNoche;
+      // Auto (Predeterminado): se rige exclusivamente por el ajuste del sistema del dispositivo
+      esOscuro = Boolean(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
     }
 
     document.body.classList.toggle("modo-oscuro", esOscuro);
