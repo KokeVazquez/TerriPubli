@@ -2019,7 +2019,7 @@
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                 <label style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase;">Cuadras trabajadas</label>
                 <button id="btnToggleTodasCuadras" type="button" style="
-                  background:#ef4444; color:#ffffff; border:none; border-radius:16px; padding:5px 12px; font-size:11.5px; font-weight:800; cursor:pointer; box-shadow:0 2px 6px rgba(239,68,68,0.25); transition:transform 0.15s;
+                  background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; border-radius:10px; padding:5px 12px; font-size:11.5px; font-weight:700; cursor:pointer; transition:transform 0.15s;
                 ">Seleccionar todas</button>
               </div>
               
@@ -2043,9 +2043,7 @@
             </label>
 
             <!-- Botón para añadir este territorio al lote -->
-            <button id="btnAgregarTerritorioLote" type="button" style="
-              width:100%; padding:10px 14px; background:#0284c7; color:white; border:none; border-radius:12px; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 3px 8px rgba(2,132,199,0.28); display:flex; align-items:center; justify-content:center; gap:6px; transition:transform 0.15s;
-            ">
+            <button id="btnAgregarTerritorioLote" type="button" class="terrosa-btn-primary" style="width:100%; height:40px; font-size:13.5px;">
               <span>+ Agregar territorio al reporte</span>
             </button>
           </div>
@@ -2068,9 +2066,7 @@
 
         <!-- Botón de Guardar Definitivo -->
         <div style="margin-top:12px; flex-shrink:0;">
-          <button id="btnEnviarReporte" style="
-            width:100%; padding:13px; background:linear-gradient(135deg, #1a73e8, #1557b0); color:white; border:none; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(26,115,232,0.35); transition:transform 0.15s;
-          ">Guardar Reporte</button>
+          <button id="btnEnviarReporte" class="terrosa-btn-primary" style="width:100%; height:46px; font-size:15px; border-radius:14px;">Guardar Reporte</button>
         </div>
       </div>
     `;
