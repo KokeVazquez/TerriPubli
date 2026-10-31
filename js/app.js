@@ -392,8 +392,6 @@ function procesarDeepLink() {
 
     if (!targetTerritorioId) return;
 
-    const cuadraParam = params.get('c') || params.get('cuadra');
-
     // Dar tiempo al mapa para inicializar antes de enfocar el territorio
     setTimeout(() => {
       if (typeof window.seleccionarTerritorioDirecto === "function") {
