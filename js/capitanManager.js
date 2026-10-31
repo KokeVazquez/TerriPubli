@@ -2085,7 +2085,12 @@
         const opt = document.createElement("option");
         opt.value = d.id;
         opt.textContent = `Territorio ${d.numeroTerritorio !== undefined ? d.numeroTerritorio : d.id}`;
-        if (territorioActivo && d.id === territorioActivo) opt.selected = true;
+        const esCoincidencia = territorioActivo && (
+          String(d.id).toLowerCase() === String(territorioActivo).toLowerCase() ||
+          String(d.numeroTerritorio) === String(territorioActivo) ||
+          String(d.id).toLowerCase() === ('territorio' + String(territorioActivo)).toLowerCase()
+        );
+        if (esCoincidencia) opt.selected = true;
         selectTerr.appendChild(opt);
       });
     }
@@ -2101,7 +2106,12 @@
         return;
       }
 
-      const item = window.TERRITORIOS_DATA.find(x => x.datos.id === tId);
+      const item = window.TERRITORIOS_DATA.find(x => {
+        const d = x.datos;
+        return String(d.id).toLowerCase() === String(tId).toLowerCase() ||
+               String(d.numeroTerritorio) === String(tId) ||
+               String(d.id).toLowerCase() === ('territorio' + String(tId)).toLowerCase();
+      });
       if (!item || !item.datos.poligonos) {
         contenedorCuadras.innerHTML = '<div style="font-size:12.5px; color:#94a3b8; text-align:center; padding:14px;">Sin cuadras registradas</div>';
         return;
@@ -2117,56 +2127,102 @@
       const pFecha = parsearFechaReporte(fechaSeleccionada);
       const infoMes = obtenerInfoCuadrasTrabajadasEnMes(tId, numT, pFecha.anio, pFecha.mes);
 
-      contenedorCuadras.innerHTML = "";
+      let forzarHabilitarTodas = false;
 
-      // Aviso si el territorio ya tiene reportes en este mes
-      if (infoMes.listaReportesT.length > 0) {
-        const ult = infoMes.listaReportesT[0];
-        const aviso = document.createElement("div");
-        aviso.style.cssText = "background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:6px 10px; margin-bottom:5px; font-size:12px; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:6px;";
-        aviso.innerHTML = `<span>Trabajado el <b>${ult.fecha}</b> (${ult.capitan})</span>`;
-        contenedorCuadras.appendChild(aviso);
-      }
+      function construirListaCuadras() {
+        contenedorCuadras.innerHTML = "";
+        let disponiblesCount = 0;
 
-      cuadrasPredicables.forEach((pol, idx) => {
-        const cuadraNum = (pol.label !== null && pol.label !== undefined && String(pol.label).trim() !== "")
-          ? String(pol.label).trim()
-          : (idx + 1);
+        // Aviso si el territorio ya tiene reportes en este mes
+        if (infoMes.listaReportesT.length > 0) {
+          const ult = infoMes.listaReportesT[0];
+          const aviso = document.createElement("div");
+          aviso.style.cssText = "background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:6px 10px; margin-bottom:5px; font-size:12px; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:6px;";
+          aviso.innerHTML = `<span>Trabajado el <b>${ult.fecha}</b> (${ult.capitan})</span>`;
+          contenedorCuadras.appendChild(aviso);
+        }
 
-        const infoCuadra = infoMes.mapaCuadras.get(pol.id);
-        const yaTrabajada = !!infoCuadra;
-        const isPreselected = Boolean(preCuadraId && (pol.id === preCuadraId || String(cuadraNum) === String(preCuadraId)));
+        cuadrasPredicables.forEach((pol, idx) => {
+          const cuadraNum = (pol.label !== null && pol.label !== undefined && String(pol.label).trim() !== "")
+            ? String(pol.label).trim()
+            : (idx + 1);
 
-        // IMPORTANTE: Las cuadras previamente trabajadas por otro hermano NO deben auto-marcarse en este nuevo reporte.
-        // Solo se preselecciona la cuadra si el capitán le dio clic directo en el mapa.
-        const estaMarcada = isPreselected;
+          const infoCuadra = infoMes.mapaCuadras.get(pol.id);
+          const yaTrabajada = !!infoCuadra && !forzarHabilitarTodas;
+          const isPreselected = Boolean(preCuadraId && (pol.id === preCuadraId || String(cuadraNum) === String(preCuadraId)));
 
-        const chip = document.createElement("div");
-        chip.className = `chip-cuadra-item ${estaMarcada ? "selected" : ""} ${yaTrabajada ? "trabajada-mes" : ""}`;
-        chip.innerHTML = `
-          <div style="display:flex; align-items:center; gap:9px;">
-            <input type="checkbox" value="${pol.id}" class="chk-cuadra" ${estaMarcada ? "checked" : ""} style="width:16px; height:16px; accent-color:#1a73e8; cursor:pointer; pointer-events:none;"/>
-            <span style="font-weight:700; font-size:13.5px; color:#1e293b;">Cuadra ${cuadraNum}</span>
-          </div>
-          ${yaTrabajada ? `<span class="chip-badge-mes" style="font-size:10.5px; padding:2px 6px; border-radius:6px; background:#e0f2fe; color:#0369a1; font-weight:700;">Hecha el ${infoCuadra.fechaDisplay}${infoCuadra.capitan ? ' (' + infoCuadra.capitan + ')' : ''}</span>` : ''}
-        `;
+          const chip = document.createElement("div");
 
-        chip.addEventListener("click", () => {
-          const chk = chip.querySelector(".chk-cuadra");
-          chk.checked = !chk.checked;
-          chip.classList.toggle("selected", chk.checked);
-          window.reproducirSonidoClick("toggle");
-          const todosChks = contenedorCuadras.querySelectorAll(".chk-cuadra");
-          const todasChecked = todosChks.length > 0 && Array.from(todosChks).every(c => c.checked);
-          btnToggleTodas.textContent = todasChecked ? "Desmarcar todas" : "Seleccionar todas";
+          if (yaTrabajada) {
+            // Cuadra YA HECHA: Sin casilla de verificación, fondo gris, texto tachado y subtítulo con fecha y capitán
+            chip.className = "chip-cuadra-item trabajada-mes";
+            chip.style.cssText = "background:#f8fafc; border:1.5px solid #cbd5e1; opacity:0.88; cursor:default; display:flex; flex-direction:column; align-items:flex-start; gap:3px; padding:9px 12px; margin-bottom:4px;";
+            chip.innerHTML = `
+              <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span style="font-weight:700; font-size:13.5px; color:#64748b; text-decoration:line-through;">Cuadra ${cuadraNum}</span>
+                <span style="font-size:10px; font-weight:800; color:#059669; background:#dcfce7; padding:2px 7px; border-radius:6px;">Hecha</span>
+              </div>
+              <div style="font-size:11px; color:#64748b; font-weight:500;">
+                Terminada el ${infoCuadra.fechaDisplay}${infoCuadra.capitan ? ' por ' + escaparTextoSeguro(infoCuadra.capitan) : ''}
+              </div>
+            `;
+          } else {
+            // Cuadra DISPONIBLE: Con casilla de verificación activa
+            disponiblesCount++;
+            const estaMarcada = isPreselected;
+            chip.className = `chip-cuadra-item ${estaMarcada ? "selected" : ""}`;
+            chip.style.cssText = "cursor:pointer; padding:9px 12px; margin-bottom:4px;";
+            chip.innerHTML = `
+              <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <div style="display:flex; align-items:center; gap:9px;">
+                  <input type="checkbox" value="${pol.id}" class="chk-cuadra" ${estaMarcada ? "checked" : ""} style="width:17px; height:17px; accent-color:#1a73e8; cursor:pointer; pointer-events:none;"/>
+                  <span style="font-weight:700; font-size:13.5px; color:#0f172a;">Cuadra ${cuadraNum}</span>
+                </div>
+                <span style="font-size:10.5px; font-weight:700; color:#2563eb; background:#eff6ff; padding:2px 7px; border-radius:6px;">Disponible</span>
+              </div>
+            `;
+
+            chip.addEventListener("click", () => {
+              const chk = chip.querySelector(".chk-cuadra");
+              chk.checked = !chk.checked;
+              chip.classList.toggle("selected", chk.checked);
+              window.reproducirSonidoClick("toggle");
+              const todosChks = contenedorCuadras.querySelectorAll(".chk-cuadra");
+              const todasChecked = todosChks.length > 0 && Array.from(todosChks).every(c => c.checked);
+              btnToggleTodas.textContent = todasChecked ? "Desmarcar todas" : "Seleccionar disponibles";
+            });
+          }
+
+          contenedorCuadras.appendChild(chip);
         });
 
-        contenedorCuadras.appendChild(chip);
-      });
+        // Si todas las cuadras estaban terminadas en el mes
+        if (disponiblesCount === 0 && cuadrasPredicables.length > 0 && !forzarHabilitarTodas) {
+          btnToggleTodas.style.display = "none";
+          const avisoCompleto = document.createElement("div");
+          avisoCompleto.style.cssText = "font-size:12px; color:#059669; background:#dcfce7; border:1px solid #bbf7d0; border-radius:10px; padding:9px 12px; margin-top:8px; font-weight:700; text-align:center;";
+          avisoCompleto.textContent = "Todas las cuadras de este territorio ya se completaron en este mes.";
+          contenedorCuadras.appendChild(avisoCompleto);
 
-      const todosChksInicial = contenedorCuadras.querySelectorAll(".chk-cuadra");
-      const todasCheckedInicial = todosChksInicial.length > 0 && Array.from(todosChksInicial).every(c => c.checked);
-      btnToggleTodas.textContent = todasCheckedInicial ? "Desmarcar todas" : "Seleccionar todas";
+          const btnReabrir = document.createElement("button");
+          btnReabrir.type = "button";
+          btnReabrir.style.cssText = "display:block; width:100%; margin-top:8px; background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:700; cursor:pointer; text-decoration:underline;";
+          btnReabrir.textContent = "¿Deseas volver a predicar cuadras ya hechas?";
+          btnReabrir.onclick = () => {
+            forzarHabilitarTodas = true;
+            btnToggleTodas.style.display = "inline-flex";
+            construirListaCuadras();
+          };
+          contenedorCuadras.appendChild(btnReabrir);
+        } else {
+          btnToggleTodas.style.display = "inline-flex";
+          const todosChksInicial = contenedorCuadras.querySelectorAll(".chk-cuadra");
+          const todasCheckedInicial = todosChksInicial.length > 0 && Array.from(todosChksInicial).every(c => c.checked);
+          btnToggleTodas.textContent = todasCheckedInicial ? "Desmarcar todas" : "Seleccionar disponibles";
+        }
+      }
+
+      construirListaCuadras();
     }
 
     if (selectTerr.value) {
@@ -2194,7 +2250,7 @@
         const chip = c.closest(".chip-cuadra-item");
         if (chip) chip.classList.toggle("selected", !todas);
       });
-      btnToggleTodas.textContent = todas ? "Seleccionar todas" : "Desmarcar todas";
+      btnToggleTodas.textContent = todas ? "Seleccionar disponibles" : "Desmarcar todas";
     });
 
     // Función para refrescar la lista de tarjetas de lote
