@@ -2778,3 +2778,72 @@ button, .btn, h1, h2, h3, h4, .s12-chip, .s12-main-title, .s12-form-code, .s12-c
 .btn, button, .filtro-pildora-btn, .s12-chip, .chip-categoria {
   word-break: keep-all;
 }
+
+
+/* ==========================================================================
+   ETAPA 3: COMPATIBILIDAD IPHONE, TECLADO VIRTUAL Y DISPOSITIVOS GAMA BAJA/MEDIA
+   ========================================================================== */
+
+/* 1. Inputs >= 16px para evitar auto-zoom en iOS Safari sin bloquear el pellizco de accesibilidad */
+.terrosa-modal-card input:not([type="checkbox"]):not([type="radio"]),
+.terrosa-modal-card select,
+.terrosa-modal-card textarea,
+.s12-select-search-box input,
+#inputNota {
+  font-size: 16px !important;
+}
+
+/* 2. Adaptación dinámica de modales cuando el teclado virtual está abierto (--vvh) */
+.terrosa-modal-overlay {
+  height: var(--vvh, 100dvh);
+  padding-top: max(12px, env(safe-area-inset-top, 12px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+}
+
+body.teclado-abierto .terrosa-modal-overlay {
+  align-items: flex-start !important;
+  padding-top: max(8px, env(safe-area-inset-top, 8px)) !important;
+  padding-bottom: 8px !important;
+}
+
+body.teclado-abierto .terrosa-modal-card {
+  margin: 0 auto !important;
+  max-height: calc(var(--vvh, 100dvh) - 16px) !important;
+  overflow-y: auto !important;
+}
+
+/* 3. Selector S-12 adaptado a pantallas estrechas (320px - 360px) */
+.s12-select-dropdown {
+  max-width: calc(100vw - 28px);
+}
+
+/* 4. Evitar estados :hover "pegados" en pantallas táctiles (iPhone / Android) */
+@media (hover: none) and (pointer: coarse) {
+  .s12-btn-print:hover { background: #059669; }
+  .s12-btn-share:hover { background: #2563eb; }
+  .s12-btn-ir-territorio:hover { background: #2563eb; }
+  .s12-select-trigger:hover { background: #f8fafc; border-color: #cbd5e1; }
+  .s12-dropdown-item:hover { background: transparent; color: #1e293b; }
+  .s12-dropdown-item.active:hover { background: #dbeafe; color: #1e40af; }
+  .card-historial-minimal:hover { transform: none; }
+}
+
+/* 5. Optimización de rendimiento gráfico (GPU) en móviles y dispositivos de gama baja/media */
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .terrosa-modal-overlay,
+  .s12-modal-overlay {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .menu-contextual {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.98);
+  }
+  .gps-banner-pill,
+  .terrosa-toast-discreto {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(15, 23, 42, 0.96);
+  }
+}

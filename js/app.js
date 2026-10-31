@@ -749,7 +749,7 @@ function activarUbicacion() {
   loader.id = "loaderUbicacion";
   loader.innerHTML = `
     <div style="
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh;
       background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
       z-index: 99999;
     ">
@@ -1080,6 +1080,10 @@ function inicializarSelectorTema() {
     }
 
     document.body.classList.toggle("modo-oscuro", esOscuro);
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute("content", esOscuro ? "#0f172a" : "#e5e3df");
+    }
 
     botonesTema.forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-theme") === modo);

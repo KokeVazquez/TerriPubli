@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v75';
+const CACHE_NAME = 'territorios-cache-v76';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -69,6 +69,11 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
+  // Ignorar llamadas dinámicas a la API de Google Sheets o QR externo
+  if (url.hostname.includes('script.google') || url.hostname.includes('googleusercontent.com') || url.hostname.includes('qrserver.com')) {
+    return;
+  }
+
   // Mosaicos de OpenStreetMap: Cache-First para máximo rendimiento offline y velocidad
   if (url.hostname.includes('tile.openstreetmap.org') || url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg')) {
     event.respondWith(
@@ -89,9 +94,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Archivos de la aplicación: Network-First con fallback a Caché
+  // Archivos de la aplicación: Network-First con tiempo límite (4s) y fallback a Caché
+  const fetchConTimeout = () => {
+    if (typeof AbortController === 'undefined') return fetch(event.request);
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 4000);
+    return fetch(event.request, { signal: ctrl.signal }).finally(() => clearTimeout(tid));
+  };
+
   event.respondWith(
-    fetch(event.request)
+    fetchConTimeout()
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();

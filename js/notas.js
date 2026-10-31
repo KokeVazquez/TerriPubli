@@ -475,8 +475,8 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
   modal.className = "terrosa-modal-overlay";
 
   modal.innerHTML = `
-    <div class="terrosa-modal-card" style="max-width:360px; max-height:90vh; overflow-y:auto; padding:20px 18px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="terrosa-modal-card" style="max-width:360px; max-height:calc(var(--vvh, 100dvh) - 24px); display:flex; flex-direction:column; padding:20px 18px; box-sizing:border-box;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink:0;">
         <div>
           <h3 style="margin:0; font-size:17.5px; font-weight:800; color:#0f172a;">Nueva Revisita</h3>
           <span style="font-size:12px; font-weight:700; color:#2563eb;">${escaparTexto(tituloCuadra || "Cuadra")}</span>
@@ -484,11 +484,11 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
         <button id="btnCerrarCrearRevisita" class="btn-icon-square">✕</button>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; flex-direction:column; gap:11px; flex:1; min-height:0; overflow-y:auto; padding-right:2px; -webkit-overflow-scrolling:touch;">
         <!-- Nombre de la persona -->
         <div>
           <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Nombre de la persona / Familia *</label>
-          <input type="text" id="revNombrePersona" placeholder="Escribe aquí..." style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+          <input type="text" id="revNombrePersona" placeholder="Escribe aquí..." style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:16px; box-sizing:border-box; outline:none; background:#f8fafc;" />
         </div>
 
         <!-- Categoría / Tipo de persona -->
@@ -509,23 +509,25 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
             <label style="font-size:12px; font-weight:700; color:#475569;">Dirección / Calle y Número</label>
             <button type="button" id="btnAutollenarGpsRev" style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:700; cursor:pointer; padding:0;">Usar mi GPS</button>
           </div>
-          <input type="text" id="revDireccion" placeholder="Escribe aquí..." style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+          <input type="text" id="revDireccion" placeholder="Escribe aquí..." style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:16px; box-sizing:border-box; outline:none; background:#f8fafc;" />
         </div>
 
         <!-- Fecha primera visita -->
         <div>
           <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Fecha de visita</label>
-          <input type="date" id="revFechaVisita" value="${fechaHoy}" style="width:100%; height:38px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+          <input type="date" id="revFechaVisita" value="${fechaHoy}" style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:16px; box-sizing:border-box; outline:none; background:#f8fafc;" />
         </div>
 
         <!-- Tema platicado / Publicación dejada -->
         <div>
           <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">¿De qué hablaron? / Pregunta pendiente</label>
-          <textarea id="revNotasConversacion" rows="3" placeholder="Escribe aquí..." style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
+          <textarea id="revNotasConversacion" rows="3" placeholder="Escribe aquí..." style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:16px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
         </div>
+      </div>
 
-        <!-- Botón Guardar -->
-        <button id="btnGuardarNuevaRevisita" style="width:100%; height:44px; border-radius:14px; background:#2563eb; color:#ffffff; font-size:15px; font-weight:800; border:none; cursor:pointer; margin-top:4px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+      <!-- Botón Guardar siempre visible -->
+      <div style="margin-top:10px; flex-shrink:0;">
+        <button id="btnGuardarNuevaRevisita" style="width:100%; height:44px; border-radius:14px; background:#2563eb; color:#ffffff; font-size:15px; font-weight:800; border:none; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
           Guardar Revisita
         </button>
       </div>

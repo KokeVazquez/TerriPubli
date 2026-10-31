@@ -114,6 +114,20 @@
         `).join("");
       }
       dropdownEl.style.display = "block";
+      try {
+        const rect = inputEl.getBoundingClientRect();
+        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const espacioAbajo = vh - rect.bottom;
+        if (espacioAbajo < 165 && rect.top > 170) {
+          dropdownEl.style.top = "auto";
+          dropdownEl.style.bottom = "calc(100% + 4px)";
+          dropdownEl.style.maxHeight = "150px";
+        } else {
+          dropdownEl.style.top = "calc(100% + 4px)";
+          dropdownEl.style.bottom = "auto";
+          dropdownEl.style.maxHeight = "165px";
+        }
+      } catch (err) {}
     }
 
     inputEl.addEventListener("focus", () => {
@@ -155,7 +169,11 @@
       }
     }
 
-    document.addEventListener("click", (e) => {
+    const _cerrarSugerenciasHandler = (e) => {
+      if (!document.body.contains(inputEl)) {
+        document.removeEventListener("click", _cerrarSugerenciasHandler);
+        return;
+      }
       if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
         dropdownEl.style.display = "none";
         const match = resolverCapitanOficial(inputEl.value);
@@ -164,7 +182,8 @@
         }
         actualizarEstadoVisual();
       }
-    });
+    };
+    document.addEventListener("click", _cerrarSugerenciasHandler);
 
     actualizarEstadoVisual();
   }
@@ -1099,7 +1118,7 @@
     if (!lockOverlay) {
       lockOverlay = document.createElement("div");
       lockOverlay.id = "pantallaBloqueoAcceso";
-      lockOverlay.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; color:#ffffff; z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; box-sizing:border-box;";
+      lockOverlay.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; height:100dvh; background:#0f172a; color:#ffffff; z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; box-sizing:border-box;";
       document.body.appendChild(lockOverlay);
     }
     lockOverlay.innerHTML = `
@@ -1264,8 +1283,7 @@
           <select id="filtroHistorialAnio" style="
             height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
           ">
-            <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>2026</option>
-            <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>2025</option>
+            ${obtenerListaAniosServicio().map(y => `<option value="${y}" ${String(filtroAnioSel) === String(y) ? "selected" : ""}>${y}</option>`).join("")}
             <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>Todos los años</option>
           </select>
 
@@ -1280,8 +1298,7 @@
             height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
           ">
             <option value="">Territorio: Todos</option>
-            ${Array.from({ length: 84 }, (_, i) => `<option value="${i + 1}">Territorio ${i + 1}</option>`).join("")}
-            <option value="negocios">Negocios</option>
+            ${obtenerOpcionesTerritoriosDisponibles().map(op => `<option value="${op.val}">${op.shortLabel}</option>`).join("")}
           </select>
         </div>
 
@@ -1950,8 +1967,8 @@
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
     modal.innerHTML = `
-      <div class="terrosa-modal-card terrosa-modal-large" style="padding:22px 20px; max-width:440px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div class="terrosa-modal-card terrosa-modal-large" style="padding:20px 18px; max-width:440px; max-height:calc(var(--vvh, 100dvh) - 24px); display:flex; flex-direction:column; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink:0;">
           <div>
             <h3 style="margin:0; color:#0f172a; font-size:18.5px; font-weight:800;">Reportar Territorios</h3>
             <span style="font-size:11.5px; color:#64748b; font-weight:600;">Agrega uno o varios territorios y guarda todo junto</span>
@@ -1959,7 +1976,7 @@
           <button id="btnCerrarModalReg" class="btn-icon-square">✕</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:11px; max-height:74vh; overflow-y:auto; padding-right:2px;">
+        <div style="display:flex; flex-direction:column; gap:11px; flex:1; min-height:0; overflow-y:auto; padding-right:2px; -webkit-overflow-scrolling:touch;">
           <!-- Encabezado del reporte: Capitán oficial y Fecha -->
           <div style="display:flex; gap:10px; align-items:flex-start;">
             <div style="flex:1.2; position:relative;">
@@ -2050,7 +2067,7 @@
         </div>
 
         <!-- Botón de Guardar Definitivo -->
-        <div style="margin-top:14px;">
+        <div style="margin-top:12px; flex-shrink:0;">
           <button id="btnEnviarReporte" style="
             width:100%; padding:13px; background:linear-gradient(135deg, #1a73e8, #1557b0); color:white; border:none; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(26,115,232,0.35); transition:transform 0.15s;
           ">Guardar Reporte</button>
@@ -2315,7 +2332,12 @@
       const chks = Array.from(contenedorCuadras.querySelectorAll(".chk-cuadra:checked"));
       if (chks.length === 0) return null;
 
-      const itemT = window.TERRITORIOS_DATA.find(x => x.datos.id === tId);
+      const itemT = (window.TERRITORIOS_DATA || []).find(x => {
+        const d = x.datos || {};
+        return String(d.id).toLowerCase() === String(tId).toLowerCase() ||
+               String(d.numeroTerritorio) === String(tId) ||
+               String(d.id).toLowerCase() === ("territorio" + String(tId)).toLowerCase();
+      });
       const numT = itemT ? (itemT.datos.numeroTerritorio !== undefined ? itemT.datos.numeroTerritorio : tId) : tId;
       const numTLimpio = obtenerNumeroTerritorioLimpio(tId, numT);
       const cuadrasIds = chks.map(c => aCodigoCortoCuadra(c.value, numTLimpio));
@@ -2998,7 +3020,53 @@ ${lineas.join("\n")}`;
   let _filtroFechaBarraInicializado = false;
   let filtroIncompletosActivo = false;
   let mesesFiltroActivos = new Set();
-  let anioFiltroActivo = "2026";
+
+  function obtenerAnioServicioPorDefecto() {
+    const ahora = new Date();
+    const y = ahora.getFullYear();
+    const m = ahora.getMonth() + 1;
+    const calc = (m >= 9) ? y : (y - 1);
+    return String(Math.max(2026, calc));
+  }
+
+  function obtenerListaAniosServicio() {
+    const actualNum = parseInt(obtenerAnioServicioPorDefecto(), 10);
+    const aniosSet = new Set([actualNum, 2026, 2025]);
+    try {
+      const reps = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+      reps.forEach(r => {
+        if (r && r.fecha) {
+          const str = String(r.fecha).slice(0, 10);
+          const y = parseInt(str.slice(0, 4), 10);
+          const m = parseInt(str.slice(5, 7), 10);
+          if (!isNaN(y) && !isNaN(m)) {
+            const srvY = (str <= "2026-08-31") ? 2025 : ((m >= 9) ? y : (y - 1));
+            if (srvY >= 2025) aniosSet.add(srvY);
+          }
+        }
+      });
+    } catch (e) {}
+    return Array.from(aniosSet).sort((a, b) => b - a);
+  }
+
+  function obtenerOpcionesTerritoriosDisponibles() {
+    if (window.TERRITORIOS_DATA && Array.isArray(window.TERRITORIOS_DATA) && window.TERRITORIOS_DATA.length > 0) {
+      return window.TERRITORIOS_DATA.map(t => {
+        const d = t.datos || {};
+        const rawNum = d.numeroTerritorio !== undefined ? String(d.numeroTerritorio) : String(d.id || "");
+        const esNeg = rawNum.toLowerCase().includes("negocio") || String(d.id || "").toLowerCase().includes("negocio");
+        const val = esNeg ? "negocios" : rawNum.replace(/[^\d]/g, "");
+        const label = esNeg ? "Territorio Negocios" : `Territorio ${val}`;
+        return { val, label, shortLabel: esNeg ? "Negocios" : label };
+      });
+    }
+    return [
+      ...Array.from({ length: 84 }, (_, i) => ({ val: String(i + 1), label: `Territorio ${i + 1}`, shortLabel: `Territorio ${i + 1}` })),
+      { val: "negocios", label: "Territorio Negocios", shortLabel: "Negocios" }
+    ];
+  }
+
+  let anioFiltroActivo = obtenerAnioServicioPorDefecto();
 
   // Función para determinar si una fecha ISO pertenece al Año de Servicio seleccionado
   // Cada año de servicio es de septiembre a agosto: ej. 2025 es hasta 31/08/2026; 2026 es de 01/09/2026 a 31/08/2027.
@@ -3268,9 +3336,19 @@ ${lineas.join("\n")}`;
     const modal = document.createElement("div");
     modal.className = "terrosa-modal-overlay";
 
+    const anioDef = obtenerAnioServicioPorDefecto();
     const opciones = [
-      { id: "2026", titulo: "Año de Servicio 2026", sub: "Septiembre 2026 a Agosto 2027 (Actual)" },
-      { id: "2025", titulo: "Año de Servicio 2025", sub: "Hasta 31 de Agosto de 2026" },
+      ...obtenerListaAniosServicio().map(y => {
+        const yStr = String(y);
+        if (y === 2025) {
+          return { id: "2025", titulo: "Año de Servicio 2025", sub: "Hasta 31 de Agosto de 2026" };
+        }
+        return {
+          id: yStr,
+          titulo: `Año de Servicio ${yStr}`,
+          sub: `Septiembre ${y} a Agosto ${y + 1}${yStr === anioDef ? " (Actual)" : ""}`
+        };
+      }),
       { id: "todos", titulo: "Todos los años", sub: "Mostrar todos los registros sin filtro de año" }
     ];
 
@@ -3329,10 +3407,8 @@ ${lineas.join("\n")}`;
   function actualizarEtiquetaBotonAnio() {
     const lbl = document.getElementById("txtFiltroAnioLabel");
     if (!lbl) return;
-    if (anioFiltroActivo === "2026") {
-      lbl.textContent = "2026";
-    } else if (anioFiltroActivo === "2025") {
-      lbl.textContent = "2025";
+    if (anioFiltroActivo && anioFiltroActivo !== "todos") {
+      lbl.textContent = String(anioFiltroActivo);
     } else {
       lbl.textContent = "Todos";
     }
@@ -3663,9 +3739,9 @@ ${lineas.join("\n")}`;
     if (!_filtroFechaBarraInicializado) {
       _filtroFechaBarraInicializado = true;
 
-      // Cargar año guardado o por defecto 2026
+      // Cargar año guardado o por defecto el año de servicio actual
       const anioGuardado = localStorage.getItem("terrosa_filtro_anio");
-      anioFiltroActivo = anioGuardado || "2026";
+      anioFiltroActivo = anioGuardado || obtenerAnioServicioPorDefecto();
 
       // Cargar meses guardados o por defecto el mes actual
       const mesesGuardados = localStorage.getItem("terrosa_filtro_meses");
@@ -3734,7 +3810,10 @@ ${lineas.join("\n")}`;
     try {
       if (mostrarFeedback) mostrarToastDiscreto("Sincronizando con Google Sheets...");
 
-      const res = await fetch(URL_API_GOOGLE_SHEETS, { method: "GET" });
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timerId = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
+      const res = await fetch(URL_API_GOOGLE_SHEETS, { method: "GET", signal: ctrl ? ctrl.signal : undefined });
+      if (timerId) clearTimeout(timerId);
       const data = await res.json();
 
       const listaReportes = (data && Array.isArray(data.reportes))
@@ -4073,8 +4152,7 @@ ${lineas.join("\n")}`;
             </div>
             <!-- Select nativo sincronizado para accesibilidad/compatibilidad -->
             <select id="s12SelectTerritorio" style="display:none;" title="Seleccionar territorio">
-              ${Array.from({ length: 84 }, (_, i) => `<option value="${i + 1}">Territorio ${i + 1}</option>`).join("")}
-              <option value="negocios">Territorio Negocios</option>
+              ${obtenerOpcionesTerritoriosDisponibles().map(op => `<option value="${op.val}">${op.label}</option>`).join("")}
             </select>
             <button type="button" id="s12BtnImprimir" class="s12-btn-print" title="Imprimir tarjeta o Guardar como archivo PDF">
               <span>Imprimir / Guardar PDF</span>
@@ -4309,10 +4387,7 @@ ${lineas.join("\n")}`;
     const optionsListSelect = modal.querySelector("#s12SelectOptionsList");
     const selectLabel = modal.querySelector("#s12SelectLabel");
 
-    const opcionesTerritorios = [
-      ...Array.from({ length: 84 }, (_, i) => ({ val: String(i + 1), label: `Territorio ${i + 1}` })),
-      { val: "negocios", label: "Territorio Negocios" }
-    ];
+    const opcionesTerritorios = obtenerOpcionesTerritoriosDisponibles();
 
     function renderizarOpcionesDropdown(filtro = "") {
       if (!optionsListSelect) return;
@@ -4360,7 +4435,10 @@ ${lineas.join("\n")}`;
         if (!visible && searchInputSelect) {
           searchInputSelect.value = "";
           renderizarOpcionesDropdown();
-          setTimeout(() => searchInputSelect.focus(), 60);
+          const esPantallaTactil = Boolean(window.matchMedia && window.matchMedia("(hover: none), (pointer: coarse)").matches);
+          if (!esPantallaTactil) {
+            setTimeout(() => searchInputSelect.focus(), 60);
+          }
         }
       };
 
@@ -4371,8 +4449,7 @@ ${lineas.join("\n")}`;
         searchInputSelect.onclick = (e) => e.stopPropagation();
       }
 
-      document.addEventListener("click", (e) => {
-        if (!modal.contains(e.target)) return;
+      modal.addEventListener("click", (e) => {
         if (!triggerSelect.contains(e.target) && !dropdownSelect.contains(e.target)) {
           dropdownSelect.style.display = "none";
         }
@@ -4434,16 +4511,29 @@ ${lineas.join("\n")}`;
     }
   };
 
+  // Sincronizar --vvh con visualViewport para que el teclado de iPhone/Android no tape botones de Guardar
+  if (window.visualViewport) {
+    const actualizarAlturaViewport = () => {
+      const vvh = Math.round(window.visualViewport.height);
+      document.documentElement.style.setProperty("--vvh", `${vvh}px`);
+      const tecladoAbierto = vvh < window.innerHeight * 0.82;
+      document.body.classList.toggle("teclado-abierto", tecladoAbierto);
+    };
+    window.visualViewport.addEventListener("resize", actualizarAlturaViewport);
+    window.visualViewport.addEventListener("scroll", actualizarAlturaViewport);
+    actualizarAlturaViewport();
+  }
+
   // Ajustar modales y enfocar inputs automáticamente cuando se abre el teclado virtual en móvil
   document.addEventListener("focusin", (e) => {
     if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) {
-      const card = e.target.closest(".terrosa-modal-card");
+      const card = e.target.closest(".terrosa-modal-card, .s12-modal-container");
       if (card) {
         setTimeout(() => {
           try {
-            e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+            e.target.scrollIntoView({ behavior: "smooth", block: "nearest" });
           } catch (err) { }
-        }, 160);
+        }, 180);
       }
     }
   });
