@@ -1165,19 +1165,19 @@
 
     function obtenerTextoBotonMesesHistorial() {
       if (mesesHistorialSel.size === 0 || mesesHistorialSel.size === 12) {
-        return "🗓️ Mes: Todos";
+        return "Mes: Todos";
       } else if (mesesHistorialSel.size === 1) {
         const num = Array.from(mesesHistorialSel)[0];
         const mObj = NOMBRES_MESES.find(m => m.num === num);
-        return `🗓️ Mes: ${mObj ? mObj.nombre : num}`;
+        return `Mes: ${mObj ? mObj.nombre : num}`;
       } else if (mesesHistorialSel.size === 2) {
         const arr = Array.from(mesesHistorialSel).map(num => {
           const mObj = NOMBRES_MESES.find(m => m.num === num);
           return mObj ? mObj.abrev : num;
         });
-        return `🗓️ Mes: ${arr.join(", ")}`;
+        return `Mes: ${arr.join(", ")}`;
       } else {
-        return `🗓️ Meses (${mesesHistorialSel.size})`;
+        return `Meses (${mesesHistorialSel.size})`;
       }
     }
 
@@ -1189,18 +1189,17 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
           <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">Territorios trabajados</h3>
           <div style="display:flex; align-items:center; gap:6px;">
-            <button id="btnHistorialVerS12" class="btn-icon-square" title="Ver e Imprimir Tarjeta S-12 (PDF)" style="width:auto; padding:0 10px; font-size:12px; font-weight:700; background:#f0fdf4; color:#166534; border:1.5px solid #bbf7d0;">📄 Tarjeta S-12</button>
-            <button id="btnSyncHistorialModal" class="btn-icon-square" title="Sincronizar con la nube">🔄</button>
+            <button id="btnHistorialVerS12" class="btn-icon-square" title="Ver e Imprimir Tarjeta S-12 (PDF)" style="width:auto; padding:0 10px; font-size:12px; font-weight:700; background:#f0fdf4; color:#166534; border:1.5px solid #bbf7d0;">Tarjeta S-12</button>
+            <button id="btnSyncHistorialModal" class="btn-icon-square" title="Sincronizar con la nube"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg></button>
             <button id="btnCerrarHistorial" class="btn-icon-square" title="Cerrar">✕</button>
           </div>
         </div>
 
         <!-- Buscador Rápido con botón de limpiar -->
         <div style="position:relative; margin-bottom:8px; flex-shrink:0;">
-          <input type="text" id="buscadorHistorial" placeholder="Buscar por capitán o territorio (ej. Koke, T14)..." autocomplete="off" style="
-            width:100%; padding:9px 34px 9px 34px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
+          <input type="text" id="buscadorHistorial" placeholder="Escribe aquí..." autocomplete="off" style="
+            width:100%; padding:9px 34px 9px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:13.5px; font-weight:600; box-sizing:border-box; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
           " />
-          <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#94a3b8; pointer-events:none;">🔍</span>
           <button type="button" id="btnLimpiarBuscadorHistorial" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; font-size:14px; font-weight:700; cursor:pointer; padding:4px;">✕</button>
         </div>
 
@@ -1209,9 +1208,9 @@
           <select id="filtroHistorialAnio" style="
             height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
           ">
-            <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>📅 2026</option>
-            <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>📅 2025</option>
-            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>📅 Todos</option>
+            <option value="2026" ${filtroAnioSel === "2026" ? "selected" : ""}>2026</option>
+            <option value="2025" ${filtroAnioSel === "2025" ? "selected" : ""}>2025</option>
+            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>Todos los años</option>
           </select>
 
           <button type="button" id="btnHistorialMesesFiltro" style="
@@ -1224,7 +1223,7 @@
           <select id="filtroHistorialTerritorio" style="
             height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
           ">
-            <option value="">🏛️ Terr: Todos</option>
+            <option value="">Territorio: Todos</option>
             ${Array.from({ length: 84 }, (_, i) => `<option value="${i + 1}">Territorio ${i + 1}</option>`).join("")}
             <option value="negocios">Negocios</option>
           </select>
@@ -1331,7 +1330,11 @@
         return true;
       });
 
-      const listaOrdenada = [...filtrados].reverse();
+      const listaOrdenada = [...filtrados].sort((a, b) => {
+        const fa = (parsearFechaReporte(a.fecha).fechaISO) || a.fecha || "";
+        const fb = (parsearFechaReporte(b.fecha).fechaISO) || b.fecha || "";
+        return fb.localeCompare(fa);
+      });
       cont.innerHTML = "";
 
       if (lblContador) {
@@ -1364,9 +1367,9 @@
                 ${statusDot}
               </div>
               <div style="font-size:12px; color:#64748b; margin-top:2px;">
-                📅 ${formatearFechaCorta(rep.fecha)} • Cuadras: ${labelsCuadras || rep.cuadrasTotal || rep.totalCuadras || ""}
+                ${formatearFechaCorta(rep.fecha)} • Cuadras: ${labelsCuadras || rep.cuadrasTotal || rep.totalCuadras || ""}
               </div>
-              ${rep.comentario ? `<div style="font-size:11.5px; color:#475569; background:#f8fafc; padding:3px 7px; border-radius:6px; margin-top:3px; max-width:fit-content; border:1px solid #e2e8f0;">💬 ${escaparTextoSeguro(rep.comentario)}</div>` : ''}
+              ${rep.comentario ? `<div style="font-size:11.5px; color:#475569; background:#f8fafc; padding:3px 7px; border-radius:6px; margin-top:3px; max-width:fit-content; border:1px solid #e2e8f0; word-break:normal; overflow-wrap:break-word;">${escaparTextoSeguro(rep.comentario)}</div>` : ''}
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
@@ -1492,13 +1495,13 @@
           <!-- Botones de selección rápida -->
           <div style="display:flex; gap:6px; margin-bottom:10px;">
             <button type="button" id="btnMesActualSubModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
-              📍 Actual
+              Actual
             </button>
             <button type="button" id="btnTodosMesesSubModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
-              🗓️ Todos
+              Todos
             </button>
             <button type="button" id="btnLimpiarMesesSubModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #fee2e2; background:#fff5f5; color:#dc2626; cursor:pointer;">
-              ✕ Limpiar
+              Limpiar
             </button>
           </div>
           
@@ -1994,7 +1997,7 @@
         <div style="margin-top:14px;">
           <button id="btnEnviarReporte" style="
             width:100%; padding:13px; background:linear-gradient(135deg, #1a73e8, #1557b0); color:white; border:none; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(26,115,232,0.35); transition:transform 0.15s;
-          ">Guardar Reporte ✅</button>
+          ">Guardar Reporte</button>
         </div>
       </div>
     `;
@@ -2064,7 +2067,7 @@
         const ult = infoMes.listaReportesT[0];
         const aviso = document.createElement("div");
         aviso.style.cssText = "background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:6px 10px; margin-bottom:5px; font-size:12px; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:6px;";
-        aviso.innerHTML = `<span>🗓️</span> <span>Trabajado el <b>${ult.fecha}</b> (${ult.capitan})</span>`;
+        aviso.innerHTML = `<span>Trabajado el <b>${ult.fecha}</b> (${ult.capitan})</span>`;
         contenedorCuadras.appendChild(aviso);
       }
 
@@ -2085,7 +2088,7 @@
             <input type="checkbox" value="${pol.id}" class="chk-cuadra" ${estaMarcada ? "checked" : ""} style="width:16px; height:16px; accent-color:#1a73e8; cursor:pointer; pointer-events:none;"/>
             <span style="font-weight:700; font-size:13.5px; color:#1e293b;">Cuadra ${cuadraNum}</span>
           </div>
-          ${yaTrabajada ? `<span class="chip-badge-mes">🗓️ Trabajado ${infoCuadra.fechaDisplay}</span>` : ''}
+          ${yaTrabajada ? `<span class="chip-badge-mes">Trabajado ${infoCuadra.fechaDisplay}</span>` : ''}
         `;
 
         chip.addEventListener("click", () => {
@@ -2150,12 +2153,12 @@
           </div>
         `;
         if (aviso) aviso.textContent = "O guarda directo si es 1";
-        btnGuardar.textContent = "Guardar Reporte ✅";
+        btnGuardar.textContent = "Guardar Reporte";
         return;
       }
 
       if (aviso) aviso.textContent = "Listos para enviar";
-      btnGuardar.textContent = `Guardar todos los reportes (${territoriosEnLote.length}) ✅`;
+      btnGuardar.textContent = `Guardar todos los reportes (${territoriosEnLote.length})`;
 
       contenedor.innerHTML = territoriosEnLote.map((item, idx) => `
         <div style="
@@ -2603,16 +2606,16 @@ ${lineas.join("\n")}`;
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span style="font-weight:800; color:#1e293b; font-size:15px;">Territorio ${rep.territorioNumero}</span>
-          <span style="font-size:12px; color:#64748b; font-weight:600;">📅 ${formatearFechaCorta(rep.fecha)}</span>
+          <span style="font-size:12px; color:#64748b; font-weight:600;">${formatearFechaCorta(rep.fecha)}</span>
         </div>
         <div style="font-size:13.5px; color:#334155;">
           <b>Capitán:</b> ${rep.capitan} (${rep.cuadrasTotal} cuadras)
         </div>
-        ${rep.comentario ? `<div style="font-size:12.5px; color:#f59e0b; background:#fef3c7; padding:4px 8px; border-radius:6px;">💬 ${rep.comentario}</div>` : ''}
+        ${rep.comentario ? `<div style="font-size:12.5px; color:#f59e0b; background:#fef3c7; padding:4px 8px; border-radius:6px; word-break:normal; overflow-wrap:break-word;">${rep.comentario}</div>` : ''}
         <div style="display:flex; gap:8px; margin-top:6px;">
           <button class="btn-aprobar-rep" data-id="${rep.id}" style="
             flex:1; padding:9px; background:#16a34a; color:white; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer;
-          ">Aprobar ✅</button>
+          ">Aprobar</button>
           <button class="btn-rechazar-rep" data-id="${rep.id}" style="
             padding:9px 14px; background:#f1f5f9; color:#dc2626; border:none; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;
           ">Descartar</button>
@@ -3254,13 +3257,13 @@ ${lineas.join("\n")}`;
         <!-- Botones de selección rápida -->
         <div style="display:flex; gap:6px; margin-bottom:10px;">
           <button type="button" id="btnMesActualModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
-            📍 Actual
+            Actual
           </button>
           <button type="button" id="btnTodosMesesModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#1e293b; cursor:pointer;">
-            🗓️ Todos
+            Todos
           </button>
           <button type="button" id="btnLimpiarMesesModal" style="flex:1; padding:7px 4px; font-size:11.5px; font-weight:700; border-radius:10px; border:1px solid #fee2e2; background:#fff5f5; color:#dc2626; cursor:pointer;">
-            ✕ Limpiar
+            Limpiar
           </button>
         </div>
         
@@ -3463,7 +3466,7 @@ ${lineas.join("\n")}`;
 
     const txtIncompletos = document.getElementById("txtFiltroIncompletosLabel");
     if (txtIncompletos) {
-      txtIncompletos.textContent = `⏳ Pendientes (${territoriosIncompletosCount})`;
+      txtIncompletos.textContent = `Pendientes (${territoriosIncompletosCount})`;
     }
 
     window.todosLosTerritorios.forEach(grupo => {
@@ -3586,7 +3589,7 @@ ${lineas.join("\n")}`;
           btnIncompletos.classList.toggle("incompletos-activo", filtroIncompletosActivo);
           window.ejecutarFiltroFecha();
           if (filtroIncompletosActivo) {
-            mostrarToastDiscreto("⏳ Territorios incompletos destacados en el mapa");
+            mostrarToastDiscreto("Territorios incompletos destacados en el mapa");
           }
         };
       }
@@ -3942,10 +3945,10 @@ ${lineas.join("\n")}`;
               <option value="negocios">Territorio Negocios</option>
             </select>
             <button type="button" id="s12BtnImprimir" class="s12-btn-print" title="Imprimir tarjeta o Guardar como archivo PDF">
-              <span>🖨️</span> <span>Imprimir / Guardar PDF</span>
+              <span>Imprimir / Guardar PDF</span>
             </button>
             <button type="button" id="s12BtnCompartir" class="s12-btn-share" title="Compartir enlace directo a este territorio">
-              <span>📲</span> <span>Compartir</span>
+              <span>Compartir</span>
             </button>
           </div>
           <button type="button" id="s12BtnCerrar" class="btn-icon-square" title="Cerrar vista previa">✕</button>
@@ -3968,8 +3971,8 @@ ${lineas.join("\n")}`;
                 </div>
               </div>
               <div class="s12-chips-row">
-                <span class="s12-chip">📍 Manzanas: <strong id="s12TotalCuadras">0</strong></span>
-                <span class="s12-chip" id="s12ChipEstado">⚪ Sin trabajar</span>
+                <span class="s12-chip">Manzanas: <strong id="s12TotalCuadras">0</strong></span>
+                <span class="s12-chip" id="s12ChipEstado">Sin trabajar</span>
               </div>
             </div>
 
@@ -3983,7 +3986,7 @@ ${lineas.join("\n")}`;
             <div class="s12-qr-action-row">
               <img id="s12QrImg" src="" alt="QR" class="s12-qr-mini" />
               <a id="s12BtnIrTerritorio" href="#" target="_blank" rel="noopener noreferrer" class="s12-btn-ir-territorio">
-                <span>🔗</span> <span>Ir a territorio</span>
+                <span>Ir a territorio</span>
               </a>
             </div>
 
@@ -4075,11 +4078,11 @@ ${lineas.join("\n")}`;
         return String(numR) === String(numTLimpio);
       });
 
-      // Ordenar cronológicamente (más antiguo al más reciente para formato de tarjeta física)
+      // Ordenar cronológicamente del más reciente a menor
       repsT.sort((a, b) => {
         const fa = parsearFechaReporte(a.fecha).fechaISO || "";
         const fb = parsearFechaReporte(b.fecha).fechaISO || "";
-        return fa.localeCompare(fb);
+        return fb.localeCompare(fa);
       });
 
       // Chip de Estado según el periodo activo (año y mes seleccionado)
@@ -4088,7 +4091,7 @@ ${lineas.join("\n")}`;
         const repsFiltrados = repsT.filter(r => reporteCumpleFiltroActivo(r));
         const periodoTexto = obtenerTextoPeriodoFiltro();
         if (repsFiltrados.length === 0) {
-          chipEstado.innerHTML = `⚪ Sin trabajar en ${periodoTexto}`;
+          chipEstado.innerHTML = `Sin trabajar en ${periodoTexto}`;
           chipEstado.style.background = "#f1f5f9";
           chipEstado.style.color = "#475569";
         } else {
@@ -4113,11 +4116,11 @@ ${lineas.join("\n")}`;
           const totRef = totalPred || poligonos.length || 0;
           const completo = totRef > 0 && trabajadas >= totRef;
           if (completo) {
-            chipEstado.innerHTML = "✅ Completado";
+            chipEstado.innerHTML = "Completado";
             chipEstado.style.background = "#dcfce7";
             chipEstado.style.color = "#166534";
           } else {
-            chipEstado.innerHTML = `⏳ Pendiente (${trabajadas}/${totRef})`;
+            chipEstado.innerHTML = `Pendiente (${trabajadas}/${totRef})`;
             chipEstado.style.background = "#fef3c7";
             chipEstado.style.color = "#92400e";
           }

@@ -901,21 +901,21 @@ function abrirModalTodasNotas() {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
         <div style="display:flex; gap:8px;">
           <button id="tabBtnRevisitas" class="filtro-pildora-btn" style="background:#2563eb; color:#ffffff; border-color:#2563eb; font-size:13px; height:34px; padding:0 14px;">
-            👥 Revisitas
+            Revisitas
           </button>
           <button id="tabBtnNotas" class="filtro-pildora-btn" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1; font-size:13px; height:34px; padding:0 14px;">
-            📒 Notas
+            Notas
           </button>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          <button id="btnRespaldarRevisitas" class="btn-icon-square" title="Respaldar, compartir o restaurar revisitas" style="font-size:15px; width:34px; height:34px;">📤</button>
+          <button id="btnRespaldarRevisitas" class="btn-icon-square" title="Respaldar, compartir o restaurar revisitas" style="width:34px; height:34px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg></button>
           <button id="btnCerrarModalNotasGen" class="btn-icon-square" style="width:34px; height:34px;">✕</button>
         </div>
       </div>
 
       <!-- Buscador rápido -->
       <div style="margin-bottom:12px; flex-shrink:0;">
-        <input type="text" id="inputBuscarRevisitas" placeholder="🔍 Buscar por nombre, calle o territorio..." style="width:100%; height:38px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+        <input type="text" id="inputBuscarRevisitas" placeholder="Escribe aquí..." style="width:100%; height:38px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc;" />
       </div>
 
       <!-- Contenedor scrolleable de lista -->
@@ -951,7 +951,7 @@ function abrirModalTodasNotas() {
     tabNot.style.background = "#f1f5f9";
     tabNot.style.color = "#475569";
     tabNot.style.borderColor = "#cbd5e1";
-    inputBusqueda.placeholder = "🔍 Buscar revisita por nombre, calle o territorio...";
+    inputBusqueda.placeholder = "Escribe aquí...";
     renderizarContenido();
   };
 
@@ -963,7 +963,7 @@ function abrirModalTodasNotas() {
     tabRev.style.background = "#f1f5f9";
     tabRev.style.color = "#475569";
     tabRev.style.borderColor = "#cbd5e1";
-    inputBusqueda.placeholder = "🔍 Buscar en notas de cuadras...";
+    inputBusqueda.placeholder = "Escribe aquí...";
     renderizarContenido();
   };
 

@@ -242,7 +242,18 @@ function cambiarTerritorio() {
   etiquetasActivas.forEach(m => map.removeLayer(m));
   etiquetasActivas = [];
 
-  if (valor === "areaGrande") {
+  if (valor === "areaGrande" || valor === "" || !valor) {
+    document.querySelectorAll(".s12-modal-overlay").forEach(m => m.remove());
+    territorioActivo = null;
+    window.territorioActivo = null;
+    if (typeof window.ocultarTarjetaInfoCapitan === "function") {
+      window.ocultarTarjetaInfoCapitan();
+    }
+    const tarjetaFlotante = document.getElementById("tarjetaInfoCapitan");
+    if (tarjetaFlotante) {
+      tarjetaFlotante.classList.remove("visible");
+      tarjetaFlotante.style.display = "none";
+    }
     const btnArea = document.getElementById("btnAreaGrande");
     if (btnArea) btnArea.click();
     return;
@@ -420,10 +431,24 @@ function inicializarAreaGrande() {
   if (!btnArea) return;
 
   btnArea.addEventListener("click", function () {
+    // 1. Cerrar cualquier modal S-12 abierto
+    document.querySelectorAll(".s12-modal-overlay").forEach(m => m.remove());
+
+    // 2. Anular territorio activo INMEDIATAMENTE para que ejecutarFiltroFecha no lo vuelva a abrir
+    territorioActivo = null;
+    window.territorioActivo = null;
+
+    // 3. Ocultar popups y tarjeta informativa flotante de capitán
     map.closePopup();
     if (typeof window.ocultarTarjetaInfoCapitan === "function") {
       window.ocultarTarjetaInfoCapitan();
     }
+    const tarjetaFlotante = document.getElementById("tarjetaInfoCapitan");
+    if (tarjetaFlotante) {
+      tarjetaFlotante.classList.remove("visible");
+      tarjetaFlotante.style.display = "none";
+    }
+
     const selTerr = document.getElementById("selectorTerritorios");
     if (selTerr) selTerr.value = "";
     if (typeof ocultarMenu === "function") ocultarMenu(true);
@@ -448,9 +473,6 @@ function inicializarAreaGrande() {
         });
       });
     }
-
-    territorioActivo = null;
-    window.territorioActivo = null;
 
     // Limpiar parámetro ?t= de la URL al volver a Área Grande
     try {

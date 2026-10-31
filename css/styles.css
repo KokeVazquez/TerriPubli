@@ -218,6 +218,17 @@ body.modo-capitan .header-buttons-toolbar {
   display: flex;
 }
 
+@media (max-width: 380px) {
+  .header-buttons-toolbar {
+    gap: 3px;
+    padding: 0 2px;
+  }
+  .filtro-pildora-btn {
+    padding: 0 6px;
+    font-size: 10.5px;
+  }
+}
+
 /* Quitar selección azul al dejar presionado en móvil */
 * {
   -webkit-tap-highlight-color: transparent !important;
@@ -540,7 +551,10 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   color: #cbd5e1;
   margin-top: 2px;
   line-height: 1.25;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+  -webkit-hyphens: none;
   white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2152,15 +2166,27 @@ body.modo-oscuro .etiqueta-poligono {
 }
 
 .s12-modal-toolbar {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 10px 54px 10px 14px;
   background: #ffffff;
   border-bottom: 1.5px solid #e2e8f0;
   flex-shrink: 0;
   flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+#s12BtnCerrar {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 .s12-toolbar-left {
