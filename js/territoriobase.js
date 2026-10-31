@@ -513,15 +513,18 @@ function mostrarNotasPopup(id, notasPoligonos, territorioId) {
 
 function confirmarEliminarNotaPopup(id, index, territorioId) {
   map.closePopup();
-  L.popup().setLatLng(map.getCenter()).setContent(`
-    <div style="font-family:system-ui; padding:4px;">
-      <b style="color:#0f172a; font-size:14px;">¿Eliminar esta nota?</b><br><br>
-      <div style="display:flex; gap:8px;">
-        <button onclick="eliminarNota('${id}', ${index}, '${territorioId}')" style="background:#dc2626; color:white; border:none; border-radius:8px; padding:6px 14px; font-weight:bold; cursor:pointer;">Sí, borrar</button>
-        <button onclick="map.closePopup()" style="background:#f1f5f9; color:#475569; border:none; border-radius:8px; padding:6px 14px; font-weight:bold; cursor:pointer;">Cancelar</button>
-      </div>
-    </div>
-  `).openOn(map);
+  if (typeof window.mostrarConfirmacionModal === "function") {
+    window.mostrarConfirmacionModal({
+      titulo: "¿Eliminar esta nota?",
+      mensaje: "La nota se borrará permanentemente de este dispositivo.",
+      peligro: true,
+      textoConfirmar: "Sí, borrar",
+      textoCancelar: "Cancelar",
+      onConfirm: () => eliminarNota(id, index, territorioId)
+    });
+  } else {
+    eliminarNota(id, index, territorioId);
+  }
 }
 
 function eliminarNota(id, index, territorioId) {

@@ -15,12 +15,12 @@ if ('serviceWorker' in navigator) {
     if (window.location.protocol.startsWith('http')) {
       navigator.serviceWorker.register('./sw.js')
         .then((registration) => {
-          console.log('ServiceWorker registrado con éxito, ámbito:', registration.scope);
+          // ServiceWorker registrado
           // Forzar comprobación inmediata de nueva versión
           registration.update();
         })
         .catch((error) => {
-          console.warn('No se pudo registrar el ServiceWorker:', error);
+          // Error registrando ServiceWorker
         });
     }
   });

@@ -967,6 +967,33 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    const btnS12Menu = document.getElementById('btnMenuTarjetaS12');
+    if (btnS12Menu) {
+      btnS12Menu.addEventListener('click', (e) => {
+        cerrarMenu();
+        if (typeof window.abrirModalTarjetaS12 === 'function') window.abrirModalTarjetaS12();
+        e.stopPropagation();
+      });
+    }
+
+    const btnShareLink = document.getElementById('btnMenuCompartirApp');
+    if (btnShareLink) {
+      btnShareLink.addEventListener('click', (e) => {
+        cerrarMenu();
+        if (typeof window.compartirTerritorioLink === 'function') window.compartirTerritorioLink();
+        e.stopPropagation();
+      });
+    }
+
+    const btnResetMenu = document.getElementById('btnMenuLimpiarDatos');
+    if (btnResetMenu) {
+      btnResetMenu.addEventListener('click', (e) => {
+        cerrarMenu();
+        if (typeof window.confirmarResetLocal === 'function') window.confirmarResetLocal();
+        e.stopPropagation();
+      });
+    }
+
     document.addEventListener('click', (e) => {
       if (!menuPanel.contains(e.target) && e.target !== hamburgerBtn) {
         cerrarMenu();

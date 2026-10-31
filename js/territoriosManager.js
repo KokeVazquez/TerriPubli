@@ -45,7 +45,7 @@ function inicializarTerritorios() {
     window[datos.id] = grupo;
     window[item.varName] = datos;
 
-    // Calcular el centro geométrico real de TODO el territorio combinado
+    // Calcular el centro geométrico real de todo el territorio combinado
     if (grupo.getLayers().length > 0) {
       const centro = grupo.getBounds().getCenter();
       const marcador = L.marker(centro, {
