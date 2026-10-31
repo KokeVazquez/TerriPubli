@@ -14,11 +14,18 @@ function vincularMenuCuadra(pol, territorioId) {
     if (e && e.originalEvent) {
       e.originalEvent.stopPropagation();
     }
+    const mostrarInfo = () => {
+      if (typeof window.mostrarInfoCuadraCapitan === 'function') {
+        window.mostrarInfoCuadraCapitan(pol, tId);
+      }
+    };
     // Si no hay territorio enfocado o se hace clic en un territorio distinto, enfocar ese territorio
     if (!window.territorioActivo || window.territorioActivo._id !== tId) {
       if (typeof window.seleccionarTerritorioDirecto === 'function') {
-        window.seleccionarTerritorioDirecto(tId);
+        window.seleccionarTerritorioDirecto(tId, mostrarInfo);
       }
+    } else {
+      mostrarInfo();
     }
   });
 
@@ -81,11 +88,18 @@ function vincularMenuCuadra(pol, territorioId) {
       const touchDuration = Date.now() - startTime;
       // Si fue un toque rápido (menos de 600ms) sin arrastrar el mapa:
       if (!hasMoved && touchDuration < 600) {
+        const mostrarInfo = () => {
+          if (typeof window.mostrarInfoCuadraCapitan === 'function') {
+            window.mostrarInfoCuadraCapitan(pol, tId);
+          }
+        };
         // Si no hay territorio activo o tocamos un territorio distinto, cambiar y enfocarlo de una
         if (!window.territorioActivo || window.territorioActivo._id !== tId) {
           if (typeof window.seleccionarTerritorioDirecto === 'function') {
-            window.seleccionarTerritorioDirecto(tId);
+            window.seleccionarTerritorioDirecto(tId, mostrarInfo);
           }
+        } else {
+          mostrarInfo();
         }
       }
     }

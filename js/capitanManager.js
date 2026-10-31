@@ -591,8 +591,11 @@
       btnCompartirInfo.onclick = (e) => {
         e.stopPropagation();
         if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
+        const tarjeta = document.getElementById("tarjetaInfoCapitan");
+        const tId = (tarjeta && tarjeta.dataset.territorioId) || (window.territorioActivo ? window.territorioActivo._id : null);
+        const cLbl = (tarjeta && tarjeta.dataset.cuadraLabel) || null;
         if (typeof window.compartirTerritorioLink === "function") {
-          window.compartirTerritorioLink(window.territorioActivo ? window.territorioActivo._id : null);
+          window.compartirTerritorioLink(tId, cLbl);
         }
       };
     }
@@ -602,7 +605,8 @@
       btnTarjetaS12.onclick = (e) => {
         e.stopPropagation();
         if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("tap");
-        const tId = window.territorioActivo ? window.territorioActivo._id : "territorio1";
+        const tarjeta = document.getElementById("tarjetaInfoCapitan");
+        const tId = (tarjeta && tarjeta.dataset.territorioId) || (window.territorioActivo ? window.territorioActivo._id : "1");
         if (typeof window.abrirModalTarjetaS12 === "function") {
           window.abrirModalTarjetaS12(tId);
         }
@@ -2857,7 +2861,79 @@ ${lineas.join("\n")}`;
     }
   };
 
-  // 13.5 Tarjeta Informativa de Territorio enfocado en Modo Capitán
+  // 14. Filtro de Fecha en Barra Superior (Año y Selector Múltiple de Meses)
+  const NOMBRES_MESES = [
+    { num: "01", nombre: "Enero", abrev: "Ene" },
+    { num: "02", nombre: "Febrero", abrev: "Feb" },
+    { num: "03", nombre: "Marzo", abrev: "Mar" },
+    { num: "04", nombre: "Abril", abrev: "Abr" },
+    { num: "05", nombre: "Mayo", abrev: "May" },
+    { num: "06", nombre: "Junio", abrev: "Jun" },
+    { num: "07", nombre: "Julio", abrev: "Jul" },
+    { num: "08", nombre: "Agosto", abrev: "Ago" },
+    { num: "09", nombre: "Septiembre", abrev: "Sep" },
+    { num: "10", nombre: "Octubre", abrev: "Oct" },
+    { num: "11", nombre: "Noviembre", abrev: "Nov" },
+    { num: "12", nombre: "Diciembre", abrev: "Dic" }
+  ];
+
+  let _filtroFechaBarraInicializado = false;
+  let filtroIncompletosActivo = false;
+  let mesesFiltroActivos = new Set();
+  let anioFiltroActivo = "2026";
+
+  // Función para determinar si una fecha ISO pertenece al Año de Servicio seleccionado
+  // Cada año de servicio es de septiembre a agosto: ej. 2025 es hasta 31/08/2026; 2026 es de 01/09/2026 a 31/08/2027.
+  function perteneceAAnioServicio(fechaISO, targetAnio) {
+    if (!fechaISO) return false;
+    if (!targetAnio || targetAnio === "todos") return true;
+    const str = String(fechaISO).slice(0, 10);
+    const anioNum = parseInt(targetAnio, 10);
+    if (isNaN(anioNum)) return true;
+
+    if (anioNum === 2025) {
+      return str <= "2026-08-31";
+    }
+    const inicio = `${anioNum}-09-01`;
+    const fin = `${anioNum + 1}-08-31`;
+    return str >= inicio && str <= fin;
+  }
+
+  // Comprueba si un reporte de territorio cumple con el filtro activo de año y meses
+  function reporteCumpleFiltroActivo(rep) {
+    if (!rep || !rep.fecha || !perteneceAVersionActiva(rep)) return false;
+    const anio = (typeof anioFiltroActivo !== "undefined" && anioFiltroActivo) ? anioFiltroActivo : "2026";
+    if (!perteneceAAnioServicio(rep.fecha, anio)) return false;
+
+    const filtrarPorMes = (typeof mesesFiltroActivos !== "undefined" && mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12);
+    if (filtrarPorMes) {
+      const p = parsearFechaReporte(rep.fecha);
+      if (!mesesFiltroActivos.has(p.mes)) return false;
+    }
+    return true;
+  }
+
+  // Genera texto descriptivo del periodo activo (ej. "Octubre (Año 2026)" o "Año 2026")
+  function obtenerTextoPeriodoFiltro() {
+    const anio = (typeof anioFiltroActivo !== "undefined" && anioFiltroActivo) ? anioFiltroActivo : "2026";
+    const filtrarPorMes = (typeof mesesFiltroActivos !== "undefined" && mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12);
+    const textoAnio = (anio === "todos") ? "Todos los años" : `Año ${anio}`;
+    if (!filtrarPorMes) {
+      return textoAnio;
+    }
+    const mapNombres = {
+      "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
+      "05": "Mayo", "06": "Junio", "07": "Julio", "08": "Agosto",
+      "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre"
+    };
+    const arr = Array.from(mesesFiltroActivos).map(m => mapNombres[m] || m);
+    if (arr.length === 1) {
+      return `${arr[0]} (${textoAnio})`;
+    }
+    return `${arr.length} meses (${textoAnio})`;
+  }
+
+  // 13.5 Tarjeta Informativa de Territorio / Cuadra enfocado en Modo Capitán
   window.mostrarTarjetaInfoCapitan = function (grupo) {
     if (window.getModoActual() !== "capitan") {
       window.ocultarTarjetaInfoCapitan();
@@ -2878,59 +2954,158 @@ ${lineas.join("\n")}`;
 
     // Contar cuadras predicables en este grupo
     let totalCuadras = 0;
+    const capasPredicables = [];
     if (typeof grupo.getLayers === "function") {
-      totalCuadras = grupo.getLayers().filter(p => p._esPredicable !== false).length;
+      grupo.getLayers().forEach(p => {
+        if (p._esPredicable !== false) {
+          totalCuadras++;
+          capasPredicables.push(p);
+        }
+      });
     }
 
     // Obtener reportes guardados
     const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
-    const anioFiltro = (typeof anioFiltroActivo !== "undefined" && anioFiltroActivo && anioFiltroActivo !== "todos") ? anioFiltroActivo : "2026";
+    const periodoTexto = obtenerTextoPeriodoFiltro();
 
-    // Filtrar reportes para este territorio y año de servicio activo
+    // Filtrar reportes para este territorio y periodo de servicio activo
     const repsT = reportes.filter(r => {
-      if (!perteneceAVersionActiva(r)) return false;
+      if (!reporteCumpleFiltroActivo(r)) return false;
       const numR = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
-      if (String(numR) !== String(numTLimpio)) return false;
-      const p = parsearFechaReporte(r.fecha);
-      if (anioFiltro !== "todos" && p.anio && String(p.anio) !== String(anioFiltro)) return false;
-      return true;
+      return String(numR) === String(numTLimpio);
     });
 
-    const iconoEl = document.getElementById("infoCapitanIcono");
     const tituloEl = document.getElementById("infoCapitanTitulo");
     const subtextoEl = document.getElementById("infoCapitanSubtexto");
 
-    if (repsT.length === 0) {
-      iconoEl.textContent = "⚪";
-      tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#cbd5e1; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.1);">Sin trabajar</span>`;
-      subtextoEl.textContent = `No se ha reportado en el año ${anioFiltro}`;
+    tarjeta.dataset.territorioId = numTLimpio;
+    tarjeta.dataset.cuadraLabel = "";
+
+    // Mapear todas las cuadras hechas en el periodo para este territorio
+    const cuadrasHechasSet = new Set();
+    repsT.forEach(r => {
+      if (Array.isArray(r.cuadras)) {
+        const numR = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
+        r.cuadras.forEach(cId => {
+          obtenerVariantesIdCuadra(cId, numR).forEach(v => cuadrasHechasSet.add(v));
+        });
+      }
+    });
+
+    let cuadrasTrabajadas = 0;
+    if (capasPredicables.length > 0) {
+      capasPredicables.forEach(p => {
+        const vars = obtenerVariantesIdCuadra(p._id, numTLimpio);
+        if (p._label) obtenerVariantesIdCuadra(p._label, numTLimpio).forEach(v => vars.push(v));
+        if (vars.some(v => cuadrasHechasSet.has(v))) {
+          cuadrasTrabajadas++;
+        }
+      });
     } else {
-      // Ordenar por fecha más reciente
+      cuadrasTrabajadas = cuadrasHechasSet.size;
+    }
+
+    const totRef = totalCuadras || (repsT.length > 0 ? repsT[0].totalCuadrasTerritorio : 0) || 0;
+
+    if (repsT.length === 0 || cuadrasTrabajadas === 0) {
+      tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#cbd5e1; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.1);">Sin trabajar</span>`;
+      subtextoEl.textContent = `No se ha reportado en ${periodoTexto}`;
+    } else {
       repsT.sort((a, b) => {
         const fa = parsearFechaReporte(a.fecha).fechaISO || "";
         const fb = parsearFechaReporte(b.fecha).fechaISO || "";
         return fb.localeCompare(fa);
       });
-      const rep = repsT[0];
+      const repMasReciente = repsT[0];
+      const pFecha = parsearFechaReporte(repMasReciente.fecha);
+      const fechaDisp = pFecha.fechaDisplay || repMasReciente.fecha;
+      const capitan = repMasReciente.capitan || "No asignado";
+
+      const esCompleto = totRef > 0 && cuadrasTrabajadas >= totRef;
+
+      if (esCompleto) {
+        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#4ade80; padding:1px 6px; border-radius:6px; background:rgba(74,222,128,0.15);">Completado</span>`;
+        subtextoEl.textContent = `Terminado el ${fechaDisp} por ${capitan}`;
+      } else {
+        const faltantes = Math.max(1, totRef - cuadrasTrabajadas);
+        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#fbbf24; padding:1px 6px; border-radius:6px; background:rgba(251,191,36,0.15);">Pendiente (${cuadrasTrabajadas}/${totRef || '?'})</span>`;
+        subtextoEl.textContent = `Faltan ${faltantes} cuadras • Último: ${capitan} (${fechaDisp})`;
+      }
+    }
+
+    tarjeta.style.display = "flex";
+    requestAnimationFrame(() => {
+      tarjeta.classList.add("visible");
+    });
+  };
+
+  // Mostrar información específica de una cuadra al tocarla o hacerle clic en Modo Capitán
+  window.mostrarInfoCuadraCapitan = function (pol, territorioId) {
+    if (window.getModoActual() !== "capitan") {
+      window.ocultarTarjetaInfoCapitan();
+      return;
+    }
+    const tarjeta = document.getElementById("tarjetaInfoCapitan");
+    if (!tarjeta || !pol) return;
+
+    const tId = territorioId || pol._territorioId || (window.territorioActivo ? window.territorioActivo._id : "territorio");
+    const numTLimpio = obtenerNumeroTerritorioLimpio(tId, tId);
+    const esNegocios = String(numTLimpio).toLowerCase().includes("negocios");
+    const nombreTerritorio = esNegocios ? "Negocios" : `Territorio ${numTLimpio}`;
+
+    const rawLabel = pol._label ? String(pol._label).trim() : "";
+    const nombreCuadra = rawLabel
+      ? (/^cuadra/i.test(rawLabel) ? rawLabel : `Cuadra ${rawLabel}`)
+      : (pol._id ? String(pol._id).replace(/^Cuadra/i, "Cuadra ") : "Cuadra");
+    const tituloCompleto = `${nombreTerritorio} • ${nombreCuadra}`;
+
+    // Buscar reportes que coincidan con el periodo activo y contengan esta cuadra
+    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const variantesCuadra = new Set(obtenerVariantesIdCuadra(pol._id, numTLimpio));
+    if (rawLabel) {
+      obtenerVariantesIdCuadra(rawLabel, numTLimpio).forEach(v => variantesCuadra.add(v));
+    }
+
+    const repsCoincidentes = [];
+    reportes.forEach(rep => {
+      if (!reporteCumpleFiltroActivo(rep)) return;
+      const numR = obtenerNumeroTerritorioLimpio(rep.territorioId, rep.territorioNumero);
+      if (String(numR) !== String(numTLimpio)) return;
+
+      if (Array.isArray(rep.cuadras)) {
+        const contiene = rep.cuadras.some(cId => {
+          const vars = obtenerVariantesIdCuadra(cId, numR);
+          return vars.some(v => variantesCuadra.has(v));
+        });
+        if (contiene) {
+          repsCoincidentes.push(rep);
+        }
+      }
+    });
+
+    const tituloEl = document.getElementById("infoCapitanTitulo");
+    const subtextoEl = document.getElementById("infoCapitanSubtexto");
+    const periodoTexto = obtenerTextoPeriodoFiltro();
+
+    tarjeta.dataset.territorioId = numTLimpio;
+    tarjeta.dataset.cuadraLabel = rawLabel || "";
+
+    if (repsCoincidentes.length > 0) {
+      repsCoincidentes.sort((a, b) => {
+        const fa = parsearFechaReporte(a.fecha).fechaISO || "";
+        const fb = parsearFechaReporte(b.fecha).fechaISO || "";
+        return fb.localeCompare(fa);
+      });
+      const rep = repsCoincidentes[0];
       const pFecha = parsearFechaReporte(rep.fecha);
       const fechaDisp = pFecha.fechaDisplay || rep.fecha;
       const capitan = rep.capitan || "No asignado";
 
-      // Determinar si está 100% completado o pendiente
-      const cuadrasTrabajadas = (Array.isArray(rep.cuadras) ? rep.cuadras.length : (rep.cuadrasTotal || 0));
-      const totRef = totalCuadras || rep.totalCuadrasTerritorio || cuadrasTrabajadas;
-      const esCompleto = totRef > 0 && cuadrasTrabajadas >= totRef;
-
-      if (esCompleto) {
-        iconoEl.textContent = "✅";
-        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#4ade80; padding:1px 6px; border-radius:6px; background:rgba(74,222,128,0.15);">Completado</span>`;
-        subtextoEl.textContent = `Terminado el ${fechaDisp} por ${capitan}`;
-      } else {
-        iconoEl.textContent = "⏳";
-        const faltantes = Math.max(1, totRef - cuadrasTrabajadas);
-        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#fbbf24; padding:1px 6px; border-radius:6px; background:rgba(251,191,36,0.15);">Pendiente (${cuadrasTrabajadas}/${totRef})</span>`;
-        subtextoEl.textContent = `Faltan ${faltantes} cuadras • Último: ${capitan} (${fechaDisp})`;
-      }
+      tituloEl.innerHTML = `${tituloCompleto} <span style="font-size:11px; font-weight:700; color:#4ade80; padding:1px 6px; border-radius:6px; background:rgba(74,222,128,0.15);">Hecha</span>`;
+      subtextoEl.textContent = `Terminada el ${fechaDisp} por ${capitan}`;
+    } else {
+      tituloEl.innerHTML = `${tituloCompleto} <span style="font-size:11px; font-weight:700; color:#cbd5e1; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.1);">Sin trabajar</span>`;
+      subtextoEl.textContent = `Sin reportar en ${periodoTexto}`;
     }
 
     tarjeta.style.display = "flex";
@@ -2949,45 +3124,6 @@ ${lineas.join("\n")}`;
       }
     }, 220);
   };
-
-  // 14. Filtro de Fecha en Barra Superior (Año y Selector Múltiple de Meses)
-  const NOMBRES_MESES = [
-    { num: "01", nombre: "Enero", abrev: "Ene" },
-    { num: "02", nombre: "Febrero", abrev: "Feb" },
-    { num: "03", nombre: "Marzo", abrev: "Mar" },
-    { num: "04", nombre: "Abril", abrev: "Abr" },
-    { num: "05", nombre: "Mayo", abrev: "May" },
-    { num: "06", nombre: "Junio", abrev: "Jun" },
-    { num: "07", nombre: "Julio", abrev: "Jul" },
-    { num: "08", nombre: "Agosto", abrev: "Ago" },
-    { num: "09", nombre: "Septiembre", abrev: "Sep" },
-    { num: "10", nombre: "Octubre", abrev: "Oct" },
-    { num: "11", nombre: "Noviembre", abrev: "Nov" },
-    { num: "12", nombre: "Diciembre", abrev: "Dic" }
-  ];
-
-  let _filtroFechaBarraInicializado = false;
-  let filtroIncompletosActivo = false;
-  let mesesFiltroActivos = new Set();
-
-  // Función para determinar si una fecha ISO pertenece al Año de Servicio seleccionado
-  // Cada año de servicio es de septiembre a agosto: ej. 2025 es hasta 31/08/2026; 2026 es de 01/09/2026 a 31/08/2027.
-  function perteneceAAnioServicio(fechaISO, targetAnio) {
-    if (!fechaISO) return false;
-    if (!targetAnio || targetAnio === "todos") return true;
-    const str = String(fechaISO).slice(0, 10);
-    const anioNum = parseInt(targetAnio, 10);
-    if (isNaN(anioNum)) return true;
-
-    if (anioNum === 2025) {
-      return str <= "2026-08-31";
-    }
-    const inicio = `${anioNum}-09-01`;
-    const fin = `${anioNum + 1}-08-31`;
-    return str >= inicio && str <= fin;
-  }
-
-  let anioFiltroActivo = "2026";
 
   window.hayFiltroFechaActivo = function () {
     const mesActivo = mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12;
@@ -3624,7 +3760,7 @@ ${lineas.join("\n")}`;
   }
 
   // Generador de SVG vectorial de alta definición para el croquis de la tarjeta S-12
-  window.generarSvgCroquisTerritorio = function (tId, width = 640, height = 360) {
+  window.generarSvgCroquisTerritorio = function (tId, width = 600, height = 210) {
     const { poligonos } = obtenerPoligonosTerritorio(tId);
 
     if (!poligonos || poligonos.length === 0) {
@@ -3651,8 +3787,8 @@ ${lineas.join("\n")}`;
     const spanX = Math.max((maxLng - minLng) * cosMid, 0.0001);
     const spanY = Math.max(maxLat - minLat, 0.0001);
 
-    const padX = 40;
-    const padY = 36;
+    const padX = 24;
+    const padY = 18;
     const availW = width - padX * 2;
     const availH = height - padY * 2;
 
@@ -3719,8 +3855,8 @@ ${lineas.join("\n")}`;
     else escalaMetros = 25;
 
     const escalaPixeles = Math.round((escalaMetros / 110800) * scale);
-    const scaleX = 26;
-    const scaleY = height - 20;
+    const scaleX = 20;
+    const scaleY = height - 16;
 
     const svgScale = `
       <g transform="translate(${scaleX}, ${scaleY})">
@@ -3732,8 +3868,8 @@ ${lineas.join("\n")}`;
     `;
 
     // 4. Rosa de los vientos / Brújula Norte (Elegante y Arquitectónica)
-    const compassX = width - 42;
-    const compassY = 44;
+    const compassX = width - 32;
+    const compassY = 32;
     const svgCompass = `
       <g transform="translate(${compassX}, ${compassY})">
         <circle r="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
@@ -3819,34 +3955,31 @@ ${lineas.join("\n")}`;
               </div>
               <div class="s12-chips-row">
                 <span class="s12-chip">📍 Manzanas: <strong id="s12TotalCuadras">0</strong></span>
-                <span class="s12-chip">🏛️ Tipo: <strong id="s12TipoTerritorio">Urbano</strong></span>
                 <span class="s12-chip" id="s12ChipEstado">⚪ Sin trabajar</span>
-                <span class="s12-chip s12-chip-url">🌐 <span id="s12UrlDisplay">kokevazquez.github.io/TerriPubli/</span></span>
               </div>
             </div>
+
+            <!-- Primera línea horizontal -->
+            <hr class="s12-hr" />
 
             <!-- Croquis Vectorial SVG -->
             <div class="s12-croquis-box" id="s12CroquisContainer"></div>
 
-            <!-- Fila Intermedia con Instrucciones y Código QR Oficial -->
-            <div class="s12-qr-info-row">
-              <div class="s12-instructions">
-                <div class="s12-ins-heading">📌 Instrucciones para el publicador:</div>
-                <div class="s12-ins-body">
-                  Predique únicamente las cuadras numeradas en este croquis. Guarde notas de revisitas en la app o libreta. Al terminar de trabajar este territorio, notifique a su capitán o devuelva esta tarjeta.
-                </div>
+            <!-- Fila de QR y Enlace directo "Ir a territorio" -->
+            <div class="s12-qr-action-row">
+              <div class="s12-qr-wrap">
+                <img id="s12QrImg" src="" alt="QR" class="s12-qr-image" />
+                <span class="s12-qr-label">Escanear</span>
               </div>
-              <div class="s12-qr-wrapper">
-                <img id="s12QrImg" src="" alt="QR Territorio" class="s12-qr-image" />
-                <span class="s12-qr-caption">Escanear para abrir</span>
-              </div>
+              <a id="s12BtnIrTerritorio" href="#" target="_blank" rel="noopener noreferrer" class="s12-btn-ir-territorio">
+                <span>🔗</span> <span>Ir a territorio</span>
+              </a>
             </div>
 
             <!-- Sección de Historial de Asignaciones (Tabla S-12) -->
             <div class="s12-table-section">
               <div class="s12-table-header-title">
                 <span>HISTORIAL DE ASIGNACIONES (S-12)</span>
-                <span style="font-size:10px; font-weight:700; color:#64748b; text-transform:none;">Registros oficiales</span>
               </div>
               <table class="s12-table">
                 <thead>
@@ -3861,11 +3994,8 @@ ${lineas.join("\n")}`;
               </table>
             </div>
 
-            <!-- Pie de Tarjeta -->
-            <div class="s12-footer">
-              <span>Congregación Rosario • Sistema TerRosa S-12</span>
-              <span>Conservar esta tarjeta limpia y sin doblar</span>
-            </div>
+            <!-- Segunda línea horizontal -->
+            <hr class="s12-hr" />
           </div>
         </div>
       </div>
@@ -3898,11 +4028,9 @@ ${lineas.join("\n")}`;
         selectTerr.value = esNegocios ? "negocios" : numTLimpio;
       }
 
-      // 1. Número y tipo de territorio
+      // 1. Número de territorio
       const badgeNumero = modal.querySelector("#s12BadgeNumero");
-      const tipoTerr = modal.querySelector("#s12TipoTerritorio");
       if (badgeNumero) badgeNumero.textContent = esNegocios ? "NEGOCIOS" : numTLimpio;
-      if (tipoTerr) tipoTerr.textContent = esNegocios ? "Comercial / Negocios" : "Urbano";
 
       // 2. Extraer polígonos y contar cuadras predicables
       const { poligonos } = obtenerPoligonosTerritorio(numTLimpio);
@@ -3913,13 +4041,15 @@ ${lineas.join("\n")}`;
       // 3. Generar SVG Croquis
       const croquisBox = modal.querySelector("#s12CroquisContainer");
       if (croquisBox) {
-        croquisBox.innerHTML = window.generarSvgCroquisTerritorio(numTLimpio, 640, 360);
+        croquisBox.innerHTML = window.generarSvgCroquisTerritorio(numTLimpio, 600, 210);
       }
 
       // 4. URL de Deep Link y Código QR
       const deepUrl = `https://kokevazquez.github.io/TerriPubli/?t=${numTLimpio}`;
-      const urlDisplay = modal.querySelector("#s12UrlDisplay");
-      if (urlDisplay) urlDisplay.textContent = `kokevazquez.github.io/TerriPubli/?t=${numTLimpio}`;
+      const btnIr = modal.querySelector("#s12BtnIrTerritorio");
+      if (btnIr) {
+        btnIr.href = deepUrl;
+      }
 
       const qrImg = modal.querySelector("#s12QrImg");
       if (qrImg) {
@@ -3942,25 +4072,42 @@ ${lineas.join("\n")}`;
         return fa.localeCompare(fb);
       });
 
-      // Chip de Estado general del territorio
+      // Chip de Estado según el periodo activo (año y mes seleccionado)
       const chipEstado = modal.querySelector("#s12ChipEstado");
       if (chipEstado) {
-        if (repsT.length === 0) {
-          chipEstado.innerHTML = "⚪ Sin trabajar en 2026";
+        const repsFiltrados = repsT.filter(r => reporteCumpleFiltroActivo(r));
+        const periodoTexto = obtenerTextoPeriodoFiltro();
+        if (repsFiltrados.length === 0) {
+          chipEstado.innerHTML = `⚪ Sin trabajar en ${periodoTexto}`;
           chipEstado.style.background = "#f1f5f9";
           chipEstado.style.color = "#475569";
         } else {
-          const ultimoRep = repsT[repsT.length - 1];
-          const cuadrasTrab = (Array.isArray(ultimoRep.cuadras) ? ultimoRep.cuadras.length : (ultimoRep.cuadrasTotal || 0));
-          const totRef = totalPred || ultimoRep.totalCuadrasTerritorio || cuadrasTrab;
-          const completo = totRef > 0 && cuadrasTrab >= totRef;
-
+          // Contar cuadras trabajadas en el periodo
+          const cuadrasHechasSet = new Set();
+          repsFiltrados.forEach(r => {
+            if (Array.isArray(r.cuadras)) {
+              const numR = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
+              r.cuadras.forEach(cId => {
+                obtenerVariantesIdCuadra(cId, numR).forEach(v => cuadrasHechasSet.add(v));
+              });
+            }
+          });
+          let trabajadas = 0;
+          poligonos.forEach(p => {
+            if (p.esPredicable) {
+              const vars = obtenerVariantesIdCuadra(p.id, numTLimpio);
+              if (p.label) obtenerVariantesIdCuadra(p.label, numTLimpio).forEach(v => vars.push(v));
+              if (vars.some(v => cuadrasHechasSet.has(v))) trabajadas++;
+            }
+          });
+          const totRef = totalPred || poligonos.length || 0;
+          const completo = totRef > 0 && trabajadas >= totRef;
           if (completo) {
             chipEstado.innerHTML = "✅ Completado";
             chipEstado.style.background = "#dcfce7";
             chipEstado.style.color = "#166534";
           } else {
-            chipEstado.innerHTML = `⏳ Pendiente (${cuadrasTrab}/${totRef})`;
+            chipEstado.innerHTML = `⏳ Pendiente (${trabajadas}/${totRef})`;
             chipEstado.style.background = "#fef3c7";
             chipEstado.style.color = "#92400e";
           }
@@ -3991,7 +4138,7 @@ ${lineas.join("\n")}`;
         });
 
         // Completar con renglones punteados en blanco para escritura manual cuando se imprima
-        const filasVacias = Math.max(5, 7 - repsT.length);
+        const filasVacias = Math.max(3, 5 - repsT.length);
         for (let i = 0; i < filasVacias; i++) {
           rowsHtml += `
             <tr class="s12-row-blank">

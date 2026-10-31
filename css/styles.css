@@ -450,18 +450,18 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   transform: scale(0.93);
 }
 
-/* Tarjeta flotante con información del territorio en Modo Capitán */
+/* Tarjeta flotante con información del territorio / cuadra en Modo Capitán */
 .tarjeta-info-capitan {
   position: fixed;
   bottom: calc(102px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%) translateY(8px);
-  max-width: calc(100vw - 28px);
+  max-width: min(calc(100vw - 20px), 520px);
   width: max-content;
-  background: rgba(15, 23, 42, 0.94);
+  background: rgba(15, 23, 42, 0.95);
   color: #ffffff;
-  padding: 9px 15px 9px 13px;
-  border-radius: 20px;
+  padding: 8px 12px 8px 14px;
+  border-radius: 18px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32), 0 3px 8px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -469,12 +469,14 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   z-index: 10005;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease;
   user-select: none;
   -webkit-user-select: none;
+  box-sizing: border-box;
 }
 
 .tarjeta-info-capitan.visible {
@@ -483,17 +485,12 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   transform: translateX(-50%) translateY(0);
 }
 
-.tarjeta-info-capitan .info-icon {
-  font-size: 19px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
 .tarjeta-info-capitan .info-texto {
   display: flex;
   flex-direction: column;
   line-height: 1.25;
   min-width: 0;
+  flex: 1;
 }
 
 .tarjeta-info-capitan .info-titulo {
@@ -509,20 +506,28 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 }
 
 .tarjeta-info-capitan .info-subtexto {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   color: #cbd5e1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.tarjeta-info-capitan .info-acciones {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .tarjeta-info-capitan .info-btn-compartir {
   background: #2563eb;
   color: #ffffff;
   border: none;
-  border-radius: 16px;
-  padding: 4px 10px;
+  border-radius: 14px;
+  padding: 5px 10px;
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -532,7 +537,6 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   flex-shrink: 0;
   transition: all 0.15s ease;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
-  margin-left: 2px;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -550,8 +554,8 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   background: #059669;
   color: #ffffff;
   border: none;
-  border-radius: 16px;
-  padding: 4px 10px;
+  border-radius: 14px;
+  padding: 5px 10px;
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -561,7 +565,6 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   flex-shrink: 0;
   transition: all 0.15s ease;
   box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
-  margin-left: 2px;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -583,13 +586,32 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   font-weight: 700;
   cursor: pointer;
   padding: 4px;
-  margin-left: 2px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.15s ease;
   flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .tarjeta-info-capitan {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    padding: 7px 10px 7px 12px;
+    gap: 8px;
+  }
+  .tarjeta-info-capitan .info-titulo {
+    font-size: 12px;
+  }
+  .tarjeta-info-capitan .info-subtexto {
+    font-size: 10.5px;
+  }
+  .tarjeta-info-capitan .info-btn-s12,
+  .tarjeta-info-capitan .info-btn-compartir {
+    padding: 4px 7px;
+    font-size: 10.5px;
+  }
 }
 
 .tarjeta-info-capitan .info-btn-cerrar:hover,
@@ -2066,22 +2088,22 @@ body.modo-oscuro .etiqueta-poligono {
   width: 100%;
   height: 100%;
   height: 100dvh;
-  background: rgba(15, 23, 42, 0.72);
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999999;
-  padding: 16px;
+  padding: 12px;
   box-sizing: border-box;
 }
 
 .s12-modal-container {
   background: #f1f5f9;
-  border-radius: 24px;
+  border-radius: 20px;
   width: 100%;
-  max-width: 760px;
+  max-width: 580px;
   max-height: 94vh;
   max-height: 94dvh;
   display: flex;
@@ -2097,7 +2119,7 @@ body.modo-oscuro .etiqueta-poligono {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 18px;
+  padding: 10px 14px;
   background: #ffffff;
   border-bottom: 1.5px solid #e2e8f0;
   flex-shrink: 0;
@@ -2112,13 +2134,13 @@ body.modo-oscuro .etiqueta-poligono {
 }
 
 .s12-modal-select {
-  height: 38px;
-  padding: 0 10px;
-  border-radius: 12px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 10px;
   border: 1.5px solid #cbd5e1;
   background: #f8fafc;
   color: #0f172a;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   outline: none;
   cursor: pointer;
@@ -2130,13 +2152,13 @@ body.modo-oscuro .etiqueta-poligono {
 }
 
 .s12-btn-print {
-  height: 38px;
+  height: 36px;
   background: #059669;
   color: #ffffff;
   border: none;
-  border-radius: 12px;
-  padding: 0 14px;
-  font-size: 13px;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 12.5px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -2155,13 +2177,13 @@ body.modo-oscuro .etiqueta-poligono {
 }
 
 .s12-btn-share {
-  height: 38px;
+  height: 36px;
   background: #2563eb;
   color: #ffffff;
   border: none;
-  border-radius: 12px;
-  padding: 0 14px;
-  font-size: 13px;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 12.5px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -2181,7 +2203,7 @@ body.modo-oscuro .etiqueta-poligono {
 
 .s12-modal-scroll {
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px 14px;
   flex: 1;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
@@ -2191,9 +2213,9 @@ body.modo-oscuro .etiqueta-poligono {
 .s12-card {
   background: #ffffff;
   border: 2px solid #0f172a;
-  border-radius: 18px;
-  padding: 22px 24px;
-  max-width: 680px;
+  border-radius: 14px;
+  padding: 14px 18px;
+  max-width: 530px;
   margin: 0 auto;
   box-sizing: border-box;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
@@ -2203,20 +2225,18 @@ body.modo-oscuro .etiqueta-poligono {
 
 /* Cabecera de la Tarjeta S-12 */
 .s12-header {
-  border-bottom: 2px solid #0f172a;
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  padding-bottom: 4px;
 }
 
 .s12-header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .s12-cong-name {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 1.5px;
   color: #475569;
@@ -2224,11 +2244,11 @@ body.modo-oscuro .etiqueta-poligono {
 }
 
 .s12-form-code {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   border: 1.5px solid #0f172a;
-  border-radius: 5px;
-  padding: 2px 8px;
+  border-radius: 4px;
+  padding: 2px 6px;
   color: #0f172a;
   background: #f8fafc;
 }
@@ -2237,13 +2257,13 @@ body.modo-oscuro .etiqueta-poligono {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .s12-main-title {
   margin: 0;
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 900;
   color: #0f172a;
   letter-spacing: -0.3px;
@@ -2253,23 +2273,23 @@ body.modo-oscuro .etiqueta-poligono {
 .s12-terr-badge {
   background: #0f172a;
   color: #ffffff;
-  border-radius: 12px;
-  padding: 6px 14px;
+  border-radius: 10px;
+  padding: 4px 11px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
 .s12-badge-lbl {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 1px;
   opacity: 0.85;
 }
 
 .s12-badge-num {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 900;
 }
 
@@ -2277,15 +2297,15 @@ body.modo-oscuro .etiqueta-poligono {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .s12-chip {
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 3px 8px;
-  font-size: 11.5px;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
   font-weight: 600;
   color: #334155;
   display: inline-flex;
@@ -2298,121 +2318,106 @@ body.modo-oscuro .etiqueta-poligono {
   color: #0f172a;
 }
 
-.s12-chip-url {
-  font-size: 11px;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-  background: #eff6ff;
-  word-break: break-all;
+/* Línea divisoria horizontal limpia */
+.s12-hr {
+  border: none;
+  border-top: 1.5px solid #0f172a;
+  margin: 10px 0;
+  width: 100%;
 }
 
 /* Croquis SVG Map */
 .s12-croquis-box {
   width: 100%;
   border: 1.5px solid #0f172a;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   background: #f8fafc;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   box-sizing: border-box;
 }
 
 .s12-croquis-box svg {
   width: 100%;
   height: auto;
-  max-height: 380px;
+  max-height: 200px;
   display: block;
 }
 
-/* Bloque Intermedio (Instrucciones y Código QR) */
-.s12-qr-info-row {
+/* Fila de QR y Botón Directo "Ir a territorio" */
+.s12-qr-action-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   background: #f8fafc;
   border: 1.5px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin-bottom: 10px;
   box-sizing: border-box;
 }
 
-.s12-instructions {
-  flex: 1;
-  min-width: 0;
-}
-
-.s12-ins-heading {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #0f172a;
-  margin-bottom: 3px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.s12-ins-body {
-  font-size: 11px;
-  color: #475569;
-  line-height: 1.35;
-}
-
-.s12-qr-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 3px;
-}
-
-.s12-qr-image {
-  width: 68px;
-  height: 68px;
+.s12-qr-mini {
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   border: 1px solid #cbd5e1;
   background: #ffffff;
   display: block;
+  flex-shrink: 0;
 }
 
-.s12-qr-caption {
-  font-size: 9.5px;
+.s12-btn-ir-territorio {
+  background: #2563eb;
+  color: #ffffff !important;
+  text-decoration: none;
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-size: 12px;
   font-weight: 700;
-  color: #64748b;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.16s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+.s12-btn-ir-territorio:hover {
+  background: #1d4ed8;
+}
+
+.s12-btn-ir-territorio:active {
+  transform: scale(0.96);
 }
 
 /* Sección de Historial de Asignaciones (Tabla S-12) */
 .s12-table-section {
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .s12-table-header-title {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 1px;
   color: #0f172a;
   text-transform: uppercase;
-  margin-bottom: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-bottom: 5px;
 }
 
 .s12-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11.5px;
+  font-size: 11px;
   border: 1.5px solid #0f172a;
 }
 
 .s12-table th {
   background: #0f172a;
   color: #ffffff;
-  padding: 6px 8px;
+  padding: 5px 6px;
   font-weight: 800;
-  font-size: 10.5px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-align: left;
@@ -2420,7 +2425,7 @@ body.modo-oscuro .etiqueta-poligono {
 }
 
 .s12-table td {
-  padding: 6px 8px;
+  padding: 4px 6px;
   border: 1px solid #cbd5e1;
   color: #1e293b;
   vertical-align: middle;
@@ -2432,25 +2437,8 @@ body.modo-oscuro .etiqueta-poligono {
 
 .s12-row-blank td {
   border-bottom: 1.5px dashed #94a3b8 !important;
-  height: 25px;
+  height: 22px;
   background: transparent !important;
-}
-
-/* Pie de Tarjeta */
-.s12-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1.5px solid #0f172a;
-  padding-top: 8px;
-  margin-top: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  flex-wrap: wrap;
-  gap: 4px;
 }
 
 /* ==========================================================================
@@ -2516,12 +2504,12 @@ body.modo-oscuro .etiqueta-poligono {
 
   .s12-card {
     border: 2px solid #000000 !important;
-    border-radius: 8px !important;
+    border-radius: 6px !important;
     box-shadow: none !important;
-    padding: 16px 20px !important;
+    padding: 12px 16px !important;
     margin: 0 auto !important;
     width: 100% !important;
-    max-width: 680px !important;
+    max-width: 540px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     color: #000000 !important;
@@ -2531,7 +2519,7 @@ body.modo-oscuro .etiqueta-poligono {
   }
 
   .s12-header,
-  .s12-footer,
+  .s12-hr,
   .s12-croquis-box,
   .s12-table {
     border-color: #000000 !important;
@@ -2560,6 +2548,14 @@ body.modo-oscuro .etiqueta-poligono {
   }
 
   .s12-croquis-box svg {
+    max-height: 240px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .s12-btn-ir-territorio {
+    background: #000000 !important;
+    color: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
