@@ -427,6 +427,63 @@
     return Array.from(mapaUnicos.values());
   }
 
+  // Sanitización inteligente de cuadras acumuladas:
+  // Corrige automáticamente cuando un reporte posterior heredó por error de la interfaz las cuadras de un reporte previo del mismo territorio y mes.
+  // Ejemplo: si Luis Gardea hizo cuadras 1 y 2, y en la tarde Alfredo hizo solo la 4 pero se guardaron 1, 2 y 4,
+  // esta función resta las cuadras previas ya trabajadas por Luis y deja a Alfredo únicamente con la cuadra 4 que él trabajó.
+  function sanitizarReportesAcumulados(lista) {
+    if (!Array.isArray(lista) || lista.length <= 1) return lista || [];
+
+    // Agrupar por Territorio y Periodo (Año + Mes)
+    const grupos = new Map();
+    lista.forEach(r => {
+      if (!r || !r.fecha) return;
+      const tNum = String(obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero));
+      const p = parsearFechaReporte(r.fecha);
+      const grupoKey = `${tNum}_${p.anio}_${p.mes}`;
+      if (!grupos.has(grupoKey)) grupos.set(grupoKey, []);
+      grupos.get(grupoKey).push(r);
+    });
+
+    grupos.forEach((repsGrupo) => {
+      if (repsGrupo.length <= 1) return;
+
+      // Ordenar cronológicamente del más antiguo al más reciente
+      repsGrupo.sort((a, b) => {
+        const fa = (parsearFechaReporte(a.fecha).fechaISO || a.fecha || "");
+        const fb = (parsearFechaReporte(b.fecha).fechaISO || b.fecha || "");
+        if (fa !== fb) return fa.localeCompare(fb);
+        const tA = a.timestamp || 0;
+        const tB = b.timestamp || 0;
+        return tA - tB;
+      });
+
+      const cuadrasAcumuladasSet = new Set();
+      const tNum = String(obtenerNumeroTerritorioLimpio(repsGrupo[0].territorioId, repsGrupo[0].territorioNumero));
+
+      repsGrupo.forEach((rep) => {
+        if (!Array.isArray(rep.cuadras) || rep.cuadras.length === 0) return;
+
+        const cuadrasNormalizadas = rep.cuadras.map(c => aCodigoCortoCuadra(c, tNum));
+        const yaReclamadas = cuadrasNormalizadas.filter(c => cuadrasAcumuladasSet.has(c));
+        const nuevasUnicas = cuadrasNormalizadas.filter(c => !cuadrasAcumuladasSet.has(c));
+
+        // Si este reporte contiene cuadras ya reportadas por otro hermano antes y además tiene cuadras nuevas,
+        // restaurar este reporte solo a sus cuadras nuevas que realmente corresponden a este capitán
+        if (yaReclamadas.length > 0 && nuevasUnicas.length > 0) {
+          rep.cuadras = nuevasUnicas;
+          rep.cuadrasTotal = nuevasUnicas.length;
+          rep.cuadrasLabels = nuevasUnicas.map(c => formatearEtiquetaCuadraCorta(c));
+        }
+
+        // Registrar las cuadras trabajadas en el acumulador del periodo
+        (rep.cuadras || []).forEach(c => cuadrasAcumuladasSet.add(aCodigoCortoCuadra(c, tNum)));
+      });
+    });
+
+    return lista;
+  }
+
   // Purgar por completo todas las llaves viejas y deduplicar reportes guardados
   function purgarBasuraLocalStorage() {
     try {
@@ -437,15 +494,15 @@
         }
       }
 
-      // Limpiar automáticamente reportes duplicados que hayan quedado de versiones o IDs anteriores
+      // Limpiar automáticamente reportes duplicados y corregir acumulaciones indebidas de cuadras
       const rawReportes = localStorage.getItem("terrosa_reportes_pendientes");
       if (rawReportes) {
-        const lista = JSON.parse(rawReportes);
+        let lista = JSON.parse(rawReportes);
         if (Array.isArray(lista) && lista.length > 0) {
-          const listaLimpia = deduplicarListaReportes(lista);
-          if (listaLimpia.length !== lista.length) {
-            localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(listaLimpia));
-          }
+          const countAntes = lista.length;
+          lista = deduplicarListaReportes(lista);
+          lista = sanitizarReportesAcumulados(lista);
+          localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(lista));
         }
       }
 
@@ -1156,7 +1213,7 @@
   // 6.1. Modal de Historial ("Territorios trabajados") — Pantalla Fija con Buscador y Filtro Multimes
   window.abrirModalHistorialRegistros = function () {
     window.reproducirSonidoClick("tap");
-    const todosReportes = deduplicarListaReportes(JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]"))
+    const todosReportes = sanitizarReportesAcumulados(deduplicarListaReportes(JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]")))
       .filter(r => perteneceAVersionActiva(r));
 
     // Heredar filtro activo del mapa principal
@@ -1284,7 +1341,7 @@
     const cont = modal.querySelector("#listaItemsHistorial");
 
     function renderizarListaFiltrada() {
-      const reportes = deduplicarListaReportes(JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]"))
+      const reportes = sanitizarReportesAcumulados(deduplicarListaReportes(JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]")))
         .filter(r => perteneceAVersionActiva(r));
 
       const query = (inputBuscador ? inputBuscador.value : "").trim().toLowerCase();
@@ -2078,8 +2135,11 @@
 
         const infoCuadra = infoMes.mapaCuadras.get(pol.id);
         const yaTrabajada = !!infoCuadra;
-        const isPreselected = (preCuadraId && pol.id === preCuadraId);
-        const estaMarcada = isPreselected || yaTrabajada;
+        const isPreselected = Boolean(preCuadraId && (pol.id === preCuadraId || String(cuadraNum) === String(preCuadraId)));
+
+        // IMPORTANTE: Las cuadras previamente trabajadas por otro hermano NO deben auto-marcarse en este nuevo reporte.
+        // Solo se preselecciona la cuadra si el capitán le dio clic directo en el mapa.
+        const estaMarcada = isPreselected;
 
         const chip = document.createElement("div");
         chip.className = `chip-cuadra-item ${estaMarcada ? "selected" : ""} ${yaTrabajada ? "trabajada-mes" : ""}`;
@@ -2088,7 +2148,7 @@
             <input type="checkbox" value="${pol.id}" class="chk-cuadra" ${estaMarcada ? "checked" : ""} style="width:16px; height:16px; accent-color:#1a73e8; cursor:pointer; pointer-events:none;"/>
             <span style="font-weight:700; font-size:13.5px; color:#1e293b;">Cuadra ${cuadraNum}</span>
           </div>
-          ${yaTrabajada ? `<span class="chip-badge-mes">Trabajado ${infoCuadra.fechaDisplay}</span>` : ''}
+          ${yaTrabajada ? `<span class="chip-badge-mes" style="font-size:10.5px; padding:2px 6px; border-radius:6px; background:#e0f2fe; color:#0369a1; font-weight:700;">Hecha el ${infoCuadra.fechaDisplay}${infoCuadra.capitan ? ' (' + infoCuadra.capitan + ')' : ''}</span>` : ''}
         `;
 
         chip.addEventListener("click", () => {
@@ -2864,8 +2924,12 @@ ${lineas.join("\n")}`;
     }
   };
 
-  // 14. Filtro de Fecha en Barra Superior (Año y Selector Múltiple de Meses)
+  // 14. Filtro de Fecha en Barra Superior (Año y Selector Múltiple de Meses ordenados por Año de Servicio: Sep a Ago)
   const NOMBRES_MESES = [
+    { num: "09", nombre: "Septiembre", abrev: "Sep" },
+    { num: "10", nombre: "Octubre", abrev: "Oct" },
+    { num: "11", nombre: "Noviembre", abrev: "Nov" },
+    { num: "12", nombre: "Diciembre", abrev: "Dic" },
     { num: "01", nombre: "Enero", abrev: "Ene" },
     { num: "02", nombre: "Febrero", abrev: "Feb" },
     { num: "03", nombre: "Marzo", abrev: "Mar" },
@@ -2873,11 +2937,7 @@ ${lineas.join("\n")}`;
     { num: "05", nombre: "Mayo", abrev: "May" },
     { num: "06", nombre: "Junio", abrev: "Jun" },
     { num: "07", nombre: "Julio", abrev: "Jul" },
-    { num: "08", nombre: "Agosto", abrev: "Ago" },
-    { num: "09", nombre: "Septiembre", abrev: "Sep" },
-    { num: "10", nombre: "Octubre", abrev: "Oct" },
-    { num: "11", nombre: "Noviembre", abrev: "Nov" },
-    { num: "12", nombre: "Diciembre", abrev: "Dic" }
+    { num: "08", nombre: "Agosto", abrev: "Ago" }
   ];
 
   let _filtroFechaBarraInicializado = false;
@@ -3679,8 +3739,9 @@ ${lineas.join("\n")}`;
           }
         });
 
-        // Deduplicación garantizada
+        // Deduplicación y sanitización garantizada
         reportesNormalizados = deduplicarListaReportes(reportesNormalizados);
+        reportesNormalizados = sanitizarReportesAcumulados(reportesNormalizados);
 
         localStorage.setItem("terrosa_reportes_pendientes", JSON.stringify(reportesNormalizados));
 

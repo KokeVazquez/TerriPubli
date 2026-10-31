@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v70';
+const CACHE_NAME = 'territorios-cache-v71';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
