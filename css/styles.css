@@ -2767,3 +2767,14 @@ body.modo-oscuro .etiqueta-poligono {
 
 
 
+
+
+/* Reglas globales anti-cortes de palabras y tipografía limpia */
+button, .btn, h1, h2, h3, h4, .s12-chip, .s12-main-title, .s12-form-code, .s12-cong-name, .terrosa-modal-card h3 {
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  overflow-wrap: break-word;
+}
+.btn, button, .filtro-pildora-btn, .s12-chip, .chip-categoria {
+  word-break: keep-all;
+}

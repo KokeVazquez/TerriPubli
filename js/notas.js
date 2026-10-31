@@ -488,7 +488,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
         <!-- Nombre de la persona -->
         <div>
           <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Nombre de la persona / Familia *</label>
-          <input type="text" id="revNombrePersona" placeholder="Ej: Juan Pérez" style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+          <input type="text" id="revNombrePersona" placeholder="Escribe aquí..." style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
         </div>
 
         <!-- Categoría / Tipo de persona -->
@@ -509,7 +509,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
             <label style="font-size:12px; font-weight:700; color:#475569;">Dirección / Calle y Número</label>
             <button type="button" id="btnAutollenarGpsRev" style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:700; cursor:pointer; padding:0;">Usar mi GPS</button>
           </div>
-          <input type="text" id="revDireccion" placeholder="Ej: Calle 16 #2408 (Casa azul)" style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
+          <input type="text" id="revDireccion" placeholder="Escribe aquí..." style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
         </div>
 
         <!-- Fecha primera visita -->
@@ -521,7 +521,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
         <!-- Tema platicado / Publicación dejada -->
         <div>
           <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">¿De qué hablaron? / Pregunta pendiente</label>
-          <textarea id="revNotasConversacion" rows="3" placeholder="Ej: Aceptó el folleto Disfrute de la vida. Muy amable. Quedamos de contestar la pregunta 2." style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
+          <textarea id="revNotasConversacion" rows="3" placeholder="Escribe aquí..." style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
         </div>
 
         <!-- Botón Guardar -->
@@ -604,7 +604,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
   modal.querySelector("#btnGuardarNuevaRevisita").onclick = () => {
     const nombre = modal.querySelector("#revNombrePersona").value.trim();
     if (!nombre) {
-      window.mostrarToastDiscreto("Por favor escribe el nombre de la persona o familia", "");
+      window.mostrarToastDiscreto("Escribe el nombre de la persona o familia", "");
       modal.querySelector("#revNombrePersona").focus();
       return;
     }
@@ -678,7 +678,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
 
         <div>
           <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Notas de la visita / Publicación dejada</label>
-          <textarea id="inputNotasNuevaVisita" rows="4" placeholder="¿Qué se habló en esta visita? ¿Qué pregunta quedó pendiente?" style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
+          <textarea id="inputNotasNuevaVisita" rows="4" placeholder="Escribe aquí..." style="width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #cbd5e1; font-size:13.5px; box-sizing:border-box; outline:none; background:#f8fafc; resize:none; font-family:inherit;"></textarea>
         </div>
 
         <button id="btnGuardarVisitaItem" style="width:100%; height:42px; border-radius:14px; background:#2563eb; color:#ffffff; font-size:14.5px; font-weight:800; border:none; cursor:pointer; margin-top:4px;">
@@ -701,7 +701,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
     const notas = modal.querySelector("#inputNotasNuevaVisita").value.trim();
 
     if (!notas) {
-      window.mostrarToastDiscreto("Por favor escribe una breve nota de lo que platicaron", "");
+      window.mostrarToastDiscreto("Escribe las notas de la visita", "");
       modal.querySelector("#inputNotasNuevaVisita").focus();
       return;
     }

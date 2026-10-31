@@ -715,7 +715,7 @@
             <select id="selectNombreLogin" style="
               width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; box-sizing:border-box; margin-top:4px; outline:none; font-family:inherit; background:#ffffff; color:#0f172a;
             ">
-              <option value="" disabled ${!actual ? "selected" : ""}>-- Selecciona tu usuario --</option>
+              <option value="" disabled ${!actual ? "selected" : ""}>Selecciona aquí...</option>
               ${USUARIOS_ACCESO_CAPITAN.map(u => `<option value="${u}" ${actual === u ? "selected" : ""}>${u}</option>`).join("")}
             </select>
           </div>
@@ -781,7 +781,7 @@
         return;
       }
       if (!pin) {
-        if (errorMsg) errorMsg.textContent = "Por favor ingresa tu código PIN.";
+        if (errorMsg) errorMsg.textContent = "Ingresa tu código PIN.";
         inputPin.focus();
         return;
       }
@@ -929,7 +929,7 @@
         <!-- Sección de Nombre -->
         <div style="margin-bottom:16px;">
           <label style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Tu Nombre y Apellido</label>
-          <input type="text" id="inputNombrePublicador" value="${escaparTextoSeguro(actualPub)}" placeholder="Escribe tu nombre..." autocomplete="name" style="
+          <input type="text" id="inputNombrePublicador" value="${escaparTextoSeguro(actualPub)}" placeholder="Escribe aquí..." autocomplete="name" style="
             width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14.5px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
           " />
           <button id="btnGuardarNombrePublicador" style="
@@ -975,7 +975,7 @@
     modal.querySelector("#btnGuardarNombrePublicador").onclick = () => {
       const nuevo = inputNom.value.trim();
       if (!nuevo) {
-        mostrarToastDiscreto("Por favor escribe tu nombre");
+        mostrarToastDiscreto("Escribe tu nombre");
         return;
       }
       localStorage.setItem("terrosa_nombre_publicador", nuevo);
@@ -1046,7 +1046,7 @@
         </p>
 
         <div style="text-align:left; margin-bottom:14px;">
-          <input type="text" id="inputBienvenidaNombre" placeholder="Tu nombre y apellido..." autocomplete="name" style="
+          <input type="text" id="inputBienvenidaNombre" placeholder="Escribe aquí..." autocomplete="name" style="
             width:100%; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:700; color:#0f172a; outline:none; font-family:inherit; background:#ffffff; box-sizing:border-box;
           " />
         </div>
@@ -1064,7 +1064,7 @@
     const guardar = () => {
       const val = (inputB.value || "").trim();
       if (!val) {
-        mostrarToastDiscreto("Por favor ingresa tu nombre");
+        mostrarToastDiscreto("Ingresa tu nombre");
         return;
       }
       localStorage.setItem("terrosa_nombre_publicador", val);
@@ -1732,7 +1732,7 @@
           <div style="position:relative;">
             <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Capitán</label>
             <div style="display:flex; align-items:center; position:relative;">
-              <input type="text" id="editCapitanInput" value="${escaparTextoSeguro(rep.capitan || '')}" placeholder="Escribe o selecciona..." autocomplete="off" style="
+              <input type="text" id="editCapitanInput" value="${escaparTextoSeguro(rep.capitan || '')}" placeholder="Escribe aquí..." autocomplete="off" style="
                 width:100%; padding:10px 32px 10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; outline:none; font-family:inherit; background:#fff; color:#0f172a;
               "/>
               <span id="badgeEditCapitanEstado" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none;"></span>
@@ -1839,11 +1839,11 @@
       const nuevoComentario = modal.querySelector("#editComentario").value.trim();
 
       if (!nuevoCapitan) {
-        mostrarToastDiscreto("Por favor ingresa el nombre del capitán.");
+        mostrarToastDiscreto("Ingresa el nombre del capitán.");
         return;
       }
       if (!nuevaFecha) {
-        mostrarToastDiscreto("Por favor ingresa una fecha.");
+        mostrarToastDiscreto("Ingresa una fecha.");
         return;
       }
 
@@ -1968,7 +1968,7 @@
                 <span style="font-size:10px; color:#2563eb; font-weight:700;">Lista oficial</span>
               </label>
               <div style="display:flex; align-items:center; position:relative;">
-                <input type="text" id="regInputCapitan" value="${escaparTextoSeguro(capitanActivo)}" placeholder="Escribe (ej. ja, re, al)..." autocomplete="off" style="
+                <input type="text" id="regInputCapitan" value="${escaparTextoSeguro(capitanActivo)}" placeholder="Escribe aquí..." autocomplete="off" style="
                   width:100%; padding:10px 32px 10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit; color:#0f172a;
                 "/>
                 <span id="badgeRegCapitanEstado" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none;"></span>
@@ -1993,7 +1993,7 @@
               <select id="regSelectTerritorio" style="
                 width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit;
               ">
-                <option value="">-- Elige un territorio --</option>
+                <option value="">Selecciona aquí...</option>
               </select>
             </div>
 
@@ -2016,7 +2016,7 @@
             <!-- Comentario opcional -->
             <details class="comentario-desplegable" style="background:#ffffff; border-radius:12px; padding:6px 10px;">
               <summary style="font-size:12px; font-weight:700; color:#64748b; cursor:pointer;">Comentario (opcional)</summary>
-              <textarea id="regComentario" rows="2" placeholder="Notas sobre este territorio..." style="width:100%; margin-top:6px; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none; font-family:inherit;"></textarea>
+              <textarea id="regComentario" rows="2" placeholder="Escribe aquí..." style="width:100%; margin-top:6px; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none; font-family:inherit;"></textarea>
             </details>
 
             <!-- Casilla Visita SC -->
@@ -2039,7 +2039,7 @@
               <label style="font-size:11.5px; font-weight:800; color:#334155; text-transform:uppercase;">
                 Territorios listos (<span id="regConteoLote">0</span>)
               </label>
-              <span id="regAvisoLote" style="font-size:11px; color:#94a3b8; font-weight:600;">O guarda directo si es 1</span>
+              <span id="regAvisoLote" style="font-size:11px; color:#94a3b8; font-weight:600;">Opcional</span>
             </div>
             <div id="regListaLoteCards" style="max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
               <div id="regMsgLoteVacio" style="font-size:12px; color:#94a3b8; text-align:center; padding:10px; border:1px dashed #cbd5e1; border-radius:12px; background:#f8fafc;">
@@ -2205,8 +2205,8 @@
 
           const btnReabrir = document.createElement("button");
           btnReabrir.type = "button";
-          btnReabrir.style.cssText = "display:block; width:100%; margin-top:8px; background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:700; cursor:pointer; text-decoration:underline;";
-          btnReabrir.textContent = "¿Deseas volver a predicar cuadras ya hechas?";
+          btnReabrir.style.cssText = "display:block; width:100%; margin-top:8px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:10px; padding:8px 12px; color:#334155; font-size:12px; font-weight:700; cursor:pointer;";
+          btnReabrir.textContent = "Habilitar cuadras hechas";
           btnReabrir.onclick = () => {
             forzarHabilitarTodas = true;
             btnToggleTodas.style.display = "inline-flex";
@@ -2267,7 +2267,7 @@
             Ningún territorio agregado a la lista aún
           </div>
         `;
-        if (aviso) aviso.textContent = "O guarda directo si es 1";
+        if (aviso) aviso.textContent = "Opcional";
         btnGuardar.textContent = "Guardar Reporte";
         return;
       }
@@ -2359,7 +2359,7 @@
       const datosT = obtenerDatosTerritorioActual();
       if (!datosT) {
         if (!selectTerr.value) {
-          mostrarToastDiscreto("Por favor selecciona un territorio.");
+          mostrarToastDiscreto("Selecciona un territorio.");
           selectTerr.focus();
         } else {
           mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.");
@@ -3269,8 +3269,8 @@ ${lineas.join("\n")}`;
     modal.className = "terrosa-modal-overlay";
 
     const opciones = [
-      { id: "2026", titulo: "Año de Serv. 2026", sub: "Septiembre 2026 a Agosto 2027 (Actual)" },
-      { id: "2025", titulo: "Año de Serv. 2025", sub: "Hasta 31 de Agosto de 2026" },
+      { id: "2026", titulo: "Año de Servicio 2026", sub: "Septiembre 2026 a Agosto 2027 (Actual)" },
+      { id: "2025", titulo: "Año de Servicio 2025", sub: "Hasta 31 de Agosto de 2026" },
       { id: "todos", titulo: "Todos los años", sub: "Mostrar todos los registros sin filtro de año" }
     ];
 

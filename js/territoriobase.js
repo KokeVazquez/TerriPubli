@@ -406,7 +406,7 @@ function anadirNotaPopup(id, territorioId) {
         <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Añadir nota</h3>
         <button id="cerrarModalNotaX" class="btn-icon-square">✕</button>
       </div>
-      <textarea id="inputNota" rows="4" placeholder="Escribe tu nota aquí..." style="
+      <textarea id="inputNota" rows="4" placeholder="Escribe aquí..." style="
         width: 100%;
         padding: 11px 14px;
         border-radius: 14px;
