@@ -2976,6 +2976,7 @@ ${lineas.join("\n")}`;
     });
 
     const tituloEl = document.getElementById("infoCapitanTitulo");
+    const estadoEl = document.getElementById("infoCapitanEstado");
     const subtextoEl = document.getElementById("infoCapitanSubtexto");
 
     tarjeta.dataset.territorioId = numTLimpio;
@@ -3007,9 +3008,14 @@ ${lineas.join("\n")}`;
 
     const totRef = totalCuadras || (repsT.length > 0 ? repsT[0].totalCuadrasTerritorio : 0) || 0;
 
+    // Línea 1: Título del Territorio
+    if (tituloEl) tituloEl.textContent = tituloTerr;
+
     if (repsT.length === 0 || cuadrasTrabajadas === 0) {
-      tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#cbd5e1; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.1);">Sin trabajar</span>`;
-      subtextoEl.textContent = `No se ha reportado en ${periodoTexto}`;
+      // Línea 2: Estatus
+      if (estadoEl) estadoEl.innerHTML = '<span class="badge-capitan-estado badge-sin-trabajar">Sin trabajar</span>';
+      // Línea 3: Detalle más pequeño para que quepa y no se corte
+      if (subtextoEl) subtextoEl.textContent = `No se ha reportado en ${periodoTexto}`;
     } else {
       repsT.sort((a, b) => {
         const fa = parsearFechaReporte(a.fecha).fechaISO || "";
@@ -3024,12 +3030,12 @@ ${lineas.join("\n")}`;
       const esCompleto = totRef > 0 && cuadrasTrabajadas >= totRef;
 
       if (esCompleto) {
-        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#4ade80; padding:1px 6px; border-radius:6px; background:rgba(74,222,128,0.15);">Completado</span>`;
-        subtextoEl.textContent = `Terminado el ${fechaDisp} por ${capitan}`;
+        if (estadoEl) estadoEl.innerHTML = '<span class="badge-capitan-estado badge-completada">Completado</span>';
+        if (subtextoEl) subtextoEl.textContent = `Terminado el ${fechaDisp} por ${capitan}`;
       } else {
         const faltantes = Math.max(1, totRef - cuadrasTrabajadas);
-        tituloEl.innerHTML = `${tituloTerr} <span style="font-size:11px; font-weight:700; color:#fbbf24; padding:1px 6px; border-radius:6px; background:rgba(251,191,36,0.15);">Pendiente (${cuadrasTrabajadas}/${totRef || '?'})</span>`;
-        subtextoEl.textContent = `Faltan ${faltantes} cuadras • Último: ${capitan} (${fechaDisp})`;
+        if (estadoEl) estadoEl.innerHTML = `<span class="badge-capitan-estado badge-pendiente">Pendiente (${cuadrasTrabajadas}/${totRef || '?'})</span>`;
+        if (subtextoEl) subtextoEl.textContent = `Faltan ${faltantes} cuadras • Último: ${capitan} (${fechaDisp})`;
       }
     }
 
@@ -3084,11 +3090,15 @@ ${lineas.join("\n")}`;
     });
 
     const tituloEl = document.getElementById("infoCapitanTitulo");
+    const estadoEl = document.getElementById("infoCapitanEstado");
     const subtextoEl = document.getElementById("infoCapitanSubtexto");
     const periodoTexto = obtenerTextoPeriodoFiltro();
 
     tarjeta.dataset.territorioId = numTLimpio;
     tarjeta.dataset.cuadraLabel = rawLabel || "";
+
+    // Línea 1: Formato "Territorio 46 - Cuadra 4"
+    if (tituloEl) tituloEl.textContent = `${nombreTerritorio} - ${nombreCuadra}`;
 
     if (repsCoincidentes.length > 0) {
       repsCoincidentes.sort((a, b) => {
@@ -3101,11 +3111,15 @@ ${lineas.join("\n")}`;
       const fechaDisp = pFecha.fechaDisplay || rep.fecha;
       const capitan = rep.capitan || "No asignado";
 
-      tituloEl.innerHTML = `${tituloCompleto} <span style="font-size:11px; font-weight:700; color:#4ade80; padding:1px 6px; border-radius:6px; background:rgba(74,222,128,0.15);">Hecha</span>`;
-      subtextoEl.textContent = `Terminada el ${fechaDisp} por ${capitan}`;
+      // Línea 2: Completada
+      if (estadoEl) estadoEl.innerHTML = '<span class="badge-capitan-estado badge-completada">Completada</span>';
+      // Línea 3: Detalle más pequeño para que quepa y no se corte
+      if (subtextoEl) subtextoEl.textContent = `Terminada el ${fechaDisp} por ${capitan}`;
     } else {
-      tituloEl.innerHTML = `${tituloCompleto} <span style="font-size:11px; font-weight:700; color:#cbd5e1; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.1);">Sin trabajar</span>`;
-      subtextoEl.textContent = `Sin reportar en ${periodoTexto}`;
+      // Línea 2: Sin trabajar
+      if (estadoEl) estadoEl.innerHTML = '<span class="badge-capitan-estado badge-sin-trabajar">Sin trabajar</span>';
+      // Línea 3: Detalle más pequeño
+      if (subtextoEl) subtextoEl.textContent = `Sin reportar en ${periodoTexto}`;
     }
 
     tarjeta.style.display = "flex";
@@ -3760,7 +3774,7 @@ ${lineas.join("\n")}`;
   }
 
   // Generador de SVG vectorial de alta definición para el croquis de la tarjeta S-12
-  window.generarSvgCroquisTerritorio = function (tId, width = 600, height = 210) {
+  window.generarSvgCroquisTerritorio = function (tId, width = 600, height = 260) {
     const { poligonos } = obtenerPoligonosTerritorio(tId);
 
     if (!poligonos || poligonos.length === 0) {
@@ -3967,10 +3981,7 @@ ${lineas.join("\n")}`;
 
             <!-- Fila de QR y Enlace directo "Ir a territorio" -->
             <div class="s12-qr-action-row">
-              <div class="s12-qr-wrap">
-                <img id="s12QrImg" src="" alt="QR" class="s12-qr-image" />
-                <span class="s12-qr-label">Escanear</span>
-              </div>
+              <img id="s12QrImg" src="" alt="QR" class="s12-qr-mini" />
               <a id="s12BtnIrTerritorio" href="#" target="_blank" rel="noopener noreferrer" class="s12-btn-ir-territorio">
                 <span>🔗</span> <span>Ir a territorio</span>
               </a>
@@ -3984,10 +3995,9 @@ ${lineas.join("\n")}`;
               <table class="s12-table">
                 <thead>
                   <tr>
-                    <th style="width: 32%;">Publicador / Capitán</th>
-                    <th style="width: 22%;">Fecha Entrega</th>
-                    <th style="width: 22%;">Fecha Devolución</th>
-                    <th style="width: 24%;">Manzanas / Estado</th>
+                    <th style="width: 44%;">Capitán</th>
+                    <th style="width: 28%;">Inicio</th>
+                    <th style="width: 28%;">Final</th>
                   </tr>
                 </thead>
                 <tbody id="s12TableBody"></tbody>
@@ -4041,7 +4051,7 @@ ${lineas.join("\n")}`;
       // 3. Generar SVG Croquis
       const croquisBox = modal.querySelector("#s12CroquisContainer");
       if (croquisBox) {
-        croquisBox.innerHTML = window.generarSvgCroquisTerritorio(numTLimpio, 600, 210);
+        croquisBox.innerHTML = window.generarSvgCroquisTerritorio(numTLimpio, 600, 260);
       }
 
       // 4. URL de Deep Link y Código QR
@@ -4053,7 +4063,7 @@ ${lineas.join("\n")}`;
 
       const qrImg = modal.querySelector("#s12QrImg");
       if (qrImg) {
-        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=2&data=${encodeURIComponent(deepUrl)}`;
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&margin=1&data=${encodeURIComponent(deepUrl)}`;
         qrImg.onerror = () => { qrImg.style.display = "none"; };
       }
 
@@ -4124,15 +4134,12 @@ ${lineas.join("\n")}`;
           const cuadrasTrab = (Array.isArray(rep.cuadras) ? rep.cuadras.length : (rep.cuadrasTotal || 0));
           const totRef = totalPred || rep.totalCuadrasTerritorio || cuadrasTrab;
           const esComp = totRef > 0 && cuadrasTrab >= totRef;
-          const estadoTexto = esComp ? `✅ ${cuadrasTrab}/${totRef} compl.` : `⏳ ${cuadrasTrab}/${totRef} pend.`;
-          const extraInfo = rep.comentario ? ` • ${escaparTextoSeguro(rep.comentario)}` : "";
 
           rowsHtml += `
             <tr>
               <td style="font-weight:700; color:#0f172a;">${escaparTextoSeguro(rep.capitan || "Capitán")}</td>
               <td>${fDisp}</td>
               <td>${esComp ? fDisp : "En progreso"}</td>
-              <td>${estadoTexto}${extraInfo}</td>
             </tr>
           `;
         });
@@ -4142,7 +4149,6 @@ ${lineas.join("\n")}`;
         for (let i = 0; i < filasVacias; i++) {
           rowsHtml += `
             <tr class="s12-row-blank">
-              <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>

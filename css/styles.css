@@ -488,7 +488,7 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 .tarjeta-info-capitan .info-texto {
   display: flex;
   flex-direction: column;
-  line-height: 1.25;
+  line-height: 1.2;
   min-width: 0;
   flex: 1;
 }
@@ -497,22 +497,55 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   font-size: 13px;
   font-weight: 800;
   color: #f8fafc;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tarjeta-info-capitan .info-subtexto {
+.tarjeta-info-capitan .info-estado {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.tarjeta-info-capitan .badge-capitan-estado {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.tarjeta-info-capitan .badge-completada {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.18);
+}
+
+.tarjeta-info-capitan .badge-pendiente {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.18);
+}
+
+.tarjeta-info-capitan .badge-sin-trabajar {
   color: #cbd5e1;
-  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.tarjeta-info-capitan .info-subtexto {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin-top: 2px;
+  line-height: 1.25;
+  word-break: break-word;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 1px;
 }
 
 .tarjeta-info-capitan .info-acciones {
@@ -596,21 +629,25 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 
 @media (max-width: 480px) {
   .tarjeta-info-capitan {
-    width: calc(100vw - 20px);
-    max-width: calc(100vw - 20px);
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
     padding: 7px 10px 7px 12px;
     gap: 8px;
   }
   .tarjeta-info-capitan .info-titulo {
     font-size: 12px;
   }
+  .tarjeta-info-capitan .badge-capitan-estado {
+    font-size: 10px;
+    padding: 1px 5px;
+  }
   .tarjeta-info-capitan .info-subtexto {
-    font-size: 10.5px;
+    font-size: 9px;
   }
   .tarjeta-info-capitan .info-btn-s12,
   .tarjeta-info-capitan .info-btn-compartir {
-    padding: 4px 7px;
-    font-size: 10.5px;
+    padding: 4px 6px;
+    font-size: 10px;
   }
 }
 
@@ -2340,7 +2377,7 @@ body.modo-oscuro .etiqueta-poligono {
 .s12-croquis-box svg {
   width: 100%;
   height: auto;
-  max-height: 200px;
+  max-height: 260px;
   display: block;
 }
 
@@ -2353,15 +2390,15 @@ body.modo-oscuro .etiqueta-poligono {
   background: #f8fafc;
   border: 1.5px solid #cbd5e1;
   border-radius: 10px;
-  padding: 6px 12px;
-  margin-bottom: 10px;
+  padding: 5px 12px;
+  margin-bottom: 8px;
   box-sizing: border-box;
 }
 
 .s12-qr-mini {
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
   border: 1px solid #cbd5e1;
   background: #ffffff;
   display: block;
@@ -2548,7 +2585,7 @@ body.modo-oscuro .etiqueta-poligono {
   }
 
   .s12-croquis-box svg {
-    max-height: 240px !important;
+    max-height: 280px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
