@@ -1244,13 +1244,13 @@
       } else if (mesesHistorialSel.size === 1) {
         const num = Array.from(mesesHistorialSel)[0];
         const mObj = NOMBRES_MESES.find(m => m.num === num);
-        return `Mes: ${mObj ? mObj.nombre : num}`;
+        return `Mes: ${mObj ? mObj.abrev : num}`;
       } else if (mesesHistorialSel.size === 2) {
         const arr = Array.from(mesesHistorialSel).map(num => {
           const mObj = NOMBRES_MESES.find(m => m.num === num);
           return mObj ? mObj.abrev : num;
         });
-        return `Mes: ${arr.join(", ")}`;
+        return `Mes: ${arr.join(",")}`;
       } else {
         return `Meses (${mesesHistorialSel.size})`;
       }
@@ -1261,10 +1261,10 @@
     modal.innerHTML = `
       <div class="terrosa-modal-card terrosa-modal-large" style="height:min(86vh, 640px); min-height:480px; display:flex; flex-direction:column; padding:20px 18px; box-sizing:border-box;">
         <!-- Cabecera Minimalista -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
-          <h3 style="margin:0; font-size:19px; font-weight:800; color:#0f172a;">Territorios trabajados</h3>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <button id="btnHistorialVerS12" class="btn-icon-square" title="Ver e Imprimir Tarjeta S-12 (PDF)" style="width:auto; padding:0 10px; font-size:12px; font-weight:700; background:#f0fdf4; color:#166534; border:1.5px solid #bbf7d0;">Tarjeta S-12</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0; gap:8px;">
+          <h3 style="margin:0; font-size:16.5px; font-weight:800; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;">Territorios trabajados</h3>
+          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <button id="btnHistorialVerS12" class="btn-icon-square" title="Ver e Imprimir Tarjeta S-12 (PDF)" style="width:auto; min-width:44px; padding:0 9px; font-size:12px; font-weight:800; background:#f0fdf4; color:#166534; border:1.5px solid #bbf7d0; white-space:nowrap;">S&#8209;12</button>
             <button id="btnSyncHistorialModal" class="btn-icon-square" title="Sincronizar con la nube"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg></button>
             <button id="btnCerrarHistorial" class="btn-icon-square" title="Cerrar">✕</button>
           </div>
@@ -1279,26 +1279,20 @@
         </div>
 
         <!-- Tres Filtros: Año de Servicio, Selector de Mes y Selector Rápido de Territorio -->
-        <div style="display:grid; grid-template-columns:1fr 1fr 1.25fr; gap:6px; margin-bottom:8px; flex-shrink:0;">
-          <select id="filtroHistorialAnio" style="
-            height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
-          ">
-            ${obtenerListaAniosServicio().map(y => `<option value="${y}" ${String(filtroAnioSel) === String(y) ? "selected" : ""}>${y}</option>`).join("")}
-            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>Todos los años</option>
+        <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin-bottom:8px; flex-shrink:0;">
+          <select id="filtroHistorialAnio" class="filtro-historial-control">
+            ${obtenerListaAniosServicio().map(y => `<option value="${y}" ${String(filtroAnioSel) === String(y) ? "selected" : ""}>Año: ${y}</option>`).join("")}
+            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>Año: Todos</option>
           </select>
 
-          <button type="button" id="btnHistorialMesesFiltro" style="
-            height:38px; display:flex; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:0 8px; font-weight:700; font-size:12.5px; color:#0f172a; outline:none; white-space:nowrap; overflow:hidden; box-sizing:border-box;
-          ">
-            <span id="txtHistorialMesLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${obtenerTextoBotonMesesHistorial()}</span>
+          <button type="button" id="btnHistorialMesesFiltro" class="filtro-historial-control">
+            <span id="txtHistorialMesLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; text-align:left;">${obtenerTextoBotonMesesHistorial()}</span>
             <span style="font-size:10px; margin-left:2px; opacity:0.7; flex-shrink:0;">▾</span>
           </button>
 
-          <select id="filtroHistorialTerritorio" style="
-            height:38px; padding:0 6px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#0f172a; background:#f8fafc; outline:none; box-sizing:border-box; cursor:pointer;
-          ">
-            <option value="">Territorio: Todos</option>
-            ${obtenerOpcionesTerritoriosDisponibles().map(op => `<option value="${op.val}">${op.shortLabel}</option>`).join("")}
+          <select id="filtroHistorialTerritorio" class="filtro-historial-control">
+            <option value="">Terr: Todos</option>
+            ${obtenerOpcionesTerritoriosDisponibles().map(op => `<option value="${op.val}">${op.val === 'negocios' ? 'Negocios' : 'Terr. ' + op.val}</option>`).join("")}
           </select>
         </div>
 

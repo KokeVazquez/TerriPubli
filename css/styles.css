@@ -3196,3 +3196,45 @@ body.modo-oscuro .comentario-desplegable summary {
     font-size: 12px !important;
   }
 }
+
+
+/* Filtros unificados de Historial: Año, Mes y Territorio con el mismo color y tamaño */
+.filtro-historial-control {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 38px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid var(--terrosa-border, #cbd5e1) !important;
+  background: var(--terrosa-surface-elevated, #f8fafc) !important;
+  color: var(--terrosa-text-primary, #0f172a) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 0 8px !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-family: inherit !important;
+  transition: all 0.15s ease !important;
+}
+
+select.filtro-historial-control {
+  padding-right: 4px !important;
+}
+
+.filtro-historial-control:active {
+  transform: scale(0.98);
+}
+
+body.modo-oscuro .filtro-historial-control,
+body.modo-oscuro select.filtro-historial-control,
+body.modo-oscuro button.filtro-historial-control {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
