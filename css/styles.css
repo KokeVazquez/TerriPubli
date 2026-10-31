@@ -571,9 +571,10 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 
 .tarjeta-info-capitan .info-btn-compartir,
 .tarjeta-info-capitan .info-btn-s12 {
-  width: 46px;
+  min-width: 50px;
+  width: 50px;
   height: 36px;
-  padding: 0;
+  padding: 0 4px;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 800;
@@ -587,6 +588,11 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   transition: all 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  line-height: 1;
 }
 
 .tarjeta-info-capitan .info-btn-compartir {
@@ -658,10 +664,16 @@ body.modo-capitan #btnRegistrarTerritorio:active {
   }
   .tarjeta-info-capitan .info-btn-s12,
   .tarjeta-info-capitan .info-btn-compartir {
-    width: 42px;
-    height: 34px;
-    font-size: 12px;
-    padding: 0;
+    min-width: 48px;
+    width: 48px;
+    height: 36px;
+    font-size: 12.5px;
+    padding: 0 4px;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    hyphens: none !important;
+    -webkit-hyphens: none !important;
+    line-height: 1;
   }
   .tarjeta-info-capitan .info-btn-cerrar {
     width: 26px;
@@ -2200,6 +2212,120 @@ body.modo-oscuro .etiqueta-poligono {
   flex-wrap: wrap;
 }
 
+
+/* Selector Desplegable Personalizado e Instantáneo S-12 */
+.s12-custom-select-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.s12-select-trigger {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+  min-width: 140px;
+  user-select: none;
+  -webkit-user-select: none;
+  white-space: nowrap;
+}
+
+.s12-select-trigger:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.s12-select-trigger:active {
+  transform: scale(0.97);
+}
+
+.s12-select-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 100005;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  width: 220px;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: terrosaFadeIn 0.15s ease-out;
+}
+
+.s12-select-search-box {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.s12-select-search-box input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.s12-select-search-box input:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+}
+
+.s12-select-options-list {
+  overflow-y: auto;
+  max-height: 220px;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.s12-dropdown-item {
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  border-bottom: 1px solid #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.12s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.s12-dropdown-item:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.s12-dropdown-item.active {
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 800;
+}
+
 .s12-modal-select {
   height: 36px;
   padding: 0 8px;
@@ -2318,6 +2444,11 @@ body.modo-oscuro .etiqueta-poligono {
   padding: 2px 6px;
   color: #0f172a;
   background: #f8fafc;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  flex-shrink: 0;
 }
 
 .s12-title-row {

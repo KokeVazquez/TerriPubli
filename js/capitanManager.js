@@ -4057,7 +4057,23 @@ ${lineas.join("\n")}`;
         <!-- Barra de herramientas superior (No se imprime) -->
         <div class="s12-modal-toolbar">
           <div class="s12-toolbar-left">
-            <select id="s12SelectTerritorio" class="s12-modal-select" title="Seleccionar territorio">
+            <!-- Selector desplegable instantáneo (un solo toque sin botón aceptar) -->
+            <div class="s12-custom-select-wrap" id="s12CustomSelectWrap">
+              <button type="button" class="s12-select-trigger" id="s12SelectTrigger" title="Seleccionar territorio">
+                <span id="s12SelectLabel">Territorio ${numInicial === 'negocios' ? 'Negocios' : numInicial}</span>
+                <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
+                  <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+              </button>
+              <div class="s12-select-dropdown" id="s12SelectDropdown" style="display:none;">
+                <div class="s12-select-search-box">
+                  <input type="text" id="s12SelectSearchInput" placeholder="Escribe aquí..." autocomplete="off" />
+                </div>
+                <div class="s12-select-options-list" id="s12SelectOptionsList"></div>
+              </div>
+            </div>
+            <!-- Select nativo sincronizado para accesibilidad/compatibilidad -->
+            <select id="s12SelectTerritorio" style="display:none;" title="Seleccionar territorio">
               ${Array.from({ length: 84 }, (_, i) => `<option value="${i + 1}">Territorio ${i + 1}</option>`).join("")}
               <option value="negocios">Territorio Negocios</option>
             </select>
@@ -4078,7 +4094,7 @@ ${lineas.join("\n")}`;
             <div class="s12-header">
               <div class="s12-header-top">
                 <span class="s12-cong-name">CONGREGACIÓN ROSARIO</span>
-                <span class="s12-form-code">FORMULARIO S-12</span>
+                <span class="s12-form-code">FORMULARIO S&#8209;12</span>
               </div>
               <div class="s12-title-row">
                 <h2 class="s12-main-title">TARJETA DE TERRITORIO</h2>
@@ -4110,7 +4126,7 @@ ${lineas.join("\n")}`;
             <!-- Sección de Historial de Asignaciones (Tabla S-12) -->
             <div class="s12-table-section">
               <div class="s12-table-header-title">
-                <span>HISTORIAL DE ASIGNACIONES (S-12)</span>
+                <span>HISTORIAL DE ASIGNACIONES (S&#8209;12)</span>
               </div>
               <table class="s12-table">
                 <thead>
@@ -4156,6 +4172,10 @@ ${lineas.join("\n")}`;
       // Actualizar select si es necesario
       if (selectTerr) {
         selectTerr.value = esNegocios ? "negocios" : numTLimpio;
+      }
+      const selectLabelEl = modal.querySelector("#s12SelectLabel");
+      if (selectLabelEl) {
+        selectLabelEl.textContent = esNegocios ? "Territorio Negocios" : `Territorio ${numTLimpio}`;
       }
 
       // 1. Número de territorio
@@ -4283,7 +4303,84 @@ ${lineas.join("\n")}`;
     // Cargar territorio seleccionado inicialmente
     actualizarTarjeta(numInicial);
 
-    // Evento selector de territorio
+    // Lógica del Selector Desplegable Instantáneo S-12 (sin requerir botón aceptar)
+    const triggerSelect = modal.querySelector("#s12SelectTrigger");
+    const dropdownSelect = modal.querySelector("#s12SelectDropdown");
+    const searchInputSelect = modal.querySelector("#s12SelectSearchInput");
+    const optionsListSelect = modal.querySelector("#s12SelectOptionsList");
+    const selectLabel = modal.querySelector("#s12SelectLabel");
+
+    const opcionesTerritorios = [
+      ...Array.from({ length: 84 }, (_, i) => ({ val: String(i + 1), label: `Territorio ${i + 1}` })),
+      { val: "negocios", label: "Territorio Negocios" }
+    ];
+
+    function renderizarOpcionesDropdown(filtro = "") {
+      if (!optionsListSelect) return;
+      optionsListSelect.innerHTML = "";
+      const f = filtro.trim().toLowerCase();
+      const filtradas = opcionesTerritorios.filter(op => {
+        if (!f) return true;
+        return op.label.toLowerCase().includes(f) || op.val.toLowerCase().includes(f);
+      });
+
+      if (filtradas.length === 0) {
+        const vacio = document.createElement("div");
+        vacio.style.cssText = "padding:12px; font-size:12px; color:#94a3b8; text-align:center;";
+        vacio.textContent = "No se encontraron territorios";
+        optionsListSelect.appendChild(vacio);
+        return;
+      }
+
+      const valActual = selectTerr ? selectTerr.value : numInicial;
+
+      filtradas.forEach(op => {
+        const item = document.createElement("div");
+        item.className = `s12-dropdown-item ${String(op.val).toLowerCase() === String(valActual).toLowerCase() ? 'active' : ''}`;
+        item.textContent = op.label;
+        item.onclick = (e) => {
+          e.stopPropagation();
+          window.reproducirSonidoClick("tap");
+          if (selectLabel) selectLabel.textContent = op.label;
+          if (selectTerr) selectTerr.value = op.val;
+          dropdownSelect.style.display = "none";
+          actualizarTarjeta(op.val);
+        };
+        optionsListSelect.appendChild(item);
+      });
+    }
+
+    renderizarOpcionesDropdown();
+
+    if (triggerSelect && dropdownSelect) {
+      triggerSelect.onclick = (e) => {
+        e.stopPropagation();
+        window.reproducirSonidoClick("tap");
+        const visible = dropdownSelect.style.display !== "none";
+        dropdownSelect.style.display = visible ? "none" : "flex";
+        if (!visible && searchInputSelect) {
+          searchInputSelect.value = "";
+          renderizarOpcionesDropdown();
+          setTimeout(() => searchInputSelect.focus(), 60);
+        }
+      };
+
+      if (searchInputSelect) {
+        searchInputSelect.oninput = (e) => {
+          renderizarOpcionesDropdown(e.target.value);
+        };
+        searchInputSelect.onclick = (e) => e.stopPropagation();
+      }
+
+      document.addEventListener("click", (e) => {
+        if (!modal.contains(e.target)) return;
+        if (!triggerSelect.contains(e.target) && !dropdownSelect.contains(e.target)) {
+          dropdownSelect.style.display = "none";
+        }
+      });
+    }
+
+    // Evento selector de territorio nativo (compatibilidad)
     if (selectTerr) {
       selectTerr.onchange = (e) => {
         window.reproducirSonidoClick("tap");
