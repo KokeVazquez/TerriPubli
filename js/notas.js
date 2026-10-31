@@ -10,16 +10,18 @@ const KEY_REVISITAS = "terrosa_revisitas_data";
 // Sistema Centralizado de Notificaciones Toasts y Modales de Confirmación
 // (Sustituye completamente los alerts y confirms nativos de "kokevazquez dice")
 // --------------------------------------------------------------------------------------
-window.mostrarToastDiscreto = function (mensaje, icono = "✨", duracion = 2700) {
+window.mostrarToastDiscreto = function (mensaje, icono = "", duracion = 2700) {
   const prev = document.getElementById("toastDiscretoGlobal");
   if (prev) prev.remove();
+
+  const limpio = String(mensaje || "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}\u{2705}\u{274C}\u{23F0}-\u{23FF}\u{FE0F}]/gu, "").trim();
 
   const toast = document.createElement("div");
   toast.id = "toastDiscretoGlobal";
   toast.className = "terrosa-toast-discreto";
   toast.innerHTML = `
-    <span style="font-size:15px; flex-shrink:0;">${icono}</span>
-    <span style="overflow:hidden; text-overflow:ellipsis;">${escaparTexto(mensaje)}</span>
+    <span style="width:7px; height:7px; border-radius:50%; background:#38bdf8; flex-shrink:0;"></span>
+    <span style="overflow:hidden; text-overflow:ellipsis;">${escaparTexto(limpio)}</span>
   `;
   document.body.appendChild(toast);
 
@@ -40,7 +42,7 @@ window.mostrarToastDiscreto = function (mensaje, icono = "✨", duracion = 2700)
 window.mostrarConfirmacionModal = function ({
   titulo = "¿Estás seguro?",
   mensaje = "",
-  icono = "🗑️",
+  icono = "",
   textoConfirmar = "Confirmar",
   textoCancelar = "Cancelar",
   peligro = true,
@@ -55,9 +57,13 @@ window.mostrarConfirmacionModal = function ({
   modal.className = "terrosa-modal-overlay";
   modal.style.zIndex = "1000005";
 
+  const svgBadge = peligro
+    ? `<div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>`
+    : `<div style="width:40px; height:40px; border-radius:50%; background:#dbeafe; color:#2563eb; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>`;
+
   modal.innerHTML = `
     <div class="terrosa-modal-card" style="max-width:320px; padding:22px 20px; text-align:center;">
-      <div style="font-size:32px; margin-bottom:8px;">${icono}</div>
+      ${svgBadge}
       <h3 style="margin:0 0 6px 0; font-size:17.5px; font-weight:800; color:#0f172a;">${escaparTexto(titulo)}</h3>
       <p style="margin:0 0 18px 0; font-size:13.5px; color:#64748b; line-height:1.4;">${escaparTexto(mensaje)}</p>
       <div style="display:flex; gap:8px;">
@@ -117,7 +123,7 @@ window.guardarRevisitasLocales = function (arr) {
 
 // --------------------------------------------------------------------------------------
 // Indicadores en el Mapa con Clic Interactivo
-// (Al picarle al icono 👥 o 📒 muestra la información de esa cuadra)
+// (Al picarle al icono muestra la información de esa cuadra)
 // --------------------------------------------------------------------------------------
 window.refrescarIndicadoresNotas = function () {
   if (window.indicadoresNotas && window.indicadoresNotas.length > 0) {
@@ -147,7 +153,9 @@ window.refrescarIndicadoresNotas = function () {
           const cLat = centroide.geometry.coordinates[1];
           const cLng = centroide.geometry.coordinates[0];
 
-          const iconChar = tieneRevisitas ? "👥" : "📒";
+          const iconSvg = tieneRevisitas
+            ? `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#1d4ed8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+            : `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#b45309" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
           const bgBadge = tieneRevisitas ? "#eff6ff" : "#fef3c7";
           const borderBadge = tieneRevisitas ? "#3b82f6" : "#f59e0b";
 
@@ -156,7 +164,7 @@ window.refrescarIndicadoresNotas = function () {
             interactive: true,
             icon: L.divIcon({
               className: "indicador-nota-clickable",
-              html: `<div style="background:${bgBadge}; border:1.8px solid ${borderBadge}; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:13px; box-shadow:0 3px 8px rgba(0,0,0,0.22); cursor:pointer;">${iconChar}</div>`,
+              html: `<div style="background:${bgBadge}; border:1.8px solid ${borderBadge}; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.22); cursor:pointer;">${iconSvg}</div>`,
               iconSize: [26, 26],
               iconAnchor: [13, 13]
             })
@@ -181,7 +189,7 @@ window.refrescarIndicadoresNotas = function () {
 };
 
 // --------------------------------------------------------------------------------------
-// Modal Discreto: Ver Revisitas de una Cuadra Específica (al tocar el icono 👥 en el mapa)
+// Modal Discreto: Ver Revisitas de una Cuadra Específica (al tocar el icono en el mapa)
 // --------------------------------------------------------------------------------------
 window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
   if (typeof window.reproducirSonidoClick === "function") {
@@ -217,7 +225,7 @@ window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
     <div class="terrosa-modal-card terrosa-modal-large" style="max-height:86vh; display:flex; flex-direction:column; padding:18px 16px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
         <div>
-          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👥 Revisitas (${revsDeCuadra.length})</h3>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Revisitas (${revsDeCuadra.length})</h3>
           <span style="font-size:12px; font-weight:700; color:#2563eb;">${escaparTexto(tituloCompleto)}</span>
         </div>
         <button id="btnCerrarDetalleCuadra" class="btn-icon-square">✕</button>
@@ -227,7 +235,7 @@ window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
 
       <div style="margin-top:12px; flex-shrink:0;">
         <button id="btnAgregarOtraRevAqui" style="width:100%; height:40px; border-radius:12px; background:#eff6ff; color:#2563eb; border:1.5px dashed #93c5fd; font-weight:700; font-size:13.5px; cursor:pointer;">
-          ➕ Agregar otra revisita en esta cuadra
+          + Agregar revisita en esta cuadra
         </button>
       </div>
     </div>
@@ -268,7 +276,6 @@ window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
     actualizadas.forEach(rev => {
       const card = document.createElement("div");
       card.className = "revisita-card";
-      const iconoCat = rev.categoria === "Mujer" ? "👩" : (rev.categoria === "Joven" ? "🧑" : (rev.categoria === "Adulto Mayor" ? "👵" : (rev.categoria === "Familia" ? "🏠" : "👨")));
       const ultVisita = (rev.visitas && rev.visitas.length > 0) ? rev.visitas[0] : { fecha: rev.fechaCreacion, notas: "" };
       const numVisitas = (rev.visitas && rev.visitas.length > 0) ? rev.visitas.length : 1;
 
@@ -276,8 +283,8 @@ window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
         <div class="revisita-card-header">
           <div>
             <div class="revisita-persona-titulo">
-              <span>${iconoCat}</span>
               <span>${escaparTexto(rev.nombre)}</span>
+              <span style="font-size:10.5px; font-weight:700; color:#475569; background:#f1f5f9; padding:2px 7px; border-radius:6px;">${escaparTexto(rev.categoria || "Persona")}</span>
             </div>
             <div class="revisita-direccion-row" style="margin-top:2px;">
               <span>${escaparTexto(rev.direccion || "Sin dirección fija")}</span>
@@ -292,13 +299,13 @@ window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
 
         <div class="revisita-actions-row">
           <button class="btn-revisita-action add btn-add-v">
-            ➕ Visita
+            + Visita
           </button>
           <button class="btn-revisita-action nav btn-nav-v">
-            🧭 Cómo llegar
+            Cómo llegar
           </button>
-          <button class="btn-revisita-action del btn-del-v">
-            🗑️
+          <button class="btn-revisita-action del btn-del-v" style="display:inline-flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
       `;
@@ -322,7 +329,7 @@ window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
         if (destLat && destLng && typeof window.comoLlegarACoord === "function") {
           window.comoLlegarACoord(destLat, destLng, rev.nombre);
         } else {
-          window.mostrarToastDiscreto("Ubicación no disponible para trazar ruta", "🧭");
+          window.mostrarToastDiscreto("Ubicación no disponible para trazar ruta", "");
         }
       };
 
@@ -330,13 +337,13 @@ window.mostrarRevisitasDeCuadra = function (territorioId, cuadraId, pol) {
         window.mostrarConfirmacionModal({
           titulo: "¿Eliminar revisita?",
           mensaje: `¿Deseas eliminar la revisita de "${rev.nombre}"?`,
-          icono: "🗑️",
+          icono: "trash",
           textoConfirmar: "Eliminar",
           peligro: true,
           onConfirm: () => {
             const todasRestantes = window.obtenerRevisitasLocales().filter(r => r.id !== rev.id);
             window.guardarRevisitasLocales(todasRestantes);
-            window.mostrarToastDiscreto(`Revisita de "${rev.nombre}" eliminada`, "🗑️");
+            window.mostrarToastDiscreto(`Revisita de "${rev.nombre}" eliminada`, "");
             renderizarRevsCuadra();
           }
         });
@@ -470,12 +477,9 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
   modal.innerHTML = `
     <div class="terrosa-modal-card" style="max-width:360px; max-height:90vh; overflow-y:auto; padding:20px 18px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:20px;">👤</span>
-          <div>
-            <h3 style="margin:0; font-size:17.5px; font-weight:800; color:#0f172a;">Nueva Revisita</h3>
-            <span style="font-size:12px; font-weight:700; color:#2563eb;">${escaparTexto(tituloCuadra || "Cuadra")}</span>
-          </div>
+        <div>
+          <h3 style="margin:0; font-size:17.5px; font-weight:800; color:#0f172a;">Nueva Revisita</h3>
+          <span style="font-size:12px; font-weight:700; color:#2563eb;">${escaparTexto(tituloCuadra || "Cuadra")}</span>
         </div>
         <button id="btnCerrarCrearRevisita" class="btn-icon-square">✕</button>
       </div>
@@ -491,11 +495,11 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
         <div>
           <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Categoría</label>
           <div class="chips-categoria-container" id="revChipsCategoria">
-            <button type="button" class="chip-categoria seleccionado" data-cat="Hombre">👨 Hombre</button>
-            <button type="button" class="chip-categoria" data-cat="Mujer">👩 Mujer</button>
-            <button type="button" class="chip-categoria" data-cat="Joven">🧑 Joven</button>
-            <button type="button" class="chip-categoria" data-cat="Adulto Mayor">👵 Adulto Mayor</button>
-            <button type="button" class="chip-categoria" data-cat="Familia">🏠 Familia</button>
+            <button type="button" class="chip-categoria seleccionado" data-cat="Hombre">Hombre</button>
+            <button type="button" class="chip-categoria" data-cat="Mujer">Mujer</button>
+            <button type="button" class="chip-categoria" data-cat="Joven">Joven</button>
+            <button type="button" class="chip-categoria" data-cat="Adulto Mayor">Adulto Mayor</button>
+            <button type="button" class="chip-categoria" data-cat="Familia">Familia</button>
           </div>
         </div>
 
@@ -503,7 +507,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <label style="font-size:12px; font-weight:700; color:#475569;">Dirección / Calle y Número</label>
-            <button type="button" id="btnAutollenarGpsRev" style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:700; cursor:pointer; padding:0;">📍 Usar mi GPS</button>
+            <button type="button" id="btnAutollenarGpsRev" style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:700; cursor:pointer; padding:0;">Usar mi GPS</button>
           </div>
           <input type="text" id="revDireccion" placeholder="Ej: Calle 16 #2408 (Casa azul)" style="width:100%; height:40px; border-radius:12px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:14px; box-sizing:border-box; outline:none; background:#f8fafc;" />
         </div>
@@ -522,7 +526,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
 
         <!-- Botón Guardar -->
         <button id="btnGuardarNuevaRevisita" style="width:100%; height:44px; border-radius:14px; background:#2563eb; color:#ffffff; font-size:15px; font-weight:800; border:none; cursor:pointer; margin-top:4px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
-          💾 Guardar Revisita
+          Guardar Revisita
         </button>
       </div>
     </div>
@@ -557,42 +561,42 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
     const resolverDireccion = async (cLat, cLng) => {
       revLat = cLat;
       revLng = cLng;
-      btnGps.textContent = "⏳ Detectando calle...";
+      btnGps.textContent = "Detectando calle...";
       btnGps.style.pointerEvents = "none";
 
       const dirDetectada = await obtenerDireccionDesdeCoordenadas(cLat, cLng);
-      btnGps.textContent = "📍 Usar mi GPS";
+      btnGps.textContent = "Usar mi GPS";
       btnGps.style.pointerEvents = "auto";
 
       if (dirDetectada) {
         inputDir.value = dirDetectada;
-        window.mostrarToastDiscreto("Calle detectada: " + dirDetectada, "📍", 3000);
+        window.mostrarToastDiscreto("Calle detectada: " + dirDetectada, "", 3000);
       } else {
         if (!inputDir.value.trim()) {
           inputDir.value = "Ubicación GPS fijada";
         }
-        window.mostrarToastDiscreto("Ubicación GPS fijada para esta revisita", "📍");
+        window.mostrarToastDiscreto("Ubicación GPS fijada para esta revisita", "");
       }
     };
 
     if (window.userCurrentLocation && window.userCurrentLocation.lat) {
       await resolverDireccion(window.userCurrentLocation.lat, window.userCurrentLocation.lon);
     } else if (navigator.geolocation) {
-      btnGps.textContent = "⏳ Obteniendo GPS...";
+      btnGps.textContent = "Obteniendo GPS...";
       btnGps.style.pointerEvents = "none";
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           await resolverDireccion(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => {
-          btnGps.textContent = "📍 Usar mi GPS";
+          btnGps.textContent = "Usar mi GPS";
           btnGps.style.pointerEvents = "auto";
-          window.mostrarToastDiscreto("No se pudo obtener la señal GPS", "⚠️");
+          window.mostrarToastDiscreto("No se pudo obtener la señal GPS", "");
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     } else {
-      window.mostrarToastDiscreto("Tu dispositivo no soporta GPS", "⚠️");
+      window.mostrarToastDiscreto("Tu dispositivo no soporta GPS", "");
     }
   };
 
@@ -600,7 +604,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
   modal.querySelector("#btnGuardarNuevaRevisita").onclick = () => {
     const nombre = modal.querySelector("#revNombrePersona").value.trim();
     if (!nombre) {
-      window.mostrarToastDiscreto("Por favor escribe el nombre de la persona o familia", "⚠️");
+      window.mostrarToastDiscreto("Por favor escribe el nombre de la persona o familia", "");
       modal.querySelector("#revNombrePersona").focus();
       return;
     }
@@ -637,7 +641,7 @@ window.abrirModalCrearRevisita = function (territorioId, cuadraId, tituloCuadra,
     }
 
     cerrar();
-    window.mostrarToastDiscreto(`Revisita de "${nombre}" guardada con éxito`, "✅");
+    window.mostrarToastDiscreto(`Revisita de "${nombre}" guardada con éxito`, "");
   };
 };
 
@@ -660,7 +664,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
     <div class="terrosa-modal-card" style="max-width:340px; padding:20px 18px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div>
-          <h3 style="margin:0; font-size:17px; font-weight:800; color:#0f172a;">➕ Registrar Visita</h3>
+          <h3 style="margin:0; font-size:17px; font-weight:800; color:#0f172a;">Registrar Visita</h3>
           <span style="font-size:12.5px; font-weight:700; color:#2563eb;">${escaparTexto(rev.nombre)}</span>
         </div>
         <button id="btnCerrarVisitaX" class="btn-icon-square">✕</button>
@@ -678,7 +682,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
         </div>
 
         <button id="btnGuardarVisitaItem" style="width:100%; height:42px; border-radius:14px; background:#2563eb; color:#ffffff; font-size:14.5px; font-weight:800; border:none; cursor:pointer; margin-top:4px;">
-          💾 Guardar Visita
+          Guardar Visita
         </button>
       </div>
     </div>
@@ -697,7 +701,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
     const notas = modal.querySelector("#inputNotasNuevaVisita").value.trim();
 
     if (!notas) {
-      window.mostrarToastDiscreto("Por favor escribe una breve nota de lo que platicaron", "⚠️");
+      window.mostrarToastDiscreto("Por favor escribe una breve nota de lo que platicaron", "");
       modal.querySelector("#inputNotasNuevaVisita").focus();
       return;
     }
@@ -712,7 +716,7 @@ window.abrirModalAgregarVisita = function (revisitaId, onGuardado) {
     }
 
     cerrar();
-    window.mostrarToastDiscreto("Visita registrada con éxito", "✅");
+    window.mostrarToastDiscreto("Visita registrada con éxito", "");
     if (onGuardado) onGuardado();
   };
 };
@@ -734,7 +738,6 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
 
   modal.innerHTML = `
     <div class="terrosa-modal-card" style="max-width:350px; padding:22px 18px; text-align:center;">
-      <div style="font-size:32px; margin-bottom:6px;">📤</div>
       <h3 style="margin:0 0 4px 0; font-size:18px; font-weight:800; color:#0f172a;">Respaldar Revisitas</h3>
       <p style="margin:0 0 16px 0; font-size:12.5px; color:#64748b; line-height:1.4;">
         Tienes <b>${revisitas.length} revisita${revisitas.length === 1 ? '' : 's'}</b> en este dispositivo. Puedes compartirlas o guardar una copia:
@@ -745,7 +748,7 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
         <button id="btnCompartirWhatsAppRev" style="
           display:flex; align-items:center; gap:10px; width:100%; padding:11px 14px; border-radius:14px; border:1.5px solid #22c55e; background:#f0fdf4; color:#15803d; font-size:13.5px; font-weight:700; cursor:pointer; outline:none; box-sizing:border-box;
         ">
-          <span style="font-size:22px;">📲</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           <div>
             <div style="font-weight:800; color:#15803d;">Enviar a mi WhatsApp</div>
             <div style="font-size:11px; color:#16a34a;">Lista de texto limpia con nombres y notas</div>
@@ -756,7 +759,7 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
         <button id="btnDescargarRespaldoRev" style="
           display:flex; align-items:center; gap:10px; width:100%; padding:11px 14px; border-radius:14px; border:1.5px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-size:13.5px; font-weight:700; cursor:pointer; outline:none; box-sizing:border-box;
         ">
-          <span style="font-size:22px;">💾</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <div>
             <div style="font-weight:800; color:#1d4ed8;">Guardar archivo de copia</div>
             <div style="font-size:11px; color:#2563eb;">Descarga un archivo .json de seguridad</div>
@@ -767,7 +770,7 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
         <button id="btnRestaurarArchivoRev" style="
           display:flex; align-items:center; gap:10px; width:100%; padding:11px 14px; border-radius:14px; border:1.5px solid #94a3b8; background:#f8fafc; color:#334155; font-size:13.5px; font-weight:700; cursor:pointer; outline:none; box-sizing:border-box;
         ">
-          <span style="font-size:22px;">📥</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <div>
             <div style="font-weight:800; color:#0f172a;">Restaurar desde archivo</div>
             <div style="font-size:11px; color:#64748b;">Cargar copia guardada previamente</div>
@@ -793,21 +796,21 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
   // Compartir en WhatsApp
   modal.querySelector("#btnCompartirWhatsAppRev").onclick = () => {
     if (revisitas.length === 0) {
-      window.mostrarToastDiscreto("No tienes revisitas registradas aún", "⚠️");
+      window.mostrarToastDiscreto("No tienes revisitas registradas aún", "");
       return;
     }
-    let texto = `📋 *MIS REVISITAS - TERROSA*\nTotal: ${revisitas.length} personas\nFecha: ${obtenerFechaLocalISO()}\n\n`;
+    let texto = `*MIS REVISITAS - TERROSA*\nTotal: ${revisitas.length} personas\nFecha: ${obtenerFechaLocalISO()}\n\n`;
     revisitas.forEach((r, idx) => {
       const cat = r.categoria || "Persona";
       const nom = r.nombre || "Sin nombre";
-      const dir = r.direccion ? `📍 ${r.direccion}` : "";
-      const terr = (r.tituloCuadra || r.territorioId) ? `🏛️ ${r.tituloCuadra || r.territorioId}` : "";
+      const dir = r.direccion ? `Dirección: ${r.direccion}` : "";
+      const terr = (r.tituloCuadra || r.territorioId) ? `Territorio: ${r.tituloCuadra || r.territorioId}` : "";
       let ultNotas = "";
       if (r.visitas && r.visitas.length > 0) {
         const v = r.visitas[0];
-        ultNotas = `📅 ${v.fecha || ""}${v.notas ? " — " + v.notas : ""}`;
+        ultNotas = `Fecha: ${v.fecha || ""}${v.notas ? " — " + v.notas : ""}`;
       } else if (r.notasIniciales) {
-        ultNotas = `💬 ${r.notasIniciales}`;
+        ultNotas = `Nota: ${r.notasIniciales}`;
       }
       texto += `*${idx + 1}. ${nom}* (${cat})\n`;
       if (dir) texto += `   ${dir}\n`;
@@ -822,7 +825,7 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
   // Descargar JSON
   modal.querySelector("#btnDescargarRespaldoRev").onclick = () => {
     if (revisitas.length === 0) {
-      window.mostrarToastDiscreto("No tienes revisitas registradas para guardar", "⚠️");
+      window.mostrarToastDiscreto("No tienes revisitas registradas para guardar", "");
       return;
     }
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(revisitas, null, 2));
@@ -833,7 +836,7 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
     document.body.appendChild(dlAnchor);
     dlAnchor.click();
     dlAnchor.remove();
-    window.mostrarToastDiscreto("Copia de seguridad descargada", "💾");
+    window.mostrarToastDiscreto("Copia de seguridad descargada", "");
   };
 
   // Restaurar desde JSON
@@ -850,7 +853,7 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
       try {
         const importadas = JSON.parse(event.target.result);
         if (!Array.isArray(importadas)) {
-          window.mostrarToastDiscreto("El archivo no tiene el formato correcto", "⚠️");
+          window.mostrarToastDiscreto("El archivo no tiene el formato correcto", "");
           return;
         }
         const actuales = window.obtenerRevisitasLocales();
@@ -869,9 +872,9 @@ window.abrirModalRespaldarRevisitas = function (onRestaurado) {
         }
         if (onRestaurado) onRestaurado();
         cerrar();
-        window.mostrarToastDiscreto(`¡Restaurado! ${listaFinal.length} revisitas listas (${nuevasCount} nuevas) ✅`, "🎉", 3500);
+        window.mostrarToastDiscreto(`Restaurado: ${listaFinal.length} revisitas listas (${nuevasCount} nuevas)`, "", 3500);
       } catch (err) {
-        window.mostrarToastDiscreto("Error al leer el archivo de respaldo", "⚠️");
+        window.mostrarToastDiscreto("Error al leer el archivo de respaldo", "");
       }
     };
     reader.readAsText(file);
@@ -1005,9 +1008,8 @@ function abrirModalTodasNotas() {
       if (revisitas.length === 0) {
         cont.innerHTML = `
           <div style="text-align:center; color:#94a3b8; padding:36px 16px;">
-            <div style="font-size:32px; margin-bottom:8px;">👤</div>
             <div style="font-size:14px; font-weight:700; color:#64748b;">No tienes revisitas registradas aún.</div>
-            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Haz clic derecho o mantén presionada una cuadra en el mapa y selecciona <b>"👤 Agregar Revisita"</b>.</div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Mantén presionada una cuadra en el mapa y selecciona <b>"Agregar revisita"</b>.</div>
           </div>
         `;
         return;
@@ -1021,11 +1023,10 @@ function abrirModalTodasNotas() {
         if (rev.lat && rev.lng && typeof window.calcularDistanciaAUsuario === "function") {
           const distStr = window.calcularDistanciaAUsuario(rev.lat, rev.lng);
           if (distStr) {
-            distanciaBadge = `<span class="revisita-badge-distancia">📍 a ${distStr}</span>`;
+            distanciaBadge = `<span class="revisita-badge-distancia">a ${distStr}</span>`;
           }
         }
 
-        const iconoCat = rev.categoria === "Mujer" ? "👩" : (rev.categoria === "Joven" ? "🧑" : (rev.categoria === "Adulto Mayor" ? "👵" : (rev.categoria === "Familia" ? "🏠" : "👨")));
         const ultVisita = (rev.visitas && rev.visitas.length > 0) ? rev.visitas[0] : { fecha: rev.fechaCreacion, notas: "" };
         const numVisitas = (rev.visitas && rev.visitas.length > 0) ? rev.visitas.length : 1;
 
@@ -1033,8 +1034,8 @@ function abrirModalTodasNotas() {
           <div class="revisita-card-header">
             <div style="min-width:0; flex:1;">
               <div class="revisita-persona-titulo">
-                <span>${iconoCat}</span>
                 <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparTexto(rev.nombre)}</span>
+                <span style="font-size:10.5px; font-weight:700; color:#475569; background:#f1f5f9; padding:2px 7px; border-radius:6px; flex-shrink:0;">${escaparTexto(rev.categoria || "Persona")}</span>
               </div>
               <div class="revisita-direccion-row" style="margin-top:2px;">
                 <span>${escaparTexto(rev.direccion || "Sin dirección fijada")}</span>
@@ -1054,7 +1055,7 @@ function abrirModalTodasNotas() {
           <div id="historialVisitas_${rev.id}" style="display:none;" class="revisita-historial-visitas">
             ${(rev.visitas || []).slice(1).map(v => `
               <div class="revisita-item-visita">
-                <div class="revisita-item-fecha">📅 ${escaparTexto(v.fecha)}</div>
+                <div class="revisita-item-fecha">${escaparTexto(v.fecha)}</div>
                 <div>${escaparTexto(v.notas)}</div>
               </div>
             `).join("")}
@@ -1062,21 +1063,21 @@ function abrirModalTodasNotas() {
 
           <div class="revisita-actions-row">
             <button class="btn-revisita-action add btn-agregar-visita-accion" title="Registrar que volviste a visitar">
-              ➕ Visita
+              + Visita
             </button>
             ${numVisitas > 1 ? `
               <button class="btn-revisita-action map btn-toggle-historial" title="Ver visitas anteriores">
-                📖 Historial (${numVisitas})
+                Historial (${numVisitas})
               </button>
             ` : ''}
             <button class="btn-revisita-action map btn-ir-revisita" title="Ver en el mapa">
-              📍 Ir
+              Ir
             </button>
             <button class="btn-revisita-action nav btn-como-llegar-revisita" title="Abrir ruta paso a paso">
-              🧭 Cómo llegar
+              Cómo llegar
             </button>
-            <button class="btn-revisita-action del btn-borrar-revisita" title="Eliminar revisita">
-              🗑️
+            <button class="btn-revisita-action del btn-borrar-revisita" title="Eliminar revisita" style="display:inline-flex; align-items:center; justify-content:center;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
           </div>
         `;
@@ -1094,7 +1095,7 @@ function abrirModalTodasNotas() {
             if (histDiv) {
               const visible = histDiv.style.display !== "none";
               histDiv.style.display = visible ? "none" : "flex";
-              btnHistorial.textContent = visible ? `📖 Historial (${numVisitas})` : `📖 Ocultar (${numVisitas})`;
+              btnHistorial.textContent = visible ? `Historial (${numVisitas})` : `Ocultar (${numVisitas})`;
             }
           };
         }
@@ -1124,7 +1125,7 @@ function abrirModalTodasNotas() {
           if (destLat && destLng && typeof window.comoLlegarACoord === "function") {
             window.comoLlegarACoord(destLat, destLng, rev.nombre);
           } else {
-            window.mostrarToastDiscreto("Ubicación geográfica no disponible", "🧭");
+            window.mostrarToastDiscreto("Ubicación geográfica no disponible", "");
           }
         };
 
@@ -1132,7 +1133,7 @@ function abrirModalTodasNotas() {
           window.mostrarConfirmacionModal({
             titulo: "¿Eliminar revisita?",
             mensaje: `¿Estás seguro de eliminar la revisita de "${rev.nombre}" y todo su historial de visitas?`,
-            icono: "🗑️",
+            icono: "trash",
             textoConfirmar: "Eliminar",
             peligro: true,
             onConfirm: () => {
@@ -1141,7 +1142,7 @@ function abrirModalTodasNotas() {
               if (typeof window.reproducirSonidoClick === "function") {
                 window.reproducirSonidoClick("delete");
               }
-              window.mostrarToastDiscreto(`Revisita de "${rev.nombre}" eliminada`, "🗑️");
+              window.mostrarToastDiscreto(`Revisita de "${rev.nombre}" eliminada`, "");
               renderizarContenido();
             }
           });
@@ -1209,11 +1210,11 @@ function abrirModalTodasNotas() {
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-          <button class="btn-action-square btn-ir-nota" title="Ir a la cuadra en el mapa" style="background:#eff6ff; color:#2563eb; font-weight:700; font-size:12.5px; padding:0 8px; width:auto; height:34px; gap:4px; border-radius:10px;">
-            <span>📍</span> <span>Ir</span>
+          <button class="btn-action-square btn-ir-nota" title="Ir a la cuadra en el mapa" style="background:#eff6ff; color:#2563eb; font-weight:700; font-size:12.5px; padding:0 10px; width:auto; height:34px; border-radius:10px;">
+            <span>Ir</span>
           </button>
-          <button class="btn-action-square btn-eliminar-nota" title="Eliminar nota" style="background:#fee2e2; color:#dc2626; width:34px; height:34px; border-radius:10px;">
-            🗑️
+          <button class="btn-action-square btn-eliminar-nota" title="Eliminar nota" style="background:#fee2e2; color:#dc2626; width:34px; height:34px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
       `;
@@ -1227,7 +1228,7 @@ function abrirModalTodasNotas() {
         window.mostrarConfirmacionModal({
           titulo: "¿Eliminar nota?",
           mensaje: "¿Deseas eliminar esta nota de la cuadra?",
-          icono: "🗑️",
+          icono: "trash",
           textoConfirmar: "Eliminar",
           peligro: true,
           onConfirm: () => {
@@ -1240,7 +1241,7 @@ function abrirModalTodasNotas() {
             if (typeof window.reproducirSonidoClick === "function") {
               window.reproducirSonidoClick("delete");
             }
-            window.mostrarToastDiscreto("Nota eliminada", "🗑️");
+            window.mostrarToastDiscreto("Nota eliminada", "");
             window.refrescarIndicadoresNotas();
             renderizarContenido();
           }

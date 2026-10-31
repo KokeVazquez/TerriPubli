@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=73" />
+  <link rel="stylesheet" href="css/styles.css?v=74" />
 </head>
 
 <body>
@@ -37,7 +37,7 @@
     <!-- Botón Perfil / Ingreso arriba del lado derecho -->
     <div class="header-top-actions">
       <button id="btnIngresarHeader" class="btn-ingresar-pill" title="Tu perfil de publicador">
-        <span>👤</span> <span>Perfil</span> <span style="font-size:9px; opacity:0.6;">▾</span>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <span>Perfil</span> <span style="font-size:9px; opacity:0.6;">▾</span>
       </button>
       <button id="badgeCapitanHeader" class="capitan-header-badge" style="display:none;" title="Toca para opciones de Capitán">
         <span class="avatar-capitan-dot"></span>
@@ -131,13 +131,13 @@
           <div class="menu-panel-section-title">Tema del mapa</div>
           <div class="menu-theme-options" id="menuThemeOptions">
             <button type="button" class="btn-theme-opt" data-theme="claro">
-              <span>☀️</span> <span>Claro</span>
+              <span>Claro</span>
             </button>
             <button type="button" class="btn-theme-opt" data-theme="auto">
-              <span>⚙️</span> <span>Auto</span>
+              <span>Auto</span>
             </button>
             <button type="button" class="btn-theme-opt" data-theme="oscuro">
-              <span>🌙</span> <span>Oscuro</span>
+              <span>Oscuro</span>
             </button>
           </div>
           <div class="menu-panel-divider"></div>
@@ -396,19 +396,19 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=73"></script>
+  <script src="js/territoriobase.js?v=74"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=73"></script>
+  <script src="js/territoriosData.js?v=74"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=73"></script>
+  <script src="js/territoriosManager.js?v=74"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=73"></script>
+  <script src="js/notas.js?v=74"></script>
   <!-- 5. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=73"></script>
+  <script src="js/capitanManager.js?v=74"></script>
   <!-- 6. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=73"></script>
+  <script src="js/app.js?v=74"></script>
   <!-- 7. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=73"></script>
+  <script src="js/pwa.js?v=74"></script>
 </body>
 
 </html>

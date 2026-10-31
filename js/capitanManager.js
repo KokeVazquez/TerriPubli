@@ -108,8 +108,8 @@
             display:flex; align-items:center; justify-content:space-between;
             border-bottom:1px solid #f1f5f9; transition:background 0.15s ease;
           ">
-            <span>👤 ${escaparTextoSeguro(c)}</span>
-            <span style="font-size:11px; color:#16a34a; background:#dcfce7; padding:2px 7px; border-radius:10px; font-weight:700;">Oficial ✓</span>
+            <span>${escaparTextoSeguro(c)}</span>
+            <span style="font-size:11px; color:#16a34a; background:#dcfce7; padding:2px 7px; border-radius:10px; font-weight:700;">Oficial</span>
           </div>
         `).join("");
       }
@@ -147,11 +147,11 @@
       } else if (oficial) {
         inputEl.style.borderColor = "#16a34a";
         inputEl.style.boxShadow = "0 0 0 2px rgba(22, 163, 74, 0.18)";
-        if (badgeEstadoEl) badgeEstadoEl.innerHTML = '<span style="color:#16a34a; font-size:15px; font-weight:800;" title="Capitán oficial verificado">✓</span>';
+        if (badgeEstadoEl) badgeEstadoEl.innerHTML = '<span style="color:#16a34a; display:inline-flex; align-items:center;" title="Capitán oficial verificado"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
       } else {
         inputEl.style.borderColor = "#f59e0b";
         inputEl.style.boxShadow = "0 0 0 2px rgba(245, 158, 11, 0.18)";
-        if (badgeEstadoEl) badgeEstadoEl.innerHTML = '<span style="color:#f59e0b; font-size:15px; font-weight:800;" title="No coincide con la lista oficial">⚠️</span>';
+        if (badgeEstadoEl) badgeEstadoEl.innerHTML = '<span style="color:#f59e0b; display:inline-flex; align-items:center;" title="No coincide con la lista oficial"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>';
       }
     }
 
@@ -587,10 +587,10 @@
         if (pubNombre) {
           // Usar solo el primer nombre para evitar tapar el título central
           const primerNombre = pubNombre.split(/\s+/)[0];
-          btnIngresar.innerHTML = `<span>👤</span> <span style="max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparTextoSeguro(primerNombre)}</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
+          btnIngresar.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <span style="max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparTextoSeguro(primerNombre)}</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
           btnIngresar.title = `Perfil: ${pubNombre} (Toca para editar o entrar como Capitán)`;
         } else {
-          btnIngresar.innerHTML = `<span>👤</span> <span>Perfil</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
+          btnIngresar.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <span>Perfil</span> <span style="font-size:9px; opacity:0.6;">▾</span>`;
           btnIngresar.title = "Toca para identificarte o ingresar como Capitán";
         }
       }
@@ -702,7 +702,7 @@
     modal.innerHTML = `
       <div class="terrosa-modal-card" style="box-sizing:border-box;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="margin:0; color:#0f172a; font-size:18.5px; font-weight:800;">🔑 Acceso de Capitán</h3>
+          <h3 style="margin:0; color:#0f172a; font-size:18.5px; font-weight:800;">Acceso de Capitán</h3>
           <button id="btnCerrarLoginModal" class="btn-icon-square">✕</button>
         </div>
         <p style="font-size:13px; color:#64748b; margin-top:0; margin-bottom:14px;">
@@ -809,7 +809,7 @@
       window.reproducirSonidoClick("success");
       cerrar();
       actualizarInterfazSegunModo();
-      mostrarToastDiscreto("Modo Capitán activado ✅");
+      mostrarToastDiscreto("Modo Capitán activado");
     };
 
     const btnConfirmar = modal.querySelector("#btnConfirmarLogin");
@@ -844,7 +844,7 @@
     modal.innerHTML = `
       <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👤 Perfil Activo</h3>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Perfil Activo</h3>
           <button id="btnCerrarMenuPerfilX" class="btn-icon-square">✕</button>
         </div>
 
@@ -865,7 +865,7 @@
         <div style="display:flex; flex-direction:column; gap:10px;">
           <button id="btnCerrarSesionModo" style="
             padding:12px 14px; background:#fef2f2; border:1px solid #fee2e2; border-radius:14px; font-weight:700; color:#dc2626; cursor:pointer; font-size:13.5px; text-align:left;
-          ">🔒 Salir a Modo Publicador</button>
+          ">Salir a Modo Publicador</button>
         </div>
       </div>
     `;
@@ -889,7 +889,7 @@
         localStorage.setItem("terrosa_capitan_nombre", nuevo);
         actualizarInterfazSegunModo();
         window.reproducirSonidoClick("success");
-        mostrarToastDiscreto("Usuario actualizado ✅");
+        mostrarToastDiscreto("Usuario actualizado");
         cerrar();
       }
     };
@@ -918,7 +918,7 @@
     modal.innerHTML = `
       <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">👤 Perfil de Publicador</h3>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Perfil de Publicador</h3>
           <button id="btnCerrarMenuPubX" class="btn-icon-square">✕</button>
         </div>
 
@@ -934,7 +934,7 @@
           " />
           <button id="btnGuardarNombrePublicador" style="
             width:100%; margin-top:10px; padding:11px; background:#1a73e8; color:white; border:none; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 2px 6px rgba(26,115,232,0.25);
-          ">💾 Guardar Nombre</button>
+          ">Guardar Nombre</button>
         </div>
 
         <div style="border-top:1px solid #e2e8f0; margin:16px 0;"></div>
@@ -945,14 +945,14 @@
           <button id="btnIrLoginCapitanDesdePub" style="
             width:100%; padding:11px 14px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; font-weight:800; color:#1e293b; cursor:pointer; font-size:13.5px; display:flex; align-items:center; justify-content:center; gap:8px;
           ">
-            <span>🔑</span> <span>Ingresar con PIN</span>
+            <span>Ingresar con PIN</span>
           </button>
         </div>
 
         <div style="border-top:1px solid #f1f5f9; padding-top:10px; text-align:center;">
           <button id="btnReiniciarDatosLocales" type="button" style="
             background:transparent; border:none; color:#94a3b8; font-size:11.5px; font-weight:700; cursor:pointer; padding:6px 10px; border-radius:8px; transition:all 0.15s ease;
-          ">🗑️ Borrar notas y datos locales</button>
+          ">Borrar notas y datos locales</button>
         </div>
       </div>
     `;
@@ -984,7 +984,7 @@
         window.verificarAccesoEnNube(nuevo);
       }
       window.reproducirSonidoClick("success");
-      mostrarToastDiscreto("Perfil actualizado ✅");
+      mostrarToastDiscreto("Perfil actualizado");
       cerrar();
     };
 
@@ -1004,7 +1004,7 @@
           localStorage.clear();
           if (dispId) localStorage.setItem("terrosa_dispositivo_id", dispId);
           if (regVersion) localStorage.setItem("territorios_version", regVersion);
-          mostrarToastDiscreto("Datos locales reiniciados correctamente", "🧹");
+          mostrarToastDiscreto("Datos locales reiniciados correctamente");
           setTimeout(() => window.location.reload(), 1200);
         };
 
@@ -1012,7 +1012,7 @@
           window.mostrarConfirmacionModal({
             titulo: "Reiniciar datos locales",
             mensaje: "¿Estás seguro de que deseas borrar tus notas y reiniciar los datos locales de la app en este dispositivo? Tu registro seguirá protegido.",
-            icono: "🧹",
+            icono: "",
             textoConfirmar: "Sí, reiniciar",
             textoCancelar: "Cancelar",
             peligro: true,
@@ -1040,8 +1040,7 @@
     modal.style.zIndex = "1000000";
     modal.innerHTML = `
       <div class="terrosa-modal-card" style="max-width:340px; padding:24px 20px; text-align:center;">
-        <div style="font-size:38px; margin-bottom:8px;">👋</div>
-        <h3 style="margin:0 0 6px 0; font-size:19px; font-weight:800; color:#0f172a;">¡Bienvenido a TerRosa!</h3>
+        <h3 style="margin:0 0 6px 0; font-size:19px; font-weight:800; color:#0f172a;">Bienvenido a TerRosa</h3>
         <p style="font-size:13px; color:#64748b; margin:0 0 16px 0;">
           Para personalizar tu mapa en este dispositivo, escribe tu nombre:
         </p>
@@ -1054,7 +1053,7 @@
 
         <button id="btnComenzarBienvenida" style="
           width:100%; padding:12px; background:linear-gradient(135deg, #1a73e8, #1557b0); color:white; border:none; border-radius:14px; font-weight:800; font-size:14.5px; cursor:pointer; box-shadow:0 3px 10px rgba(26,115,232,0.3);
-        ">Comenzar 🚀</button>
+        ">Comenzar</button>
       </div>
     `;
 
@@ -1075,7 +1074,7 @@
       }
       window.reproducirSonidoClick("success");
       modal.remove();
-      mostrarToastDiscreto(`¡Bienvenido, ${val}! 🎉`);
+      mostrarToastDiscreto(`Bienvenido, ${val}`);
     };
 
     modal.querySelector("#btnComenzarBienvenida").onclick = guardar;
@@ -1104,7 +1103,7 @@
       document.body.appendChild(lockOverlay);
     }
     lockOverlay.innerHTML = `
-      <div style="font-size:52px; margin-bottom:14px;">🔒</div>
+      <div style="width:52px; height:52px; border-radius:50%; background:#1e293b; color:#94a3b8; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
       <h2 style="margin:0 0 10px 0; font-size:22px; font-weight:800; color:#ffffff;">Acceso Restringido</h2>
       <p id="txtMensajeBloqueo" style="font-size:14.5px; color:#94a3b8; max-width:320px; line-height:1.5; margin:0 0 20px 0;">
         ${mensaje || "Esta aplicación requiere autorización del encargado de territorios de la Congregación Rosario."}
@@ -1112,7 +1111,7 @@
       <button id="btnReintentarAcceso" style="
         background:#1a73e8; color:white; border:none; padding:10px 22px; border-radius:50px; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(26,115,232,0.4); margin-bottom:20px; display:inline-flex; align-items:center; gap:8px;
       ">
-        <span>🔄</span> <span>Comprobar estado</span>
+        <span>Comprobar estado</span>
       </button>
       <div style="font-size:12px; color:#64748b; background:#1e293b; padding:8px 14px; border-radius:10px;">
         ID Dispositivo: <b>${obtenerIdDispositivoLocal()}</b>
@@ -1122,14 +1121,14 @@
     const btnRetry = lockOverlay.querySelector("#btnReintentarAcceso");
     if (btnRetry) {
       btnRetry.onclick = () => {
-        btnRetry.innerHTML = `<span>⏳</span> <span>Comprobando...</span>`;
+        btnRetry.innerHTML = `<span>Comprobando...</span>`;
         btnRetry.disabled = true;
         window.verificarAccesoEnNube(null, (permitido) => {
           if (!permitido) {
             btnRetry.disabled = false;
-            btnRetry.innerHTML = `<span>🔄</span> <span>Sigue restringido</span>`;
+            btnRetry.innerHTML = `<span>Sigue restringido</span>`;
             setTimeout(() => {
-              btnRetry.innerHTML = `<span>🔄</span> <span>Comprobar estado</span>`;
+              btnRetry.innerHTML = `<span>Comprobar estado</span>`;
             }, 2000);
           }
         });
@@ -1430,9 +1429,9 @@
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-            <button class="btn-action-square btn-s12-item" title="Ver e imprimir tarjeta S-12 (PDF)" data-terr="${rep.territorioNumero || rep.territorioId}">📄</button>
-            <button class="btn-action-square btn-editar" title="Editar" data-id="${rep.id}">✏️</button>
-            <button class="btn-action-square btn-eliminar" title="Eliminar" data-id="${rep.id}">🗑️</button>
+            <button class="btn-action-square btn-s12-item" title="Ver e imprimir tarjeta S-12 (PDF)" data-terr="${rep.territorioNumero || rep.territorioId}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>
+            <button class="btn-action-square btn-editar" title="Editar" data-id="${rep.id}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-action-square btn-eliminar" title="Eliminar" data-id="${rep.id}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
           </div>
         `;
         cont.appendChild(card);
@@ -1466,14 +1465,14 @@
             if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("delete");
             descartarReporte(id);
             renderizarListaFiltrada();
-            mostrarToastDiscreto("Registro eliminado del historial", "🗑️");
+            mostrarToastDiscreto("Registro eliminado del historial");
           };
 
           if (typeof window.mostrarConfirmacionModal === "function") {
             window.mostrarConfirmacionModal({
               titulo: "Eliminar registro",
               mensaje: "¿Deseas eliminar este registro del historial?",
-              icono: "🗑️",
+              icono: "trash",
               textoConfirmar: "Eliminar",
               textoCancelar: "Cancelar",
               peligro: true,
@@ -1724,7 +1723,7 @@
     modal.innerHTML = `
       <div class="terrosa-modal-card" style="max-width:360px; max-height:88vh; display:flex; flex-direction:column; padding:22px 20px; box-sizing:border-box;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-          <h3 style="margin:0; color:#0f172a; font-size:18px; font-weight:800;">✏️ Editar Registro</h3>
+          <h3 style="margin:0; color:#0f172a; font-size:18px; font-weight:800;">Editar Registro</h3>
           <button id="btnCerrarModalEditReg" class="btn-icon-square">✕</button>
         </div>
         <div style="font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px;">Territorio ${escaparTextoSeguro(numTLimpio)}</div>
@@ -1831,7 +1830,7 @@
       const capitanRaw = (modal.querySelector("#editCapitanInput").value || "").trim();
       const capitanOficial = resolverCapitanOficial(capitanRaw);
       if (!capitanOficial) {
-        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.", "⚠️");
+        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.");
         modal.querySelector("#editCapitanInput").focus();
         return;
       }
@@ -1840,17 +1839,17 @@
       const nuevoComentario = modal.querySelector("#editComentario").value.trim();
 
       if (!nuevoCapitan) {
-        mostrarToastDiscreto("Por favor ingresa el nombre del capitán.", "⚠️");
+        mostrarToastDiscreto("Por favor ingresa el nombre del capitán.");
         return;
       }
       if (!nuevaFecha) {
-        mostrarToastDiscreto("Por favor ingresa una fecha.", "⚠️");
+        mostrarToastDiscreto("Por favor ingresa una fecha.");
         return;
       }
 
       const chksEdit = Array.from(modal.querySelectorAll(".chk-edit-cuadra:checked"));
       if (cuadrasDisponibles.length > 0 && chksEdit.length === 0) {
-        mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.", "⚠️");
+        mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.");
         return;
       }
 
@@ -1891,7 +1890,7 @@
       }
 
       window.reproducirSonidoClick("success");
-      mostrarToastDiscreto("Registro actualizado ✅");
+      mostrarToastDiscreto("Registro actualizado");
       cerrar();
       if (callback) callback();
     };
@@ -1954,7 +1953,7 @@
       <div class="terrosa-modal-card terrosa-modal-large" style="padding:22px 20px; max-width:440px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <div>
-            <h3 style="margin:0; color:#0f172a; font-size:18.5px; font-weight:800;">📝 Reportar Territorios</h3>
+            <h3 style="margin:0; color:#0f172a; font-size:18.5px; font-weight:800;">Reportar Territorios</h3>
             <span style="font-size:11.5px; color:#64748b; font-weight:600;">Agrega uno o varios territorios y guarda todo junto</span>
           </div>
           <button id="btnCerrarModalReg" class="btn-icon-square">✕</button>
@@ -2016,7 +2015,7 @@
 
             <!-- Comentario opcional -->
             <details class="comentario-desplegable" style="background:#ffffff; border-radius:12px; padding:6px 10px;">
-              <summary style="font-size:12px; font-weight:700; color:#64748b; cursor:pointer;">💬 Comentario (opcional)</summary>
+              <summary style="font-size:12px; font-weight:700; color:#64748b; cursor:pointer;">Comentario (opcional)</summary>
               <textarea id="regComentario" rows="2" placeholder="Notas sobre este territorio..." style="width:100%; margin-top:6px; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none; font-family:inherit;"></textarea>
             </details>
 
@@ -2030,7 +2029,7 @@
             <button id="btnAgregarTerritorioLote" type="button" style="
               width:100%; padding:10px 14px; background:#0284c7; color:white; border:none; border-radius:12px; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 3px 8px rgba(2,132,199,0.28); display:flex; align-items:center; justify-content:center; gap:6px; transition:transform 0.15s;
             ">
-              <span>➕ Agregar territorio al reporte</span>
+              <span>+ Agregar territorio al reporte</span>
             </button>
           </div>
 
@@ -2038,7 +2037,7 @@
           <div id="regSeccionLote" style="display:flex; flex-direction:column; gap:6px; margin-top:2px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <label style="font-size:11.5px; font-weight:800; color:#334155; text-transform:uppercase;">
-                📋 Territorios listos (<span id="regConteoLote">0</span>)
+                Territorios listos (<span id="regConteoLote">0</span>)
               </label>
               <span id="regAvisoLote" style="font-size:11px; color:#94a3b8; font-weight:600;">O guarda directo si es 1</span>
             </div>
@@ -2287,12 +2286,12 @@
               ${item.visitaSC ? `<span style="background:#fef3c7; color:#b45309; font-size:10.5px; font-weight:700; padding:1.5px 6px; border-radius:8px;">S.C.</span>` : ''}
             </div>
             <div style="font-size:11.5px; color:#64748b; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-              ${item.cuadrasLabels.join(", ")}${item.comentario ? ` • <span style="color:#d97706;">💬 ${escaparTextoSeguro(item.comentario)}</span>` : ''}
+              ${item.cuadrasLabels.join(", ")}${item.comentario ? ` • <span style="color:#d97706;">${escaparTextoSeguro(item.comentario)}</span>` : ''}
             </div>
           </div>
           <button type="button" class="btn-quitar-lote" data-idx="${idx}" title="Eliminar de la lista" style="
-            background:#fee2e2; border:none; border-radius:8px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:#ef4444; font-size:14px; cursor:pointer; margin-left:8px; flex-shrink:0;
-          ">🗑️</button>
+            background:#fee2e2; border:none; border-radius:8px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:#ef4444; cursor:pointer; margin-left:8px; flex-shrink:0;
+          "><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div>
       `).join("");
 
@@ -2346,12 +2345,12 @@
       };
     }
 
-    // Botón: ➕ Agregar territorio al reporte
+    // Botón: Agregar territorio al reporte
     modal.querySelector("#btnAgregarTerritorioLote").onclick = () => {
       const capitanVal = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
       const capitanOficial = resolverCapitanOficial(capitanVal);
       if (!capitanOficial) {
-        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.", "⚠️");
+        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.");
         modal.querySelector("#regInputCapitan").focus();
         return;
       }
@@ -2360,10 +2359,10 @@
       const datosT = obtenerDatosTerritorioActual();
       if (!datosT) {
         if (!selectTerr.value) {
-          mostrarToastDiscreto("Por favor selecciona un territorio.", "⚠️");
+          mostrarToastDiscreto("Por favor selecciona un territorio.");
           selectTerr.focus();
         } else {
-          mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.", "⚠️");
+          mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.");
         }
         return;
       }
@@ -2391,7 +2390,7 @@
       const capitanVal = (modal.querySelector("#regInputCapitan") ? modal.querySelector("#regInputCapitan").value : "").trim();
       const capitanOficial = resolverCapitanOficial(capitanVal);
       if (!capitanOficial) {
-        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.", "⚠️");
+        mostrarToastDiscreto("Selecciona un hermano de la lista oficial de capitanes.");
         modal.querySelector("#regInputCapitan").focus();
         return;
       }
@@ -2409,7 +2408,7 @@
       }
 
       if (territoriosEnLote.length === 0) {
-        mostrarToastDiscreto("Selecciona al menos un territorio y sus cuadras.", "⚠️");
+        mostrarToastDiscreto("Selecciona al menos un territorio y sus cuadras.");
         return;
       }
 
@@ -2566,7 +2565,7 @@ ${lineas.join("\n")}`;
           </svg>
         </a>
 
-        <div style="font-size:32px; margin-bottom:8px;">${lista.length > 1 ? '🎉' : '✅'}</div>
+        <div style="width:42px; height:42px; border-radius:50%; background:#dcfce7; color:#16a34a; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
         <h3 style="margin:0 0 8px 0; color:#1e293b; font-size:17.5px; font-weight:800;">
           ${lista.length > 1 ? `Reportes registrados (${lista.length})` : 'Reporte registrado'}
         </h3>
@@ -2679,15 +2678,15 @@ ${lineas.join("\n")}`;
     modal.innerHTML = `
       <div class="terrosa-modal-card terrosa-modal-large">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-          <h3 style="margin:0; color:#1e293b; font-size:17px; font-weight:800;">🔔 Aprobaciones ${versionTxt} (${pendientes.length})</h3>
+          <h3 style="margin:0; color:#1e293b; font-size:17px; font-weight:800;">Aprobaciones ${versionTxt} (${pendientes.length})</h3>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button id="btnSyncNubeModal" title="Sincronizar con Google Sheets" style="background:#e0f2fe; border:none; border-radius:8px; padding:6px 11px; font-size:12px; font-weight:700; color:#0284c7; cursor:pointer;">🔄 Sincronizar</button>
-            <button id="btnCerrarBuzon" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; padding:4px;">✖</button>
+            <button id="btnSyncNubeModal" title="Sincronizar con Google Sheets" style="background:#e0f2fe; border:none; border-radius:8px; padding:6px 11px; font-size:12px; font-weight:700; color:#0284c7; cursor:pointer;">Sincronizar</button>
+            <button id="btnCerrarBuzon" class="btn-icon-square">✕</button>
           </div>
         </div>
 
         <div id="listaItemsBuzon" style="max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
-          ${pendientes.length === 0 ? '<div style="text-align:center; color:#94a3b8; padding:30px;">No hay reportes pendientes por aprobar. 🎉</div>' : ''}
+          ${pendientes.length === 0 ? '<div style="text-align:center; color:#94a3b8; padding:30px;">No hay reportes pendientes por aprobar.</div>' : ''}
         </div>
       </div>
     `;
@@ -2707,7 +2706,7 @@ ${lineas.join("\n")}`;
         btnSync.textContent = "Sincronizando...";
         btnSync.disabled = true;
         window.sincronizarConNube(true).then(() => {
-          btnSync.textContent = "🔄 Sincronizar";
+          btnSync.textContent = "Sincronizar";
           btnSync.disabled = false;
           cerrar();
           abrirModalBuzonAprobaciones();
@@ -2764,10 +2763,10 @@ ${lineas.join("\n")}`;
         const remaining = cont.querySelectorAll(".btn-aprobar-rep").length;
         const tituloModal = modal.querySelector("h3");
         if (tituloModal) {
-          tituloModal.textContent = `🔔 Aprobaciones S-13 (${remaining})`;
+          tituloModal.textContent = `Aprobaciones S-13 (${remaining})`;
         }
         if (remaining === 0) {
-          cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:30px;">¡Todos los reportes fueron revisados! 🎉</div>';
+          cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:30px;">Todos los reportes fueron revisados.</div>';
         }
       }
     }
@@ -2808,7 +2807,7 @@ ${lineas.join("\n")}`;
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
       window.actualizarColoresCuadrasCapitan();
     }
-    mostrarToastDiscreto("Aprobado ✅");
+    mostrarToastDiscreto("Aprobado");
 
     // Sincronizar aprobación con Google Sheets (llena la hoja oficial S-13 en Drive)
     if (URL_API_GOOGLE_SHEETS) {
@@ -2852,7 +2851,7 @@ ${lineas.join("\n")}`;
   }
 
   // 12. Notificación flotante discreta tipo toast
-  function mostrarToastDiscreto(mensaje, icono = "✨", duracion = 2500) {
+  function mostrarToastDiscreto(mensaje, icono = "", duracion = 2500) {
     if (typeof window.mostrarToastDiscreto === "function") {
       window.mostrarToastDiscreto(mensaje, icono, duracion);
       return;
@@ -2905,7 +2904,7 @@ ${lineas.join("\n")}`;
     if (typeof window.actualizarColoresCuadrasCapitan === "function") {
       window.actualizarColoresCuadrasCapitan();
     }
-    mostrarToastDiscreto("Caché limpiada y mapa restaurado ✅");
+    mostrarToastDiscreto("Caché limpiada y mapa restaurado");
   };
 
   // 13. Pintar cuadras en gris (solo en Modo Capitán y para reportes de la versión activa)
@@ -3733,7 +3732,7 @@ ${lineas.join("\n")}`;
   window.sincronizarConNube = async function (mostrarFeedback = false) {
     if (!URL_API_GOOGLE_SHEETS) return;
     try {
-      if (mostrarFeedback) mostrarToastDiscreto("Sincronizando con Google Sheets... ⏳");
+      if (mostrarFeedback) mostrarToastDiscreto("Sincronizando con Google Sheets...");
 
       const res = await fetch(URL_API_GOOGLE_SHEETS, { method: "GET" });
       const data = await res.json();
@@ -3807,11 +3806,11 @@ ${lineas.join("\n")}`;
           window.actualizarColoresCuadrasCapitan();
         }
 
-        if (mostrarFeedback) mostrarToastDiscreto("Sincronizado con éxito ✅");
+        if (mostrarFeedback) mostrarToastDiscreto("Sincronizado con éxito");
       }
     } catch (err) {
       console.warn("Modo offline o error al sincronizar con Google Sheets:", err);
-      if (mostrarFeedback) mostrarToastDiscreto("Sin conexión a la nube ⚠️");
+      if (mostrarFeedback) mostrarToastDiscreto("Sin conexión a la nube");
     }
   };
 
@@ -4403,7 +4402,7 @@ ${lineas.join("\n")}`;
         const valSel = selectTerr ? selectTerr.value : numInicial;
         const numTLimpio = obtenerNumeroTerritorioLimpio(valSel, valSel);
         const deepUrl = `https://kokevazquez.github.io/TerriPubli/?t=${numTLimpio}`;
-        const textoShare = `📍 Tarjeta S-12: Territorio ${numTLimpio} — Congregación Rosario\n🔗 Ver mapa y croquis: ${deepUrl}`;
+        const textoShare = `Tarjeta S-12: Territorio ${numTLimpio} — Congregación Rosario\nVer mapa y croquis: ${deepUrl}`;
 
         if (navigator.share) {
           navigator.share({
@@ -4411,12 +4410,25 @@ ${lineas.join("\n")}`;
             text: textoShare,
             url: deepUrl
           }).catch(() => {});
-        } else {
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(deepUrl).then(() => {
-            mostrarToastDiscreto("Enlace copiado al portapapeles 📋", "✅");
+            mostrarToastDiscreto("Enlace copiado al portapapeles");
           }).catch(() => {
-            window.prompt("Copia este enlace de territorio:", deepUrl);
+            mostrarToastDiscreto("Enlace: " + deepUrl);
           });
+        } else {
+          try {
+            const tmp = document.createElement("textarea");
+            tmp.value = deepUrl;
+            tmp.style.cssText = "position:fixed;left:-9999px;top:0;";
+            document.body.appendChild(tmp);
+            tmp.select();
+            document.execCommand("copy");
+            tmp.remove();
+            mostrarToastDiscreto("Enlace copiado al portapapeles");
+          } catch (e) {
+            mostrarToastDiscreto("Enlace: " + deepUrl);
+          }
         }
       };
     }

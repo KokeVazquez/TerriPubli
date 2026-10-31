@@ -305,7 +305,7 @@ window.compartirTerritorioLink = async function (territorioId, cuadraLabel) {
     }
   }
 
-  const mensajeTexto = `📍 *${nomVisible}${textoCuadra}* (Congregación Rosario)\n\n📲 Abre el mapa directamente aquí:\n${link}`;
+  const mensajeTexto = `*${nomVisible}${textoCuadra}* (Congregación Rosario)\n\nAbre el mapa directamente aquí:\n${link}`;
 
   // Intentar compartir con Web Share API nativo (100% compatible con iPhone Safari y Android)
   if (navigator.share) {
@@ -332,7 +332,7 @@ window.compartirTerritorioLink = async function (territorioId, cuadraLabel) {
 
   if (copiado) {
     if (typeof window.mostrarToastDiscreto === "function") {
-      window.mostrarToastDiscreto("📋 Enlace copiado al portapapeles. ¡Listo para pegar en WhatsApp!", "✅");
+      window.mostrarToastDiscreto("Enlace copiado al portapapeles");
     }
   } else {
     // Fallback 2: Abrir WhatsApp Web con el texto preparado
@@ -414,7 +414,7 @@ function procesarDeepLink() {
 
         const nomVisible = formatearNombreTerritorioCorto(targetTerritorioId);
         if (typeof window.mostrarToastDiscreto === "function") {
-          window.mostrarToastDiscreto(`📍 Mostrando ${nomVisible}${cuadraParam ? ' (Cuadra ' + cuadraParam + ')' : ''}`, "🗺️");
+          window.mostrarToastDiscreto(`Mostrando ${nomVisible}${cuadraParam ? ' (Cuadra ' + cuadraParam + ')' : ''}`);
         }
       }
     }, 450);
@@ -636,14 +636,14 @@ window.obtenerUbicacionEnTerritorios = function (lat, lon) {
 
 // Formateador amigable de nombres (ej: "Territorio 3 • Cuadra 1")
 function formatearUbicacionBanner(info) {
-  if (!info) return "📍 Estás fuera de los territorios";
+  if (!info) return "Estás fuera de los territorios";
   const tNom = formatearNombreTerritorioCorto(info.territorioId);
   const rawLbl = info.label ? String(info.label).trim() : "";
   const cNom = rawLbl
     ? (/^cuadra/i.test(rawLbl) ? rawLbl : `Cuadra ${rawLbl}`)
     : (info.cuadraId ? String(info.cuadraId).replace(/^.*?Cuadra/i, "Cuadra ") : "Cuadra");
 
-  return `📍 ${tNom} • ${cNom}`;
+  return `${tNom} • ${cNom}`;
 }
 
 // Enfocar el territorio donde está parado el usuario y centrar la vista
@@ -667,9 +667,7 @@ window.enfocarTerritorioActualUsuario = function () {
 window.comoLlegarACoord = function (destLat, destLng, titulo) {
   if (!destLat || !destLng) {
     if (typeof window.mostrarToastDiscreto === "function") {
-      window.mostrarToastDiscreto("Coordenadas no disponibles para trazar ruta", "🧭");
-    } else {
-      alert("Coordenadas no disponibles para trazar ruta.");
+      window.mostrarToastDiscreto("Coordenadas no disponibles para trazar ruta");
     }
     return;
   }
@@ -715,9 +713,7 @@ function activarUbicacion() {
 
   if (!navigator.geolocation) {
     if (typeof window.mostrarToastDiscreto === "function") {
-      window.mostrarToastDiscreto("Tu dispositivo no soporta geolocalización", "⚠️");
-    } else {
-      alert("Tu dispositivo o navegador no soporta geolocalización.");
+      window.mostrarToastDiscreto("Tu dispositivo no soporta geolocalización");
     }
     return;
   }
@@ -737,7 +733,7 @@ function activarUbicacion() {
       map.removeLayer(circuloPrecision);
       circuloPrecision = null;
     }
-    if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
+    if (btnUbicacion) btnUbicacion.textContent = "Mi Ubicación";
     if (btnFloatingGps) btnFloatingGps.classList.remove("activo");
     if (bannerTop) bannerTop.style.display = "none";
     if (menuPanel && menuPanel.classList.contains("show")) {
@@ -771,11 +767,11 @@ function activarUbicacion() {
   document.body.appendChild(loader);
 
   seguimientoActivo = true;
-  if (btnUbicacion) btnUbicacion.textContent = "📍 Detener Ubicación";
+  if (btnUbicacion) btnUbicacion.textContent = "Detener Ubicación";
   if (btnFloatingGps) btnFloatingGps.classList.add("activo");
   if (bannerTop) {
     bannerTop.style.display = "flex";
-    if (bannerText) bannerText.textContent = "📍 Obteniendo señal GPS...";
+    if (bannerText) bannerText.textContent = "Obteniendo señal GPS...";
   }
 
   const iconoGps = L.divIcon({
@@ -837,7 +833,7 @@ function activarUbicacion() {
           if (btnVerTerr) {
             btnVerTerr.style.display = "inline-flex";
             if (terrActivoId === ubicacionTerritorial.territorioId) {
-              btnVerTerr.textContent = "✓ Enfocado";
+              btnVerTerr.textContent = "Enfocado";
               btnVerTerr.title = "Ya estás viendo este territorio";
               btnVerTerr.style.opacity = "0.75";
             } else {
@@ -882,7 +878,7 @@ function activarUbicacion() {
           const rawLbl = ubicacionTerritorial.label ? String(ubicacionTerritorial.label).trim() : "";
           const lblC = rawLbl ? (/^cuadra/i.test(rawLbl) ? rawLbl : `Cuadra ${rawLbl}`) : "";
           if (typeof window.mostrarToastDiscreto === "function") {
-            window.mostrarToastDiscreto(`📍 ${nomT}${lblC ? ' • ' + lblC : ''}`, "🚶‍♂️");
+            window.mostrarToastDiscreto(`${nomT}${lblC ? ' • ' + lblC : ''}`);
           }
         }
       } else {
@@ -899,14 +895,12 @@ function activarUbicacion() {
     },
     function (err) {
       if (typeof window.mostrarToastDiscreto === "function") {
-        window.mostrarToastDiscreto("No se pudo obtener la ubicación GPS", "⚠️");
-      } else {
-        alert("No se pudo obtener la ubicación: " + err.message);
+        window.mostrarToastDiscreto("No se pudo obtener la ubicación GPS");
       }
       seguimientoActivo = false;
       limpiarResaltadoCuadraGps();
       ultimaNotificacionTerritorio = null;
-      if (btnUbicacion) btnUbicacion.textContent = "📍 Mi Ubicación";
+      if (btnUbicacion) btnUbicacion.textContent = "Mi Ubicación";
       if (btnFloatingGps) btnFloatingGps.classList.remove("activo");
       if (bannerTop) bannerTop.style.display = "none";
       const loaderActivo = document.getElementById("loaderUbicacion");
@@ -952,9 +946,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnShareMenu) {
         if (window.territorioActivo && window.territorioActivo._id) {
           const nom = formatearNombreTerritorioCorto(window.territorioActivo._id);
-          btnShareMenu.textContent = `📲 Compartir ${nom}`;
+          btnShareMenu.textContent = `Compartir ${nom}`;
         } else {
-          btnShareMenu.textContent = "📲 Compartir enlace de la app";
+          btnShareMenu.textContent = "Compartir enlace";
         }
       }
       menuPanel.classList.toggle('show');
@@ -1048,7 +1042,7 @@ window.confirmarResetLocal = function () {
     window.mostrarConfirmacionModal({
       titulo: "¿Borrar datos locales?",
       mensaje: "Se borrarán tus revisitas y notas guardadas exclusivamente en este dispositivo. ¿Deseas continuar?",
-      icono: "🗑️",
+      icono: "",
       textoConfirmar: "Borrar todo",
       peligro: true,
       onConfirm: () => {
@@ -1060,7 +1054,7 @@ window.confirmarResetLocal = function () {
           window.refrescarIndicadoresNotas();
         }
         if (typeof window.mostrarToastDiscreto === "function") {
-          window.mostrarToastDiscreto("Datos locales borrados con éxito", "🗑️");
+          window.mostrarToastDiscreto("Datos locales borrados con éxito");
         }
       }
     });
@@ -1100,9 +1094,9 @@ function inicializarSelectorTema() {
       localStorage.setItem("terrosa_tema_visual", nuevoModo);
       aplicarTema(nuevoModo);
 
-      const nombres = { claro: "Modo Claro ☀️", auto: "Modo Automático ⚙️", oscuro: "Modo Oscuro 🌙" };
+      const nombres = { claro: "Modo Claro", auto: "Modo Automático", oscuro: "Modo Oscuro" };
       if (typeof window.mostrarToastDiscreto === "function") {
-        window.mostrarToastDiscreto(nombres[nuevoModo] || "Tema actualizado", "✨");
+        window.mostrarToastDiscreto(nombres[nuevoModo] || "Tema actualizado");
       }
     };
   });

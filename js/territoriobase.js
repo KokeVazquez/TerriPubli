@@ -201,9 +201,7 @@ window.abrirUbicacionCuadra = function () {
     window.open(link, "_blank");
   } else {
     if (typeof window.mostrarToastDiscreto === "function") {
-      window.mostrarToastDiscreto("Ubicación de Google Maps no disponible para esta cuadra", "📍");
-    } else {
-      alert("Ubicación de Google Maps no disponible para esta cuadra.");
+      window.mostrarToastDiscreto("Ubicación de Google Maps no disponible para esta cuadra");
     }
   }
   ocultarMenu(true);
@@ -238,8 +236,8 @@ window.compartirWhatsAppCuadra = function () {
   let linkApp = `${baseUrl}?t=${numT || tId}`;
   if (cLabel) linkApp += `&c=${encodeURIComponent(cLabel)}`;
 
-  const mensaje = `📍 *${titulo}* (Territorios Rosario)\n\n📲 *Abrir directo en la App:* \n${linkApp}` +
-    (linkMaps && linkMaps !== "undefined" && linkMaps.trim() !== "" ? `\n\n🗺️ *Abrir en Google Maps:* \n${linkMaps}` : "");
+  const mensaje = `*${titulo}* (Territorios Rosario)\n\n*Abrir directo en la App:* \n${linkApp}` +
+    (linkMaps && linkMaps !== "undefined" && linkMaps.trim() !== "" ? `\n\n*Abrir en Google Maps:* \n${linkMaps}` : "");
 
   // Soporte nativo para iPhone Safari y Android (menú compartir del sistema)
   if (navigator.share) {
@@ -353,8 +351,8 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
 
   const esModoCapitan = (typeof window.getModoActual === "function" && window.getModoActual() === "capitan");
   const botonReportarCapitan = esModoCapitan ? `
-    <button onclick="ocultarMenu(true); if (typeof abrirModalRegistroTerritorio === 'function') abrirModalRegistroTerritorio('${tId}', '${pId}');" style="color:#1a73e8; font-weight:700;">📝 Reportar cuadra</button>
-    <button onclick="ocultarMenu(true); if (typeof abrirModalTarjetaS12 === 'function') abrirModalTarjetaS12('${tId}');" style="color:#059669; font-weight:700;">📄 Tarjeta S-12 (PDF)</button>
+    <button onclick="ocultarMenu(true); if (typeof abrirModalRegistroTerritorio === 'function') abrirModalRegistroTerritorio('${tId}', '${pId}');" style="color:#1a73e8; font-weight:700;">Reportar cuadra</button>
+    <button onclick="ocultarMenu(true); if (typeof abrirModalTarjetaS12 === 'function') abrirModalTarjetaS12('${tId}');" style="color:#059669; font-weight:700;">Tarjeta S&#8209;12 (PDF)</button>
   ` : "";
 
   menu.innerHTML = `
@@ -363,11 +361,11 @@ function mostrarMenu(e, pol, notasPoligonos, territorioId) {
       <button class="menu-contextual-close" onclick="ocultarMenu(true)" title="Cerrar">✕</button>
     </div>
     ${botonReportarCapitan}
-    <button onclick="ocultarMenu(true); if (typeof abrirModalCrearRevisita === 'function') abrirModalCrearRevisita('${tId}', '${pId}', '${escaparHtmlSeguro(tituloCompleto)}', ${cLat}, ${cLng});" style="color:#0284c7; font-weight:700;">👤 Agregar Revisita</button>
-    <button onclick="navegarCuadraMenu();">🧭 Cómo llegar</button>
-    <button onclick="abrirUbicacionCuadra();">📍 Ubicación</button>
-    <button onclick="anadirNotaPopup('${pId}', '${tId}');">➕ Añadir nota</button>
-    <button onclick="verNotas('${pId}', '${tId}');">📒 Notas de cuadra</button>
+    <button onclick="ocultarMenu(true); if (typeof abrirModalCrearRevisita === 'function') abrirModalCrearRevisita('${tId}', '${pId}', '${escaparHtmlSeguro(tituloCompleto)}', ${cLat}, ${cLng});" style="color:#0284c7; font-weight:700;">Agregar revisita</button>
+    <button onclick="navegarCuadraMenu();">Cómo llegar</button>
+    <button onclick="abrirUbicacionCuadra();">Ubicación</button>
+    <button onclick="anadirNotaPopup('${pId}', '${tId}');">Añadir nota</button>
+    <button onclick="verNotas('${pId}', '${tId}');">Notas de cuadra</button>
     <button class="btn-whatsapp" onclick="compartirWhatsAppCuadra()"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: -2px; margin-right: 6px;"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2ZM12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67ZM8.53 7.33C8.37 7.33 8.1 7.39 7.87 7.64C7.65 7.89 7.02 8.48 7.02 9.69C7.02 10.9 7.9 12.06 8.02 12.23C8.14 12.4 9.73 14.85 12.18 15.91C12.76 16.16 13.22 16.31 13.57 16.42C14.16 16.61 14.7 16.58 15.13 16.52C15.61 16.45 16.6 15.92 16.81 15.33C17.02 14.74 17.02 14.24 16.96 14.13C16.9 14.02 16.74 13.96 16.5 13.84C16.26 13.72 15.08 13.14 14.86 13.06C14.64 12.98 14.48 12.94 14.32 13.18C14.16 13.42 13.7 13.96 13.56 14.12C13.42 14.28 13.28 14.3 13.04 14.18C12.8 14.06 12.03 13.81 11.12 13C10.41 12.37 9.93 11.59 9.79 11.35C9.65 11.11 9.77 10.98 9.89 10.86C10 10.75 10.14 10.57 10.28 10.41C10.42 10.25 10.47 10.13 10.56 9.95C10.65 9.77 10.61 9.61 10.55 9.49C10.49 9.37 10.03 8.24 9.84 7.78C9.65 7.33 9.46 7.39 9.32 7.38C9.18 7.38 9.02 7.38 8.86 7.38C8.7 7.38 8.53 7.33 8.53 7.33Z"/></svg>WhatsApp</button>
   `;
 }
@@ -405,7 +403,7 @@ function anadirNotaPopup(id, territorioId) {
   modalFondo.innerHTML = `
     <div class="terrosa-modal-card" style="max-width:340px; padding:22px 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">➕ Añadir nota</h3>
+        <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Añadir nota</h3>
         <button id="cerrarModalNotaX" class="btn-icon-square">✕</button>
       </div>
       <textarea id="inputNota" rows="4" placeholder="Escribe tu nota aquí..." style="
@@ -445,7 +443,7 @@ function anadirNotaPopup(id, territorioId) {
           font-size: 13.5px;
           cursor: pointer;
           box-shadow: 0 3px 10px rgba(26,115,232,0.3);
-        ">Guardar ✅</button>
+        ">Guardar</button>
       </div>
     </div>
   `;
@@ -495,7 +493,7 @@ function mostrarNotasPopup(id, notasPoligonos, territorioId) {
     }
   });
 
-  var contenido = "<div style='font-family:system-ui; font-size:13.5px; min-width:190px;'><b style='font-size:15px; color:#1e293b;'>📒 Notas de esta cuadra:</b><br><br>";
+  var contenido = "<div style='font-family:system-ui; font-size:13.5px; min-width:190px;'><b style='font-size:15px; color:#1e293b;'>Notas de esta cuadra:</b><br><br>";
   if (itemsValidos.length === 0) {
     contenido += "<span style='color:#64748b;'>No hay notas registradas.</span>";
   } else {
@@ -503,7 +501,7 @@ function mostrarNotasPopup(id, notasPoligonos, territorioId) {
       contenido += `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f1f5f9; gap:8px;">
           <span style="word-break:break-word;">${idx + 1}. <b>${escaparHtmlSeguro(item.texto)}</b></span>
-          <button onclick="confirmarEliminarNotaPopup('${id}', ${item.realIndex}, '${territorioId}')" style="background:#fee2e2; border:none; border-radius:6px; padding:4px 8px; color:#dc2626; cursor:pointer; font-weight:bold; flex-shrink:0;">🗑️</button>
+          <button onclick="confirmarEliminarNotaPopup('${id}', ${item.realIndex}, '${territorioId}')" style="background:#fee2e2; border:none; border-radius:6px; padding:5px 7px; color:#dc2626; cursor:pointer; font-weight:bold; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div>
       `;
     });
