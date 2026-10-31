@@ -2001,11 +2001,22 @@
           <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:16px; padding:12px 12px 14px; display:flex; flex-direction:column; gap:10px;">
             <div>
               <label style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase;">Territorio</label>
-              <select id="regSelectTerritorio" style="
-                width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:700; box-sizing:border-box; margin-top:3px; background:#fff; outline:none; font-family:inherit;
-              ">
-                <option value="">Selecciona aquí...</option>
-              </select>
+              <div class="reg-custom-select-wrap" id="regCustomSelectWrap" style="position:relative; margin-top:3px;">
+                <button type="button" id="regSelectTerritorioTrigger" class="reg-select-trigger" title="Seleccionar territorio">
+                  <span id="regSelectTerritorioLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Selecciona aquí...</span>
+                  <span style="font-size:11px; color:#64748b; margin-left:6px; flex-shrink:0;">▾</span>
+                </button>
+
+                <div id="regSelectTerritorioDropdown" class="reg-select-dropdown" style="display:none;">
+                  <div class="reg-select-search-box">
+                    <input type="text" id="regSelectTerritorioSearch" placeholder="Escribe aquí..." autocomplete="off" />
+                  </div>
+                  <div id="regSelectTerritorioList" class="reg-select-options-list"></div>
+                </div>
+                <select id="regSelectTerritorio" style="display:none;">
+                  <option value="">Selecciona aquí...</option>
+                </select>
+              </div>
             </div>
 
             <!-- Cuadras trabajadas -->
@@ -2083,23 +2094,120 @@
     const badgeCap = modal.querySelector("#badgeRegCapitanEstado");
     vincularAutocompleteCapitan(inputCap, dropdownCap, badgeCap);
 
-    // Poblar selector de territorios
+    // Configuración del Selector de Territorio Personalizado e Instantáneo (un solo toque sin botón Aceptar)
     const selectTerr = modal.querySelector("#regSelectTerritorio");
+    const triggerTerr = modal.querySelector("#regSelectTerritorioTrigger");
+    const dropdownTerr = modal.querySelector("#regSelectTerritorioDropdown");
+    const searchTerr = modal.querySelector("#regSelectTerritorioSearch");
+    const listTerr = modal.querySelector("#regSelectTerritorioList");
+    const labelTerr = modal.querySelector("#regSelectTerritorioLabel");
+
+    const opcionesTerr = [];
     if (window.TERRITORIOS_DATA && Array.isArray(window.TERRITORIOS_DATA)) {
       window.TERRITORIOS_DATA.forEach(t => {
-        const d = t.datos;
+        const d = t.datos || {};
+        const rawNum = d.numeroTerritorio !== undefined ? String(d.numeroTerritorio) : String(d.id || "");
+        const esNeg = rawNum.toLowerCase().includes("negocio") || String(d.id || "").toLowerCase().includes("negocio");
+        const numLabel = esNeg ? "Negocios" : (d.numeroTerritorio !== undefined ? d.numeroTerritorio : d.id);
+        const label = esNeg ? "Territorio Negocios" : `Territorio ${numLabel}`;
+        const optInfo = {
+          id: d.id,
+          num: numLabel,
+          label: label,
+          esNeg: esNeg
+        };
+        opcionesTerr.push(optInfo);
+
         const opt = document.createElement("option");
         opt.value = d.id;
-        opt.textContent = `Territorio ${d.numeroTerritorio !== undefined ? d.numeroTerritorio : d.id}`;
+        opt.textContent = label;
         const esCoincidencia = territorioActivo && (
           String(d.id).toLowerCase() === String(territorioActivo).toLowerCase() ||
           String(d.numeroTerritorio) === String(territorioActivo) ||
           String(d.id).toLowerCase() === ('territorio' + String(territorioActivo)).toLowerCase()
         );
-        if (esCoincidencia) opt.selected = true;
+        if (esCoincidencia) {
+          opt.selected = true;
+          selectTerr.value = d.id;
+          if (labelTerr) labelTerr.textContent = label;
+        }
         selectTerr.appendChild(opt);
       });
     }
+
+    function renderizarOpcionesTerr(filtro = "") {
+      if (!listTerr) return;
+      listTerr.innerHTML = "";
+      const f = filtro.trim().toLowerCase();
+      const filtradas = opcionesTerr.filter(op => {
+        if (!f) return true;
+        return op.label.toLowerCase().includes(f) || String(op.num).toLowerCase().includes(f) || String(op.id).toLowerCase().includes(f);
+      });
+
+      if (filtradas.length === 0) {
+        const vacio = document.createElement("div");
+        vacio.style.cssText = "padding:12px; font-size:12px; color:#94a3b8; text-align:center;";
+        vacio.textContent = "No se encontraron territorios";
+        listTerr.appendChild(vacio);
+        return;
+      }
+
+      filtradas.forEach(op => {
+        const item = document.createElement("div");
+        const estaActivo = selectTerr.value && (
+          String(selectTerr.value).toLowerCase() === String(op.id).toLowerCase() ||
+          String(selectTerr.value) === String(op.num)
+        );
+        item.className = `reg-dropdown-item ${estaActivo ? "active" : ""}`;
+        item.innerHTML = `
+          <span>${op.label}</span>
+          ${estaActivo ? `<span style="font-size:11px; font-weight:800; color:#2563eb;">✓</span>` : ''}
+        `;
+        item.onclick = (e) => {
+          e.stopPropagation();
+          window.reproducirSonidoClick("tap");
+          selectTerr.value = op.id;
+          if (labelTerr) labelTerr.textContent = op.label;
+          dropdownTerr.style.display = "none";
+          renderizarCuadras(op.id);
+        };
+        listTerr.appendChild(item);
+      });
+    }
+
+    renderizarOpcionesTerr();
+
+    if (triggerTerr && dropdownTerr) {
+      triggerTerr.onclick = (e) => {
+        e.stopPropagation();
+        window.reproducirSonidoClick("tap");
+        const visible = dropdownTerr.style.display !== "none";
+        dropdownTerr.style.display = visible ? "none" : "flex";
+        if (!visible && searchTerr) {
+          searchTerr.value = "";
+          renderizarOpcionesTerr();
+          const esTactil = Boolean(window.matchMedia && window.matchMedia("(hover: none), (pointer: coarse)").matches);
+          if (!esTactil) {
+            setTimeout(() => searchTerr.focus(), 60);
+          }
+        }
+      };
+
+      if (searchTerr) {
+        searchTerr.oninput = (e) => {
+          renderizarOpcionesTerr(e.target.value);
+        };
+        searchTerr.onclick = (e) => e.stopPropagation();
+      }
+    }
+
+    modal.addEventListener("click", (e) => {
+      if (dropdownTerr && dropdownTerr.style.display !== "none") {
+        if (!triggerTerr.contains(e.target) && !dropdownTerr.contains(e.target)) {
+          dropdownTerr.style.display = "none";
+        }
+      }
+    });
 
     const contenedorCuadras = modal.querySelector("#regContenedorCuadras");
     const btnToggleTodas = modal.querySelector("#btnToggleTodasCuadras");
@@ -2372,7 +2480,7 @@
       if (!datosT) {
         if (!selectTerr.value) {
           mostrarToastDiscreto("Selecciona un territorio.");
-          selectTerr.focus();
+          if (triggerTerr) triggerTerr.focus();
         } else {
           mostrarToastDiscreto("Selecciona al menos una cuadra trabajada.");
         }
@@ -2388,6 +2496,7 @@
 
       // Limpiar selección de territorio para agregar el siguiente con facilidad
       selectTerr.value = "";
+      if (labelTerr) labelTerr.textContent = "Selecciona aquí...";
       renderizarCuadras("");
       modal.querySelector("#regComentario").value = "";
       const det = modal.querySelector(".comentario-desplegable");
