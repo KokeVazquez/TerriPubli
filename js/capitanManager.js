@@ -1240,19 +1240,19 @@
 
     function obtenerTextoBotonMesesHistorial() {
       if (mesesHistorialSel.size === 0 || mesesHistorialSel.size === 12) {
-        return "Mes: Todos";
+        return "Todos";
       } else if (mesesHistorialSel.size === 1) {
         const num = Array.from(mesesHistorialSel)[0];
         const mObj = NOMBRES_MESES.find(m => m.num === num);
-        return `Mes: ${mObj ? mObj.abrev : num}`;
+        return mObj ? mObj.abrev : num;
       } else if (mesesHistorialSel.size === 2) {
         const arr = Array.from(mesesHistorialSel).map(num => {
           const mObj = NOMBRES_MESES.find(m => m.num === num);
           return mObj ? mObj.abrev : num;
         });
-        return `Mes: ${arr.join(",")}`;
+        return arr.join(",");
       } else {
-        return `Meses (${mesesHistorialSel.size})`;
+        return `${mesesHistorialSel.size} meses`;
       }
     }
 
@@ -1280,19 +1280,19 @@
 
         <!-- Tres Filtros: Año de Servicio, Selector de Mes y Selector Rápido de Territorio -->
         <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin-bottom:8px; flex-shrink:0;">
-          <select id="filtroHistorialAnio" class="filtro-historial-control">
-            ${obtenerListaAniosServicio().map(y => `<option value="${y}" ${String(filtroAnioSel) === String(y) ? "selected" : ""}>Año: ${y}</option>`).join("")}
-            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>Año: Todos</option>
+          <select id="filtroHistorialAnio" class="filtro-historial-control" title="Año">
+            ${obtenerListaAniosServicio().map(y => `<option value="${y}" ${String(filtroAnioSel) === String(y) ? "selected" : ""}>${y}</option>`).join("")}
+            <option value="todos" ${filtroAnioSel === "todos" ? "selected" : ""}>Todos</option>
           </select>
 
-          <button type="button" id="btnHistorialMesesFiltro" class="filtro-historial-control">
-            <span id="txtHistorialMesLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; text-align:left;">${obtenerTextoBotonMesesHistorial()}</span>
-            <span style="font-size:10px; margin-left:2px; opacity:0.7; flex-shrink:0;">▾</span>
+          <button type="button" id="btnHistorialMesesFiltro" class="filtro-historial-control" title="Mes">
+            <span id="txtHistorialMesLabel" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; text-align:center;">${obtenerTextoBotonMesesHistorial()}</span>
+            <span style="font-size:9px; margin-left:1px; opacity:0.6; flex-shrink:0;">▾</span>
           </button>
 
-          <select id="filtroHistorialTerritorio" class="filtro-historial-control">
-            <option value="">Terr: Todos</option>
-            ${obtenerOpcionesTerritoriosDisponibles().map(op => `<option value="${op.val}">${op.val === 'negocios' ? 'Negocios' : 'Terr. ' + op.val}</option>`).join("")}
+          <select id="filtroHistorialTerritorio" class="filtro-historial-control" title="Territorio">
+            <option value="">Todos</option>
+            ${obtenerOpcionesTerritoriosDisponibles().map(op => `<option value="${op.val}">${op.val === 'negocios' ? 'Negocios' : op.val}</option>`).join("")}
           </select>
         </div>
 
@@ -1424,25 +1424,25 @@
           : (Array.isArray(rep.cuadras) ? rep.cuadras.map(c => formatearEtiquetaCuadraCorta(c)).join(", ") : "");
 
         card.innerHTML = `
-          <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
-            <div style="background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:14.5px; border-radius:12px; padding:7px 11px; min-width:38px; text-align:center; flex-shrink:0;">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+            <div style="background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:13px; border-radius:10px; padding:4px 7px; min-width:32px; text-align:center; flex-shrink:0;">
               T-${rep.territorioNumero}
             </div>
             <div style="min-width:0; flex:1;">
-              <div style="display:flex; align-items:center;">
-                <span style="font-weight:800; color:#1e293b; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escaparTextoSeguro(rep.capitan || 'Capitán')}</span>
+              <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                <span style="font-weight:800; color:#1e293b; font-size:13.5px; line-height:1.25; word-break:break-word;">${escaparTextoSeguro(rep.capitan || 'Capitán')}</span>
                 ${statusDot}
               </div>
-              <div style="font-size:12px; color:#64748b; margin-top:2px;">
+              <div style="font-size:11.5px; color:#64748b; margin-top:2px; line-height:1.25;">
                 ${formatearFechaCorta(rep.fecha)} • Cuadras: ${labelsCuadras || rep.cuadrasTotal || rep.totalCuadras || ""}
               </div>
-              ${rep.comentario ? `<div style="font-size:11.5px; color:#475569; background:#f8fafc; padding:3px 7px; border-radius:6px; margin-top:3px; max-width:fit-content; border:1px solid #e2e8f0; word-break:normal; overflow-wrap:break-word;">${escaparTextoSeguro(rep.comentario)}</div>` : ''}
+              ${rep.comentario ? `<div style="font-size:11px; color:#475569; background:#f8fafc; padding:3px 7px; border-radius:6px; margin-top:3px; max-width:fit-content; border:1px solid #e2e8f0; word-break:normal; overflow-wrap:break-word;">${escaparTextoSeguro(rep.comentario)}</div>` : ''}
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-            <button class="btn-action-square btn-s12-item" title="Ver e imprimir tarjeta S-12 (PDF)" data-terr="${rep.territorioNumero || rep.territorioId}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>
-            <button class="btn-action-square btn-editar" title="Editar" data-id="${rep.id}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-            <button class="btn-action-square btn-eliminar" title="Eliminar" data-id="${rep.id}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+            <button class="btn-action-square btn-s12-item" title="Ver e imprimir tarjeta S-12 (PDF)" data-terr="${rep.territorioNumero || rep.territorioId}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button>
+            <button class="btn-action-square btn-editar" title="Editar" data-id="${rep.id}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-action-square btn-eliminar" title="Eliminar" data-id="${rep.id}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
           </div>
         `;
         cont.appendChild(card);

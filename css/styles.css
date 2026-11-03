@@ -69,7 +69,7 @@ body {
 /* Prevenir el auto-zoom forzado de iOS Safari al tocar inputs o selects */
 @supports (-webkit-touch-callout: none) {
   input:not([type="checkbox"]):not([type="radio"]),
-  select,
+  select:not(.filtro-historial-control),
   textarea {
     font-size: 16px !important;
   }
@@ -1071,16 +1071,16 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 
 /* Botones de acción encuadrados sin texto (minimalismo) */
 .btn-action-square {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
-  border-radius: 11px;
+  width: 31px;
+  height: 31px;
+  min-width: 31px;
+  min-height: 31px;
+  border-radius: 9px;
   border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -1142,12 +1142,12 @@ body.modo-capitan #btnRegistrarTerritorio:active {
 .card-historial-minimal {
   background: #ffffff;
   border: 1px solid #f1f5f9;
-  border-radius: 16px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -2163,7 +2163,7 @@ body.modo-oscuro .terrosa-modal-card label {
 }
 
 body.modo-oscuro .terrosa-modal-card input,
-body.modo-oscuro .terrosa-modal-card select,
+body.modo-oscuro .terrosa-modal-card select:not(.filtro-historial-control),
 body.modo-oscuro .terrosa-modal-card textarea {
   background: #0f172a !important;
   color: #f8fafc !important;
@@ -2833,7 +2833,7 @@ button, .btn, h1, h2, h3, h4, .s12-chip, .s12-main-title, .s12-form-code, .s12-c
 
 /* 1. Inputs >= 16px para evitar auto-zoom en iOS Safari sin bloquear el pellizco de accesibilidad */
 .terrosa-modal-card input:not([type="checkbox"]):not([type="radio"]),
-.terrosa-modal-card select,
+.terrosa-modal-card select:not(.filtro-historial-control),
 .terrosa-modal-card textarea,
 .s12-select-search-box input,
 #inputNota {
@@ -3207,24 +3207,32 @@ body.modo-oscuro .comentario-desplegable summary {
   border: 1.5px solid var(--terrosa-border, #cbd5e1) !important;
   background: var(--terrosa-surface-elevated, #f8fafc) !important;
   color: var(--terrosa-text-primary, #0f172a) !important;
-  font-size: 12px !important;
+  font-size: 13px !important;
   font-weight: 700 !important;
-  padding: 0 8px !important;
+  padding: 0 4px !important;
   box-sizing: border-box !important;
   outline: none !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: center !important;
+  text-align: center !important;
+  text-align-last: center !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   font-family: inherit !important;
   transition: all 0.15s ease !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
 }
 
-select.filtro-historial-control {
-  padding-right: 4px !important;
+select.filtro-historial-control, .terrosa-modal-card select.filtro-historial-control {
+  font-size: 13px !important;
+  text-align: center !important;
+  text-align-last: center !important;
+  padding: 0 4px !important;
 }
 
 .filtro-historial-control:active {
