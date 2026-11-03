@@ -997,9 +997,12 @@
         mostrarToastDiscreto("Escribe tu nombre");
         return;
       }
+      const nombreAnterior = localStorage.getItem("terrosa_nombre_publicador") || "";
       localStorage.setItem("terrosa_nombre_publicador", nuevo);
       actualizarInterfazSegunModo();
-      if (typeof window.verificarAccesoEnNube === "function") {
+      if (typeof window.modificarUsuarioEnNube === "function") {
+        window.modificarUsuarioEnNube(nombreAnterior, nuevo);
+      } else if (typeof window.verificarAccesoEnNube === "function") {
         window.verificarAccesoEnNube(nuevo);
       }
       window.reproducirSonidoClick("success");
@@ -1017,14 +1020,17 @@
     if (btnReiniciar) {
       btnReiniciar.onclick = () => {
         const accionBorrar = () => {
-          // Preservar la identidad del dispositivo para no duplicar en Google Sheets
           const dispId = localStorage.getItem("terrosa_dispositivo_id");
-          const regVersion = localStorage.getItem("territorios_version");
+          const nombrePub = localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "";
+
+          // Notificar a Google Sheets para eliminar el usuario de la hoja
+          if (typeof window.eliminarUsuarioEnNube === "function") {
+            window.eliminarUsuarioEnNube(dispId, nombrePub);
+          }
+
           localStorage.clear();
-          if (dispId) localStorage.setItem("terrosa_dispositivo_id", dispId);
-          if (regVersion) localStorage.setItem("territorios_version", regVersion);
           mostrarToastDiscreto("Datos locales reiniciados correctamente");
-          setTimeout(() => window.location.reload(), 1200);
+          setTimeout(() => window.location.reload(), 1000);
         };
 
         if (typeof window.mostrarConfirmacionModal === "function") {
@@ -1206,6 +1212,52 @@
         quitarPantallaBloqueo();
         if (typeof callback === "function") callback(true);
       });
+  };
+
+  // Notificar eliminación de usuario en la hoja de cálculo al borrar datos locales
+  window.eliminarUsuarioEnNube = function (devId, nombre) {
+    const id = devId || obtenerIdDispositivoLocal();
+    const nom = (nombre || localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "").trim();
+    if (!id && !nom) return;
+
+    try {
+      fetch(URL_API_GOOGLE_SHEETS, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          accion: "eliminar_usuario",
+          action: "eliminar_usuario",
+          dispositivoId: id,
+          nombre: nom
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  };
+
+  // Notificar modificación de nombre a Google Sheets para actualizar la fila existente
+  window.modificarUsuarioEnNube = function (nombreAnterior, nombreNuevo) {
+    const devId = obtenerIdDispositivoLocal();
+    const nomNuevo = (nombreNuevo || "").trim();
+    const nomAnt = (nombreAnterior || "").trim();
+    if (!nomNuevo) return;
+
+    try {
+      fetch(URL_API_GOOGLE_SHEETS, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          accion: "modificar_usuario",
+          action: "modificar_usuario",
+          dispositivoId: devId,
+          nombreAnterior: nomAnt,
+          nombreNuevo: nomNuevo,
+          nombre: nomNuevo,
+          fechaHora: new Date().toISOString()
+        })
+      }).catch(() => {});
+    } catch (e) {}
   };
 
   // 6. Botón Registrar Territorio e Historial en Barra Inferior

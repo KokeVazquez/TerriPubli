@@ -307,6 +307,21 @@ function doPost(e) {
       return respuestaJSON({ exito: true, permitido: resU.permitido, estado: resU.estado, mensaje: resU.mensaje });
     }
 
+    if (action === "eliminar_usuario" || action === "borrar_usuario" || action === "limpiar_usuario") {
+      var devId = String(data.dispositivoId || data.id || "").trim();
+      var nombreU = String(data.nombre || "").trim();
+      var resElim = procesarEliminacionUsuario(ss, devId, nombreU);
+      return respuestaJSON({ exito: true, status: "success", eliminado: resElim });
+    }
+
+    if (action === "modificar_usuario" || action === "actualizar_usuario") {
+      var devId = String(data.dispositivoId || data.id || "").trim();
+      var nombreAnt = String(data.nombreAnterior || "").trim();
+      var nombreNue = String(data.nombreNuevo || data.nombre || "").trim();
+      var resMod = procesarModificacionUsuario(ss, devId, nombreAnt, nombreNue);
+      return respuestaJSON({ exito: true, status: "success", modificado: resMod });
+    }
+
     return respuestaJSON({ exito: false, status: "error", message: "Acción no reconocida: " + action });
   } catch (err) {
     return respuestaJSON({ exito: false, status: "error", message: err.toString() });
@@ -727,13 +742,19 @@ function procesarVerificacionUsuario(ss, devId, nombre) {
   var nombreLimpio = String(nombre || "").trim();
   var ahoraStr = formatearFechaHora(new Date());
 
+  // Si no se proporcionó un nombre válido aún, no crear fila fantasma
+  if (!nombreLimpio || nombreLimpio.toLowerCase() === "sin registrar") {
+    return { permitido: true, estado: "Activo" };
+  }
+
+  // 1. Buscar coincidencia exacta por ID de dispositivo
   for (var i = 1; i < filas.length; i++) {
     var rowId = String(filas[i][0]).trim();
-    if (rowId === idLimpio) {
+    if (rowId && idLimpio && rowId === idLimpio) {
       var estadoActual = String(filas[i][4] || "Activo").trim();
       sheet.getRange(i + 1, 4).setValue(ahoraStr);
       if (nombreLimpio && nombreLimpio !== "Sin registrar") {
-        sheet.getRange(i + 1, 2).setValue(nombreLimpio);
+        sheet.getRange(i + 1, 2).setValue(nombreLimpio); // Modifica el nombre si el usuario lo cambió
       }
       if (estadoActual.toLowerCase() === "bloqueado") {
         return { permitido: false, estado: "Bloqueado", mensaje: "Acceso bloqueado por el encargado de territorios." };
@@ -742,12 +763,78 @@ function procesarVerificacionUsuario(ss, devId, nombre) {
     }
   }
 
-  // Si no se proporcionó un nombre válido aún, no crear fila fantasma
-  if (!nombreLimpio || nombreLimpio.toLowerCase() === "sin registrar") {
-    return { permitido: true, estado: "Activo" };
+  // 2. Si el ID de dispositivo no coincide (ej. el usuario borró caché, datos o reinstaló),
+  // buscar si ya existe una fila con el MISMO NOMBRE para actualizarla y evitar duplicados en la hoja
+  for (var j = 1; j < filas.length; j++) {
+    var rowNombre = String(filas[j][1]).trim().toLowerCase();
+    if (rowNombre && rowNombre === nombreLimpio.toLowerCase()) {
+      if (idLimpio) {
+        sheet.getRange(j + 1, 1).setValue(idLimpio); // Asocia el nuevo dispositivo a su fila existente
+      }
+      sheet.getRange(j + 1, 2).setValue(nombreLimpio);
+      sheet.getRange(j + 1, 4).setValue(ahoraStr);
+      var est = String(filas[j][4] || "Activo").trim();
+      if (est.toLowerCase() === "bloqueado") {
+        return { permitido: false, estado: "Bloqueado", mensaje: "Acceso bloqueado por el encargado de territorios." };
+      }
+      return { permitido: true, estado: "Activo" };
+    }
   }
 
-  // Si es un dispositivo nuevo con nombre, agregarlo como Activo
+  // 3. Si realmente es un usuario y dispositivo completamente nuevo, agregarlo como Activo
   sheet.appendRow([idLimpio, nombreLimpio, ahoraStr, ahoraStr, "Activo", ""]);
   return { permitido: true, estado: "Activo" };
+}
+
+function procesarEliminacionUsuario(ss, devId, nombre) {
+  var sheet = obtenerOCrearHojaUsuarios(ss);
+  var filas = sheet.getDataRange().getValues();
+  var idLimpio = String(devId || "").trim();
+  var nombreLimpio = String(nombre || "").trim().toLowerCase();
+  var eliminado = false;
+
+  // Recorrer de abajo hacia arriba para eliminar filas de forma segura
+  for (var i = filas.length - 1; i >= 1; i--) {
+    var rowId = String(filas[i][0]).trim();
+    var rowNombre = String(filas[i][1]).trim().toLowerCase();
+
+    var coincideId = idLimpio && (rowId === idLimpio);
+    var coincideNombre = nombreLimpio && (rowNombre === nombreLimpio);
+
+    if (coincideId || coincideNombre) {
+      sheet.deleteRow(i + 1);
+      eliminado = true;
+    }
+  }
+  return eliminado;
+}
+
+function procesarModificacionUsuario(ss, devId, nombreAnterior, nombreNuevo) {
+  var sheet = obtenerOCrearHojaUsuarios(ss);
+  var filas = sheet.getDataRange().getValues();
+  var idLimpio = String(devId || "").trim();
+  var nombreAntLimpio = String(nombreAnterior || "").trim().toLowerCase();
+  var nombreNuevoLimpio = String(nombreNuevo || "").trim();
+  var ahoraStr = formatearFechaHora(new Date());
+  var modificado = false;
+
+  for (var i = 1; i < filas.length; i++) {
+    var rowId = String(filas[i][0]).trim();
+    var rowNombre = String(filas[i][1]).trim().toLowerCase();
+
+    var coincideId = idLimpio && (rowId === idLimpio);
+    var coincideNombre = nombreAntLimpio && (rowNombre === nombreAntLimpio);
+
+    if (coincideId || coincideNombre) {
+      if (nombreNuevoLimpio) {
+        sheet.getRange(i + 1, 2).setValue(nombreNuevoLimpio);
+      }
+      if (idLimpio) {
+        sheet.getRange(i + 1, 1).setValue(idLimpio);
+      }
+      sheet.getRange(i + 1, 4).setValue(ahoraStr);
+      modificado = true;
+    }
+  }
+  return modificado;
 }

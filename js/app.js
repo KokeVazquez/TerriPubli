@@ -1068,21 +1068,35 @@ window.confirmarResetLocal = function () {
   if (typeof window.mostrarConfirmacionModal === "function") {
     window.mostrarConfirmacionModal({
       titulo: "¿Borrar datos locales?",
-      mensaje: "Se borrarán tus revisitas y notas guardadas exclusivamente en este dispositivo. ¿Deseas continuar?",
-      icono: "",
+      mensaje: "Se borrarán tus notas, revisitas y tu usuario en este dispositivo. ¿Deseas continuar?",
+      icono: "trash",
       textoConfirmar: "Borrar todo",
       peligro: true,
       onConfirm: () => {
+        const devId = localStorage.getItem("terrosa_dispositivo_id");
+        const nombrePub = localStorage.getItem("terrosa_nombre_publicador") || localStorage.getItem("terrosa_capitan_nombre") || "";
+
+        // Notificar a Google Sheets para eliminar el usuario de la hoja
+        if (typeof window.eliminarUsuarioEnNube === "function") {
+          window.eliminarUsuarioEnNube(devId, nombrePub);
+        }
+
         localStorage.removeItem("terrosa_revisitas_data");
+        localStorage.removeItem("terrosa_nombre_publicador");
+        localStorage.removeItem("terrosa_capitan_nombre");
+        localStorage.removeItem("terrosa_modo_capitan");
+        localStorage.removeItem("terrosa_dispositivo_id");
         Object.keys(localStorage).forEach(k => {
           if (k.endsWith("_notas")) localStorage.removeItem(k);
         });
+
         if (typeof window.refrescarIndicadoresNotas === "function") {
           window.refrescarIndicadoresNotas();
         }
         if (typeof window.mostrarToastDiscreto === "function") {
           window.mostrarToastDiscreto("Datos locales borrados con éxito");
         }
+        setTimeout(() => window.location.reload(), 1000);
       }
     });
   }
