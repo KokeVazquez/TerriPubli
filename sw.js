@@ -2,7 +2,7 @@
 // === SERVICE WORKER (PWA) ===
 // ==============================================================================================================================
 
-const CACHE_NAME = 'territorios-cache-v82';
+const CACHE_NAME = 'territorios-cache-v83';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -15,9 +15,9 @@ const ASSETS_TO_CACHE = [
   './js/capitanManager.js',
   './js/app.js',
   './js/pwa.js',
-  './logo.png',
-  './icon-192.png',
-  './icon-512.png',
+  './img/logo.png',
+  './img/icon-192.png',
+  './img/icon-512.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
