@@ -1287,3 +1287,112 @@ function inicializarEventosNotas() {
     window.refrescarIndicadoresNotas();
   }, 1000);
 }
+
+
+// --------------------------------------------------------------------------------------
+// Respaldo y Restauración Completa de Notas (Revisitas + Notas de Cuadras)
+// --------------------------------------------------------------------------------------
+window.descargarCopiaCompletaNotas = function () {
+  const revisitas = window.obtenerRevisitasLocales() || [];
+  const cuadrasNotas = {};
+  let totalNotasCuadras = 0;
+
+  Object.keys(localStorage).forEach(k => {
+    if (k.endsWith("_notas")) {
+      try {
+        const val = JSON.parse(localStorage.getItem(k));
+        if (val && Object.keys(val).length > 0) {
+          cuadrasNotas[k] = val;
+          totalNotasCuadras += Object.keys(val).length;
+        }
+      } catch (e) {}
+    }
+  });
+
+  if (revisitas.length === 0 && totalNotasCuadras === 0) {
+    if (typeof window.mostrarToastDiscreto === "function") {
+      window.mostrarToastDiscreto("No tienes notas ni revisitas guardadas para respaldar");
+    }
+    return;
+  }
+
+  const paquete = {
+    app: "TerRosa",
+    version: 2,
+    fecha: new Date().toISOString(),
+    revisitas: revisitas,
+    cuadrasNotas: cuadrasNotas
+  };
+
+  const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(paquete, null, 2));
+  const dl = document.createElement("a");
+  const ahora = new Date();
+  const fStr = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`;
+  dl.setAttribute("href", str);
+  dl.setAttribute("download", `terrosa_respaldo_notas_${fStr}.json`);
+  document.body.appendChild(dl);
+  dl.click();
+  dl.remove();
+
+  if (typeof window.reproducirSonidoClick === "function") window.reproducirSonidoClick("success");
+  if (typeof window.mostrarToastDiscreto === "function") {
+    window.mostrarToastDiscreto("Copia de seguridad descargada con éxito");
+  }
+};
+
+window.restaurarCopiaCompletaNotas = function (file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      let countRev = 0;
+      let countCuadras = 0;
+
+      // 1. Restaurar revisitas
+      let listaRev = [];
+      if (Array.isArray(data)) {
+        listaRev = data;
+      } else if (data && Array.isArray(data.revisitas)) {
+        listaRev = data.revisitas;
+      }
+
+      if (listaRev.length > 0) {
+        const actuales = window.obtenerRevisitasLocales() || [];
+        const mapa = new Map(actuales.map(r => [r.id, r]));
+        listaRev.forEach(r => {
+          if (r && r.id) {
+            mapa.set(r.id, r);
+            countRev++;
+          }
+        });
+        localStorage.setItem("terrosa_revisitas_data", JSON.stringify(Array.from(mapa.values())));
+      }
+
+      // 2. Restaurar notas de cuadras
+      if (data && data.cuadrasNotas && typeof data.cuadrasNotas === "object") {
+        Object.keys(data.cuadrasNotas).forEach(k => {
+          if (k.endsWith("_notas")) {
+            localStorage.setItem(k, JSON.stringify(data.cuadrasNotas[k]));
+            countCuadras++;
+          }
+        });
+      }
+
+      if (typeof window.refrescarIndicadoresNotas === "function") {
+        window.refrescarIndicadoresNotas();
+      }
+      if (typeof window.reproducirSonidoClick === "function") {
+        window.reproducirSonidoClick("success");
+      }
+      if (typeof window.mostrarToastDiscreto === "function") {
+        window.mostrarToastDiscreto(`Restauradas ${countRev} revisitas y notas de ${countCuadras} territorios`);
+      }
+    } catch (err) {
+      if (typeof window.mostrarToastDiscreto === "function") {
+        window.mostrarToastDiscreto("Error al leer el archivo de copia de notas");
+      }
+    }
+  };
+  reader.readAsText(file);
+};

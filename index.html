@@ -7,10 +7,10 @@
   <title>TerRosa — Territorio Rosario</title>
 
   <!-- PWA & Iconos -->
-  <link rel="icon" href="img/icon-192.png?v=83" type="image/png" />
-  <link rel="apple-touch-icon" href="img/icon-192.png?v=83" />
-  <link rel="apple-touch-icon" sizes="512x512" href="img/icon-512.png?v=83" />
-  <link rel="manifest" href="manifest.json?v=83" />
+  <link rel="icon" href="img/icon-192.png?v=84" type="image/png" />
+  <link rel="apple-touch-icon" href="img/icon-192.png?v=84" />
+  <link rel="apple-touch-icon" sizes="512x512" href="img/icon-512.png?v=84" />
+  <link rel="manifest" href="manifest.json?v=84" />
   <meta name="theme-color" content="#e5e3df" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <!-- Estilos del Proyecto Modularizados -->
-  <link rel="stylesheet" href="css/styles.css?v=83" />
+  <link rel="stylesheet" href="css/styles.css?v=84" />
 </head>
 
 <body>
@@ -78,10 +78,45 @@
         </button>
       </div>
 
+      <!-- Filtro Semáforo de Antigüedad -->
+      <div class="filtro-pildora-wrapper">
+        <button type="button" id="btnFiltroSemaforo" class="filtro-pildora-btn" title="Semáforo de antigüedad de territorios">
+          <span id="txtFiltroSemaforoLabel">Semáforo</span>
+        </button>
+      </div>
+
       <!-- Limpiar filtro de fecha -->
       <button type="button" id="btnLimpiarFiltroFecha" class="filtro-fecha-btn-limpiar" title="Limpiar filtro de fecha" style="display:none;">✕</button>
     </div>
   </header>
+
+  <!-- Panel Flotante Discreto de Semáforo y Territorios para Hoy -->
+  <div id="panelSemaforoHoy" class="panel-semaforo-hoy" style="display:none;">
+    <div class="semaforo-header">
+      <div class="semaforo-titulo">
+        <span class="semaforo-dot-status"></span>
+        <span>Semáforo de antigüedad</span>
+      </div>
+      <button type="button" id="btnCerrarPanelSemaforo" class="btn-icon-square-mini" title="Cerrar">✕</button>
+    </div>
+    <div class="semaforo-resumen" id="semaforoResumenConteos">
+      <span class="semaforo-tag tag-rojo" id="tagConteoRojo">Rojo: 0</span>
+      <span class="semaforo-tag tag-naranja" id="tagConteoNaranja">Naranja: 0</span>
+      <span class="semaforo-tag tag-amarillo" id="tagConteoAmarillo">Amarillo: 0</span>
+      <span class="semaforo-tag tag-verde" id="tagConteoVerde">Verde: 0</span>
+    </div>
+    <div class="semaforo-seleccion-container">
+      <div class="semaforo-subtitulo">Territorios para hoy:</div>
+      <div class="semaforo-chips" id="contenedorChipsHoy">
+        <span class="chip-vacio">Toca territorios para agregar</span>
+      </div>
+    </div>
+    <div class="semaforo-acciones">
+      <button type="button" id="btnCompartirHoyWhatsApp" class="btn-compartir-hoy">
+        Compartir por WhatsApp
+      </button>
+    </div>
+  </div>
 
   <!-- Banner Discreto de Ubicación GPS ("¿Dónde estoy parado?") -->
   <div id="gpsBannerTop" class="gps-banner-top" style="display:none;">
@@ -142,6 +177,15 @@
           </div>
           <div class="menu-panel-divider"></div>
           <button id="btnMenuTarjetaS12" class="capitan-only" style="display:none;">Tarjeta S-12 (PDF)</button>
+          <button id="btnMenuBuscarCalle">Buscar calle</button>
+          <button id="btnMenuToggleAhorroGps" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Ahorro de batería GPS</span>
+            <span id="txtEstadoAhorroGps" style="font-weight:700; color:#1a73e8; font-size:11.5px;">Activado</span>
+          </button>
+          <button id="btnMenuDescargarNotas">Descargar copia de notas</button>
+          <button id="btnMenuRestaurarNotas">Restaurar copia de notas</button>
+          <input type="file" id="inputArchivoRestaurarNotas" accept=".json" style="display:none;" />
+          <div class="menu-panel-divider"></div>
           <button id="btnMenuCompartirApp">Compartir enlace</button>
           <button id="btnMenuLimpiarDatos">Borrar datos locales</button>
         </div>
@@ -396,19 +440,19 @@
 
   <!-- ================= Módulos del Proyecto ================= -->
   <!-- 1. Funciones base para territorios, notas locales y menús -->
-  <script src="js/territoriobase.js?v=83"></script>
+  <script src="js/territoriobase.js?v=84"></script>
   <!-- 2. Datos unificados de los 84 territorios + negocios -->
-  <script src="js/territoriosData.js?v=83"></script>
+  <script src="js/territoriosData.js?v=84"></script>
   <!-- 3. Administrador e inicializador de territorios y área grande -->
-  <script src="js/territoriosManager.js?v=83"></script>
+  <script src="js/territoriosManager.js?v=84"></script>
   <!-- 4. Gestión de notas globales, modal y edición -->
-  <script src="js/notas.js?v=83"></script>
+  <script src="js/notas.js?v=84"></script>
   <!-- 5. Módulo de Capitanes y Aprobaciones S-13 -->
-  <script src="js/capitanManager.js?v=83"></script>
+  <script src="js/capitanManager.js?v=84"></script>
   <!-- 6. Aplicación principal (interfaz, mapa, geolocalización) -->
-  <script src="js/app.js?v=83"></script>
+  <script src="js/app.js?v=84"></script>
   <!-- 7. Registro de Service Worker (PWA) -->
-  <script src="js/pwa.js?v=83"></script>
+  <script src="js/pwa.js?v=84"></script>
 </body>
 
 </html>

@@ -3391,3 +3391,284 @@ body.modo-oscuro .reg-dropdown-item.active {
   background: #1e3a8a;
   color: #bfdbfe;
 }
+
+
+/* ============================================================================================================================== */
+/* === SEMÁFORO DE ANTIGÜEDAD Y COMPARTIR TERRITORIOS PARA HOY === */
+/* ============================================================================================================================== */
+.filtro-pildora-btn.semaforo-activo {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.28) !important;
+  font-weight: 800 !important;
+}
+
+body.modo-oscuro .filtro-pildora-btn.semaforo-activo {
+  background: #450a0a !important;
+  color: #fca5a5 !important;
+  border-color: #ef4444 !important;
+}
+
+.panel-semaforo-hoy {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 420px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  padding: 12px 14px;
+  box-sizing: border-box;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: inherit;
+  animation: fadeInSemaforo 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInSemaforo {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+body.modo-oscuro .panel-semaforo-hoy {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.semaforo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.semaforo-titulo {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+body.modo-oscuro .semaforo-titulo {
+  color: #f8fafc;
+}
+
+.semaforo-dot-status {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+  display: inline-block;
+}
+
+.btn-icon-square-mini {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+}
+
+body.modo-oscuro .btn-icon-square-mini {
+  background: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+.semaforo-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.semaforo-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.tag-rojo { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.tag-naranja { background: #ffedd5; border-color: #fdba74; color: #9a3412; }
+.tag-amarillo { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+.tag-verde { background: #dcfce7; border-color: #86efac; color: #166534; }
+
+body.modo-oscuro .tag-rojo { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+body.modo-oscuro .tag-naranja { background: #431407; border-color: #7c2d12; color: #fdba74; }
+body.modo-oscuro .tag-amarillo { background: #422006; border-color: #713f12; color: #fde047; }
+body.modo-oscuro .tag-verde { background: #052e16; border-color: #14532d; color: #86efac; }
+
+.semaforo-seleccion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.semaforo-subtitulo {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+body.modo-oscuro .semaforo-subtitulo {
+  color: #94a3b8;
+}
+
+.semaforo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 28px;
+  align-items: center;
+}
+
+.chip-vacio {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.chip-terr-hoy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 2px 7px 2px 9px;
+  border-radius: 50px;
+}
+
+body.modo-oscuro .chip-terr-hoy {
+  background: #1e3a8a;
+  border-color: #2563eb;
+  color: #dbeafe;
+}
+
+.chip-terr-hoy button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-compartir-hoy {
+  width: 100%;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-compartir-hoy:hover {
+  background: #15803d;
+}
+
+.btn-compartir-hoy:active {
+  transform: scale(0.98);
+}
+
+/* Modal Buscador de Calles */
+.modal-buscar-calle {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1000005;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 50px 16px 20px 16px;
+  box-sizing: border-box;
+}
+
+.modal-buscar-calle-card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
+  padding: 18px 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 80vh;
+}
+
+body.modo-oscuro .modal-buscar-calle-card {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.item-calle-resultado {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
+  background: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.12s ease;
+}
+
+.item-calle-resultado:hover, .item-calle-resultado:active {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+body.modo-oscuro .item-calle-resultado {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.modo-oscuro .item-calle-resultado:hover {
+  background: #1e3a8a;
+  border-color: #2563eb;
+}

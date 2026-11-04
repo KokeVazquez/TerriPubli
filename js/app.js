@@ -378,17 +378,30 @@ function enfocarCuadraEspecifica(territorioId, cuadraQuery) {
 function procesarDeepLink() {
   try {
     const params = new URLSearchParams(window.location.search);
-    let tParam = params.get('t') || params.get('territorio');
+    let tParam = params.get('terr') || params.get('t') || params.get('territorio');
     let cuadraParam = params.get('c') || params.get('cuadra');
 
-    // Soporte para formato de hash (#t=24 o #t=24&c=1)
+    // Soporte para formato de hash (#t=24 o #t=24&c=1 o #terr=40,21)
     if (!tParam && window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#\??/, ''));
-      tParam = hashParams.get('t') || hashParams.get('territorio');
+      tParam = hashParams.get('terr') || hashParams.get('t') || hashParams.get('territorio');
       if (!cuadraParam) cuadraParam = hashParams.get('c') || hashParams.get('cuadra');
     }
 
     if (!tParam) return;
+
+    // Si contiene múltiples territorios separados por coma (ej. ?terr=40,21,37)
+    if (tParam.includes(',')) {
+      const nums = tParam.split(',').map(s => s.trim().replace(/\D/g, '')).filter(Boolean);
+      if (nums.length > 0) {
+        setTimeout(() => {
+          if (typeof window.enfocarMultiplesTerritorios === 'function') {
+            window.enfocarMultiplesTerritorios(nums);
+          }
+        }, 550);
+        return;
+      }
+    }
 
     tParam = tParam.trim().toLowerCase();
     let targetTerritorioId = "";
@@ -562,6 +575,7 @@ function closeAllCustomSelects(exception = null) {
 let marcadorUbicacion = null;
 let circuloPrecision = null;
 let seguimientoActivo = false;
+let ahorroBateriaGps = localStorage.getItem("terrosa_ahorro_bateria_gps") !== "false";
 let watchId = null;
 window.userCurrentLocation = null;
 
@@ -702,6 +716,168 @@ window.calcularDistanciaAUsuario = function (targetLat, targetLng) {
   } catch (e) {
     return null;
   }
+};
+
+// Enfocar y resaltar múltiples territorios simultáneamente (Deep link de WhatsApp)
+window.enfocarMultiplesTerritorios = function (nums) {
+  if (!nums || !Array.isArray(nums) || nums.length === 0) return;
+  if (!window.todosLosTerritorios) return;
+
+  const latlngsTodos = [];
+  const encontrados = [];
+
+  // Restaurar polígonos
+  window.todosLosTerritorios.forEach(g => {
+    g.eachLayer(pol => {
+      if (pol._originalStyle) pol.setStyle(pol._originalStyle);
+    });
+  });
+
+  nums.forEach(num => {
+    const tId = "territorio" + num;
+    const grupo = window.todosLosTerritorios.find(g => g._id === tId);
+    if (grupo) {
+      encontrados.push(num);
+      grupo.eachLayer(pol => {
+        pol.setStyle({
+          color: "#1d4ed8",
+          fillColor: "#3b82f6",
+          fillOpacity: 0.72,
+          weight: 3.5
+        });
+        if (pol.getLatLngs) {
+          const lls = pol.getLatLngs();
+          const flat = Array.isArray(lls[0]) ? lls.flat(Infinity) : lls;
+          flat.forEach(ll => {
+            if (ll && ll.lat && ll.lng) latlngsTodos.push([ll.lat, ll.lng]);
+          });
+        }
+      });
+    }
+  });
+
+  if (latlngsTodos.length > 0) {
+    const bounds = L.latLngBounds(latlngsTodos);
+    map.fitBounds(bounds, { padding: [35, 35], maxZoom: 17 });
+  }
+
+  if (typeof window.mostrarToastDiscreto === "function") {
+    window.mostrarToastDiscreto("Territorio para hoy: " + encontrados.join(", "));
+  }
+};
+
+// Buscador Discreto de Calles en Territorios
+window.abrirBuscadorCalle = function () {
+  const prev = document.getElementById("modalBuscarCalleGlobal");
+  if (prev) prev.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "modalBuscarCalleGlobal";
+  modal.className = "modal-buscar-calle";
+  modal.innerHTML = `
+    <div class="modal-buscar-calle-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;">Buscar calle</h3>
+        <button id="btnCerrarBuscadorCalle" class="btn-icon-square-mini" title="Cerrar">✕</button>
+      </div>
+
+      <div style="position:relative;">
+        <input type="text" id="inputBuscarCalleNombre" placeholder="Escribe el nombre de la calle..." autocomplete="off" style="
+          width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:600; outline:none; box-sizing:border-box; font-family:inherit; background:#ffffff; color:#0f172a;
+        " />
+      </div>
+
+      <div id="listaResultadosCalles" style="overflow-y:auto; max-height:55vh; display:flex; flex-direction:column; gap:6px;">
+        <div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">
+          Escribe para buscar calles en la zona de la congregación
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const input = modal.querySelector("#inputBuscarCalleNombre");
+  const lista = modal.querySelector("#listaResultadosCalles");
+  const cerrar = () => { if (document.body.contains(modal)) modal.remove(); };
+
+  modal.querySelector("#btnCerrarBuscadorCalle").onclick = cerrar;
+  modal.onclick = (e) => { if (e.target === modal) cerrar(); };
+
+  let timerBusqueda = null;
+  input.oninput = (e) => {
+    clearTimeout(timerBusqueda);
+    const q = e.target.value.trim();
+    if (q.length < 3) {
+      lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">Escribe al menos 3 letras...</div>';
+      return;
+    }
+
+    lista.innerHTML = '<div style="text-align:center; color:#64748b; font-size:12.5px; padding:20px 8px;">Buscando...</div>';
+
+    timerBusqueda = setTimeout(async () => {
+      try {
+        // Buscar en OpenStreetMap Nominatim con viewbox restringido al área de Congregación Rosario
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&viewbox=-99.23,19.54,-99.18,19.49&bounded=1&countrycodes=mx&addressdetails=1&limit=10`;
+        const res = await fetch(url, { headers: { "Accept-Language": "es" } });
+        const items = await res.json();
+
+        lista.innerHTML = "";
+        if (!items || items.length === 0) {
+          lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">No se encontraron calles con ese nombre en la zona.</div>';
+          return;
+        }
+
+        let encontradas = 0;
+        items.forEach(item => {
+          const lat = parseFloat(item.lat);
+          const lon = parseFloat(item.lon);
+          if (isNaN(lat) || isNaN(lon)) return;
+
+          const match = window.obtenerUbicacionEnTerritorios(lat, lon);
+          const nombreCalle = (item.address && (item.address.road || item.address.pedestrian || item.address.street)) || item.name || q;
+          const subtexto = (item.address && (item.address.suburb || item.address.neighbourhood)) || "";
+
+          const card = document.createElement("div");
+          card.className = "item-calle-resultado";
+          card.innerHTML = `
+            <div>
+              <div style="font-weight:800; font-size:13.5px; color:#0f172a;">${nombreCalle}</div>
+              <div style="font-size:11.5px; color:#64748b;">${subtexto ? subtexto + ' • ' : ''}${lat.toFixed(4)}, ${lon.toFixed(4)}</div>
+            </div>
+            ${match && match.territorioId ? `
+              <span style="font-size:11.5px; font-weight:800; background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:6px; border:1px solid #bfdbfe; white-space:nowrap;">
+                ${formatearNombreTerritorioCorto(match.territorioId)}
+              </span>
+            ` : '<span style="font-size:11px; color:#94a3b8;">Cerca de zona</span>'}
+          `;
+
+          card.onclick = () => {
+            cerrar();
+            map.flyTo([lat, lon], 18, { duration: 0.8 });
+            if (match && match.territorioId && typeof window.seleccionarTerritorioDirecto === 'function') {
+              window.seleccionarTerritorioDirecto(match.territorioId);
+            }
+            if (typeof window.mostrarToastDiscreto === "function") {
+              const terrTxt = match && match.territorioId ? ' en ' + formatearNombreTerritorioCorto(match.territorioId) : '';
+              window.mostrarToastDiscreto(`Mostrando ${nombreCalle}${terrTxt}`);
+            }
+          };
+
+          lista.appendChild(card);
+          encontradas++;
+        });
+
+        if (encontradas === 0) {
+          lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">No se encontraron resultados dentro del territorio.</div>';
+        }
+      } catch (err) {
+        lista.innerHTML = '<div style="text-align:center; color:#ef4444; font-size:12.5px; padding:20px 8px;">Error al conectar con el mapa de calles.</div>';
+      }
+    }, 350);
+  };
+
+  setTimeout(() => input.focus(), 80);
 };
 
 function activarUbicacion() {
@@ -992,6 +1168,64 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.confirmarResetLocal === 'function') window.confirmarResetLocal();
         e.stopPropagation();
       });
+    }
+
+    const btnBuscarCalle = document.getElementById('btnMenuBuscarCalle');
+    if (btnBuscarCalle) {
+      btnBuscarCalle.addEventListener('click', (e) => {
+        cerrarMenu();
+        if (typeof window.abrirBuscadorCalle === 'function') window.abrirBuscadorCalle();
+        e.stopPropagation();
+      });
+    }
+
+    const btnToggleAhorro = document.getElementById('btnMenuToggleAhorroGps');
+    const txtAhorro = document.getElementById('txtEstadoAhorroGps');
+    if (txtAhorro) {
+      txtAhorro.textContent = ahorroBateriaGps ? "Activado" : "Desactivado";
+      txtAhorro.style.color = ahorroBateriaGps ? "#16a34a" : "#64748b";
+    }
+    if (btnToggleAhorro) {
+      btnToggleAhorro.addEventListener('click', (e) => {
+        ahorroBateriaGps = !ahorroBateriaGps;
+        localStorage.setItem("terrosa_ahorro_bateria_gps", ahorroBateriaGps);
+        if (txtAhorro) {
+          txtAhorro.textContent = ahorroBateriaGps ? "Activado" : "Desactivado";
+          txtAhorro.style.color = ahorroBateriaGps ? "#16a34a" : "#64748b";
+        }
+        if (typeof window.mostrarToastDiscreto === "function") {
+          window.mostrarToastDiscreto(ahorroBateriaGps ? "Ahorro de batería GPS activado" : "Rastreo continuo GPS activado");
+        }
+        e.stopPropagation();
+      });
+    }
+
+    const btnDescargarNotas = document.getElementById('btnMenuDescargarNotas');
+    if (btnDescargarNotas) {
+      btnDescargarNotas.addEventListener('click', (e) => {
+        cerrarMenu();
+        if (typeof window.descargarCopiaCompletaNotas === 'function') {
+          window.descargarCopiaCompletaNotas();
+        }
+        e.stopPropagation();
+      });
+    }
+
+    const btnRestaurarNotas = document.getElementById('btnMenuRestaurarNotas');
+    const inputRestaurar = document.getElementById('inputArchivoRestaurarNotas');
+    if (btnRestaurarNotas && inputRestaurar) {
+      btnRestaurarNotas.addEventListener('click', (e) => {
+        cerrarMenu();
+        inputRestaurar.click();
+        e.stopPropagation();
+      });
+      inputRestaurar.onchange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file && typeof window.restaurarCopiaCompletaNotas === 'function') {
+          window.restaurarCopiaCompletaNotas(file);
+        }
+        inputRestaurar.value = "";
+      };
     }
 
     document.addEventListener('click', (e) => {

@@ -3170,6 +3170,9 @@ ${lineas.join("\n")}`;
 
   let _filtroFechaBarraInicializado = false;
   let filtroIncompletosActivo = false;
+  let filtroSemaforoActivo = false;
+  window.filtroSemaforoActivo = false;
+  let territoriosSeleccionadosHoy = new Set();
   let mesesFiltroActivos = new Set();
 
   function obtenerAnioServicioPorDefecto() {
@@ -3743,6 +3746,130 @@ ${lineas.join("\n")}`;
     }
   }
 
+  // Función para calcular la antigüedad de trabajo de cada territorio
+  function calcularAntiguedadTerritorios() {
+    const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
+    const ahora = new Date();
+    const mapaUltimaFecha = {};
+
+    reportes.forEach(rep => {
+      if (!rep || !rep.fecha || !perteneceAVersionActiva(rep)) return;
+      const tId = obtenerTerritorioIdLimpio(rep);
+      if (!tId) return;
+      const d = parsearFechaReporte(rep.fecha);
+      if (!d.valida) return;
+      const fechaObj = new Date(d.anio, parseInt(d.mes, 10) - 1, parseInt(d.dia, 10));
+      if (!mapaUltimaFecha[tId] || fechaObj > mapaUltimaFecha[tId]) {
+        mapaUltimaFecha[tId] = fechaObj;
+      }
+    });
+
+    const resultado = {};
+    let rojoCount = 0;
+    let naranjaCount = 0;
+    let amarilloCount = 0;
+    let verdeCount = 0;
+
+    if (window.todosLosTerritorios && Array.isArray(window.todosLosTerritorios)) {
+      window.todosLosTerritorios.forEach(grupo => {
+        const tId = grupo._id;
+        const ultimaFecha = mapaUltimaFecha[tId];
+        let dias = 9999;
+        if (ultimaFecha) {
+          dias = Math.floor((ahora - ultimaFecha) / (1000 * 60 * 60 * 24));
+        }
+
+        let cat = "rojo";
+        if (dias < 60) {
+          cat = "verde";
+          verdeCount++;
+        } else if (dias < 120) {
+          cat = "amarillo";
+          amarilloCount++;
+        } else if (dias < 180) {
+          cat = "naranja";
+          naranjaCount++;
+        } else {
+          cat = "rojo";
+          rojoCount++;
+        }
+
+        resultado[tId] = {
+          categoria: cat,
+          dias: dias,
+          fecha: ultimaFecha
+        };
+      });
+    }
+
+    return {
+      porTerritorio: resultado,
+      conteos: { rojo: rojoCount, naranja: naranjaCount, amarillo: amarilloCount, verde: verdeCount }
+    };
+  }
+
+  window.toggleTerritorioSeleccionadoHoy = function (tId) {
+    const num = String(tId).replace(/\D/g, "") || (String(tId).toLowerCase().includes("negocios") ? "Negocios" : "");
+    if (!num) return;
+
+    if (territoriosSeleccionadosHoy.has(num)) {
+      territoriosSeleccionadosHoy.delete(num);
+    } else {
+      territoriosSeleccionadosHoy.add(num);
+    }
+
+    if (typeof window.reproducirSonidoClick === "function") {
+      window.reproducirSonidoClick("tap");
+    }
+
+    actualizarPanelSemaforoHoy();
+    window.ejecutarFiltroFecha();
+  };
+
+  function actualizarPanelSemaforoHoy() {
+    const panel = document.getElementById("panelSemaforoHoy");
+    if (!panel) return;
+
+    const datos = calcularAntiguedadTerritorios();
+    const tagR = document.getElementById("tagConteoRojo");
+    const tagN = document.getElementById("tagConteoNaranja");
+    const tagA = document.getElementById("tagConteoAmarillo");
+    const tagV = document.getElementById("tagConteoVerde");
+
+    if (tagR) tagR.textContent = `Rojo: ${datos.conteos.rojo} (>6m)`;
+    if (tagN) tagN.textContent = `Naranja: ${datos.conteos.naranja} (4-6m)`;
+    if (tagA) tagA.textContent = `Amarillo: ${datos.conteos.amarillo} (2-4m)`;
+    if (tagV) tagV.textContent = `Verde: ${datos.conteos.verde} (<2m)`;
+
+    const contChips = document.getElementById("contenedorChipsHoy");
+    if (contChips) {
+      contChips.innerHTML = "";
+      if (territoriosSeleccionadosHoy.size === 0) {
+        contChips.innerHTML = '<span class="chip-vacio">Toca territorios para agregar</span>';
+      } else {
+        const sorted = Array.from(territoriosSeleccionadosHoy).sort((a, b) => {
+          const na = parseInt(a, 10);
+          const nb = parseInt(b, 10);
+          if (isNaN(na) || isNaN(nb)) return a.localeCompare(b);
+          return na - nb;
+        });
+
+        sorted.forEach(num => {
+          const chip = document.createElement("span");
+          chip.className = "chip-terr-hoy";
+          chip.innerHTML = `T-${num} <button type="button" data-num="${num}">✕</button>`;
+          chip.querySelector("button").onclick = (e) => {
+            e.stopPropagation();
+            territoriosSeleccionadosHoy.delete(num);
+            actualizarPanelSemaforoHoy();
+            window.ejecutarFiltroFecha();
+          };
+          contChips.appendChild(chip);
+        });
+      }
+    }
+  }
+
   window.ejecutarFiltroFecha = function () {
     if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios)) return;
 
@@ -3763,7 +3890,7 @@ ${lineas.join("\n")}`;
     const anio = anioFiltroActivo || "2026";
 
     const filtrarPorMes = (mesesFiltroActivos.size > 0 && mesesFiltroActivos.size < 12);
-    const hayFiltro = (filtrarPorMes || anio !== "todos" || filtroIncompletosActivo);
+    const hayFiltro = (filtrarPorMes || anio !== "todos" || filtroIncompletosActivo || filtroSemaforoActivo);
     if (btnLimpiar) btnLimpiar.style.display = hayFiltro ? "inline-flex" : "none";
 
     const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
@@ -3830,7 +3957,41 @@ ${lineas.join("\n")}`;
 
         const fueHecha = (pol._esPredicable !== false) && setMatch.has(pol._id);
 
-        if (filtroIncompletosActivo) {
+        if (filtroSemaforoActivo) {
+          const datosAnt = calcularAntiguedadTerritorios();
+          const infoT = datosAnt.porTerritorio[tId] || { categoria: "rojo" };
+          const numT = String(tId).replace(/\D/g, "") || (String(tId).toLowerCase().includes("negocios") ? "Negocios" : "");
+          const estaSeleccionadoHoy = territoriosSeleccionadosHoy.has(numT);
+
+          let colorBorde = "#ef4444";
+          let colorFondo = "#fee2e2";
+          let opacidadFondo = 0.78;
+
+          if (infoT.categoria === "naranja") {
+            colorBorde = "#f97316";
+            colorFondo = "#ffedd5";
+          } else if (infoT.categoria === "amarillo") {
+            colorBorde = "#eab308";
+            colorFondo = "#fef9c3";
+          } else if (infoT.categoria === "verde") {
+            colorBorde = "#22c55e";
+            colorFondo = "#dcfce7";
+          }
+
+          if (estaSeleccionadoHoy) {
+            colorBorde = "#1d4ed8";
+            colorFondo = "#bfdbfe";
+            opacidadFondo = 0.92;
+          }
+
+          pol.setStyle({
+            color: estaSeleccionadoHoy ? "#1e40af" : colorBorde,
+            fillColor: colorFondo,
+            fillOpacity: opacidadFondo,
+            weight: estaSeleccionadoHoy ? 3.5 : 2,
+            dashArray: estaSeleccionadoHoy ? "4,4" : null
+          });
+        } else if (filtroIncompletosActivo) {
           if (esIncompleto) {
             // Territorio incompleto: destacar cuadras hechas en gris y pendientes en naranja/ámbar
             if (fueHecha) {
@@ -3929,10 +4090,80 @@ ${lineas.join("\n")}`;
           window.reproducirSonidoClick("tap");
           filtroIncompletosActivo = !filtroIncompletosActivo;
           btnIncompletos.classList.toggle("incompletos-activo", filtroIncompletosActivo);
+          if (filtroIncompletosActivo && filtroSemaforoActivo) {
+            filtroSemaforoActivo = false;
+            window.filtroSemaforoActivo = false;
+            const btnS = document.getElementById("btnFiltroSemaforo");
+            if (btnS) btnS.classList.remove("semaforo-activo");
+            const p = document.getElementById("panelSemaforoHoy");
+            if (p) p.style.display = "none";
+          }
           window.ejecutarFiltroFecha();
           if (filtroIncompletosActivo) {
             mostrarToastDiscreto("Territorios incompletos destacados en el mapa");
           }
+        };
+      }
+
+      const btnSemaforo = document.getElementById("btnFiltroSemaforo");
+      if (btnSemaforo) {
+        btnSemaforo.onclick = () => {
+          window.reproducirSonidoClick("tap");
+          filtroSemaforoActivo = !filtroSemaforoActivo;
+          window.filtroSemaforoActivo = filtroSemaforoActivo;
+          btnSemaforo.classList.toggle("semaforo-activo", filtroSemaforoActivo);
+
+          if (filtroSemaforoActivo && filtroIncompletosActivo) {
+            filtroIncompletosActivo = false;
+            if (btnIncompletos) btnIncompletos.classList.remove("incompletos-activo");
+          }
+
+          const panel = document.getElementById("panelSemaforoHoy");
+          if (panel) {
+            panel.style.display = filtroSemaforoActivo ? "flex" : "none";
+            if (filtroSemaforoActivo) {
+              actualizarPanelSemaforoHoy();
+            }
+          }
+          window.ejecutarFiltroFecha();
+          if (filtroSemaforoActivo) {
+            mostrarToastDiscreto("Semáforo activo: rojo = más tiempo sin trabajar");
+          }
+        };
+      }
+
+      const btnCerrarSem = document.getElementById("btnCerrarPanelSemaforo");
+      if (btnCerrarSem) {
+        btnCerrarSem.onclick = () => {
+          filtroSemaforoActivo = false;
+          window.filtroSemaforoActivo = false;
+          if (btnSemaforo) btnSemaforo.classList.remove("semaforo-activo");
+          const panel = document.getElementById("panelSemaforoHoy");
+          if (panel) panel.style.display = "none";
+          window.ejecutarFiltroFecha();
+        };
+      }
+
+      const btnCompartirWa = document.getElementById("btnCompartirHoyWhatsApp");
+      if (btnCompartirWa) {
+        btnCompartirWa.onclick = () => {
+          const arr = Array.from(territoriosSeleccionadosHoy).sort((a, b) => {
+            const na = parseInt(a, 10);
+            const nb = parseInt(b, 10);
+            if (isNaN(na) || isNaN(nb)) return a.localeCompare(b);
+            return na - nb;
+          });
+
+          if (arr.length === 0) {
+            mostrarToastDiscreto("Toca territorios en el mapa para seleccionarlos");
+            return;
+          }
+
+          const listaStr = arr.join(", ");
+          const urlApp = `https://kokevazquez.github.io/TerriPubli/?terr=${arr.join(",")}`;
+          const texto = `Territorio para hoy: ${listaStr}\n${urlApp}`;
+          const urlWa = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+          window.open(urlWa, "_blank");
         };
       }
 
@@ -3942,8 +4173,15 @@ ${lineas.join("\n")}`;
           mesesFiltroActivos.clear();
           localStorage.setItem("terrosa_filtro_meses", JSON.stringify([]));
           filtroIncompletosActivo = false;
+          filtroSemaforoActivo = false;
+          window.filtroSemaforoActivo = false;
+          territoriosSeleccionadosHoy.clear();
           const btnIncomp = document.getElementById("btnFiltroIncompletos");
           if (btnIncomp) btnIncomp.classList.remove("incompletos-activo");
+          const btnSem = document.getElementById("btnFiltroSemaforo");
+          if (btnSem) btnSem.classList.remove("semaforo-activo");
+          const panelSem = document.getElementById("panelSemaforoHoy");
+          if (panelSem) panelSem.style.display = "none";
           actualizarEtiquetaBotonMeses();
           window.ejecutarFiltroFecha();
         };

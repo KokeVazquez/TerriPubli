@@ -14,6 +14,10 @@ function vincularMenuCuadra(pol, territorioId) {
     if (e && e.originalEvent) {
       e.originalEvent.stopPropagation();
     }
+    if (window.filtroSemaforoActivo && typeof window.toggleTerritorioSeleccionadoHoy === 'function') {
+      window.toggleTerritorioSeleccionadoHoy(tId);
+      return;
+    }
     const mostrarInfo = () => {
       if (typeof window.mostrarInfoCuadraCapitan === 'function') {
         window.mostrarInfoCuadraCapitan(pol, tId);
@@ -88,6 +92,10 @@ function vincularMenuCuadra(pol, territorioId) {
       const touchDuration = Date.now() - startTime;
       // Si fue un toque rápido (menos de 600ms) sin arrastrar el mapa:
       if (!hasMoved && touchDuration < 600) {
+        if (window.filtroSemaforoActivo && typeof window.toggleTerritorioSeleccionadoHoy === 'function') {
+          window.toggleTerritorioSeleccionadoHoy(tId);
+          return;
+        }
         const mostrarInfo = () => {
           if (typeof window.mostrarInfoCuadraCapitan === 'function') {
             window.mostrarInfoCuadraCapitan(pol, tId);
