@@ -2360,6 +2360,8 @@ body.modo-oscuro .etiqueta-poligono {
   max-height: 220px;
   flex: 1;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain !important;
 }
 
 .s12-dropdown-item {

@@ -4924,6 +4924,12 @@ ${lineas.join("\n")}`;
 
     renderizarOpcionesDropdown();
 
+    if (optionsListSelect) {
+      optionsListSelect.addEventListener("touchmove", (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+    }
+
     if (triggerSelect && dropdownSelect) {
       triggerSelect.onclick = (e) => {
         e.stopPropagation();

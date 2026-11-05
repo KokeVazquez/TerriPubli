@@ -26,13 +26,29 @@ var map = L.map("map", {
   zoomAnimation: true
 });
 
-// Prevenir absolutamente el pull-to-refresh nativo del navegador en móvil
-// y asegurar que el arrastre con 1 solo dedo sea 100% fluido en el mapa
+// Prevenir pull-to-refresh del navegador pero PERMITIR scroll libre en cualquier menú, lista, dropdown o modal
 document.addEventListener('touchmove', function (e) {
-  // Permitir scroll normal solo dentro de modales y paneles con scroll
-  if (e.target.closest('.modal-buscar-calle-card, #listaResultadosCalles, .menu-panel, .info-cuadra-modal, .modal-contenedor, .options, .filtro-historial-body, .panel-semaforo-hoy, .lista-scroll, .modal-s12-content')) {
-    return;
+  // 1. Si el toque ocurre en cualquier lista o contenedor scrolleable (dropdowns, S-12, historial, selectores, modales)
+  if (e.target.closest('.s12-select-options-list, .s12-select-dropdown, .s12-modal-scroll, .s12-modal-container, .options, .custom-select, #listaResultadosCalles, .modal-buscar-calle-card, .menu-panel, .info-cuadra-modal, .modal-contenedor, .filtro-historial-body, .lista-items-historial, .panel-semaforo-hoy, .lista-scroll, select, option')) {
+    return; // Dejar scrollear libremente con el dedo
   }
+
+  // 2. Si cualquier elemento ancestro tiene scroll disponible
+  let node = e.target;
+  while (node && node !== document.body && node !== document.documentElement) {
+    if (node.id === "map" || (node.classList && node.classList.contains("leaflet-container"))) {
+      break;
+    }
+    if (node.scrollHeight > node.clientHeight && node.clientHeight > 0) {
+      const oy = window.getComputedStyle(node).overflowY;
+      if (oy === "auto" || oy === "scroll") {
+        return; // Permitir scroll libre
+      }
+    }
+    node = node.parentElement;
+  }
+
+  // 3. En el mapa o fondo fijo: bloquear scroll nativo para permitir arrastre fluido del mapa
   if (e.cancelable) {
     e.preventDefault();
   }
