@@ -58,8 +58,10 @@ body {
   padding: 0;
   height: 100%;
   width: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: none !important;
+  touch-action: none !important;
   background-color: #e5e3df; /* Color base mapa para evitar parpadeos */
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -108,10 +110,19 @@ textarea {
   padding: 0;
   z-index: 1;
   touch-action: none !important;
+  overscroll-behavior: none !important;
 }
 
-.leaflet-container {
+.leaflet-container,
+.leaflet-pane,
+.leaflet-pane svg,
+.leaflet-pane svg path,
+.leaflet-tile-container,
+.leaflet-zoom-animated {
   touch-action: none !important;
+  overscroll-behavior: none !important;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Evitar que capas no interactivas como el fondo o área grande capturen toques en móvil */

@@ -13,6 +13,8 @@ var myRenderer = L.svg({ padding: 1.5 });
 var map = L.map("map", {
   renderer: myRenderer,
   tap: false,               // Desactiva emulación antigua de tap en iOS para permitir toques nativos precisos
+  dragging: true,           // Arrastre fluido nativo con 1 dedo
+  touchZoom: true,          // Zoom táctil nativo con 2 dedos
   maxZoom: 22,
   minZoom: 10,
   zoomControl: false,
@@ -23,6 +25,26 @@ var map = L.map("map", {
   fadeAnimation: true,
   zoomAnimation: true
 });
+
+// Prevenir absolutamente el pull-to-refresh nativo del navegador en móvil
+// y asegurar que el arrastre con 1 solo dedo sea 100% fluido en el mapa
+document.addEventListener('touchmove', function (e) {
+  // Permitir scroll normal solo dentro de modales y paneles con scroll
+  if (e.target.closest('.modal-buscar-calle-card, #listaResultadosCalles, .menu-panel, .info-cuadra-modal, .modal-contenedor, .options, .filtro-historial-body, .panel-semaforo-hoy, .lista-scroll, .modal-s12-content')) {
+    return;
+  }
+  if (e.cancelable) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// Función global para cerrar el menú hamburguesa desde cualquier parte
+window.cerrarMenuHamburguesa = function () {
+  const menuPanel = document.getElementById("menu-panel");
+  if (menuPanel && menuPanel.classList.contains("show")) {
+    menuPanel.classList.remove("show");
+  }
+};
 
 // Centro y zoom equilibrados para vista general de Área Grande
 var CENTRO_AREA_GRANDE = [28.6107, -106.0699];
@@ -94,8 +116,17 @@ function flyWithLoader(bounds, callback) {
 // ==============================================================================================================================
 // Se utiliza la función protegida ocultarMenu() definida en territoriobase.js
 map.on("click", function () {
+  if (typeof window.cerrarMenuHamburguesa === "function") {
+    window.cerrarMenuHamburguesa();
+  }
   if (typeof ocultarMenu === "function") {
     ocultarMenu(false);
+  }
+});
+
+map.on("movestart", function () {
+  if (typeof window.cerrarMenuHamburguesa === "function") {
+    window.cerrarMenuHamburguesa();
   }
 });
 
@@ -220,6 +251,10 @@ window.seleccionarTerritorioDirecto = function (territorioId, callbackOnEnfocado
     }
   }
 
+  if (typeof window.cerrarMenuHamburguesa === "function") {
+    window.cerrarMenuHamburguesa();
+  }
+
   if (typeof ocultarMenu === "function") {
     ocultarMenu(true);
   }
@@ -233,6 +268,7 @@ window.seleccionarTerritorioDirecto = function (territorioId, callbackOnEnfocado
 };
 
 function cambiarTerritorio() {
+  if (typeof window.cerrarMenuHamburguesa === "function") window.cerrarMenuHamburguesa();
   map.closePopup();
   var selector = document.getElementById("selectorTerritorios");
   var valor = selector.value;
@@ -814,19 +850,19 @@ window.abrirBuscadorCalle = function () {
   modal.innerHTML = `
     <div class="modal-buscar-calle-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;">Buscar calle</h3>
+        <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;">Buscar calle o esquina</h3>
         <button id="btnCerrarBuscadorCalle" class="btn-icon-square-mini" title="Cerrar">✕</button>
       </div>
 
       <div style="position:relative;">
-        <input type="text" id="inputBuscarCalleNombre" placeholder="Escribe el nombre de la calle..." autocomplete="off" style="
+        <input type="text" id="inputBuscarCalleNombre" placeholder="Ej: Méndez y 46, Méndez 5009, Ochoa..." autocomplete="off" style="
           width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:600; outline:none; box-sizing:border-box; font-family:inherit; background:#ffffff; color:#0f172a;
         " />
       </div>
 
-      <div id="listaResultadosCalles" style="overflow-y:auto; max-height:55vh; display:flex; flex-direction:column; gap:6px;">
+      <div id="listaResultadosCalles" class="lista-resultados-scroll" style="overflow-y:auto; max-height:55vh; display:flex; flex-direction:column; gap:6px;">
         <div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">
-          Escribe para buscar calles en la zona de la congregación
+          Escribe una calle, cruce (ej. <b>Méndez y 46</b>) o número (ej. <b>Méndez 5009</b>)
         </div>
       </div>
     </div>
@@ -841,11 +877,29 @@ window.abrirBuscadorCalle = function () {
   modal.querySelector("#btnCerrarBuscadorCalle").onclick = cerrar;
   modal.onclick = (e) => { if (e.target === modal) cerrar(); };
 
+  function limpiarNombreCalle(str) {
+    if (!str) return "";
+    return str.replace(/^(?:calle|avenida|ave\.?|privada|priv\.?|pda\.?|general|gen\.?|don|juan|mariano|benito|pedro)\s+/i, "").trim();
+  }
+
+  async function consultarPhoton(termino) {
+    if (!termino) return [];
+    const tLimpio = limpiarNombreCalle(termino) || termino;
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(tLimpio)}&bbox=-106.14,28.57,-106.02,28.65&limit=15`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      return (data && data.features) ? data.features : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   let timerBusqueda = null;
   input.oninput = (e) => {
     clearTimeout(timerBusqueda);
-    const q = e.target.value.trim();
-    if (q.length < 2) {
+    const qRaw = e.target.value.trim();
+    if (qRaw.length < 2) {
       lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">Escribe al menos 2 caracteres...</div>';
       return;
     }
@@ -854,67 +908,169 @@ window.abrirBuscadorCalle = function () {
 
     timerBusqueda = setTimeout(async () => {
       try {
-        // Bounding box de Chihuahua que cubre completamente los territorios
-        let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&bbox=-106.14,28.57,-106.02,28.65&limit=15`;
-        let res = await fetch(url);
-        let data = await res.json();
-        let items = (data && data.features) ? data.features : [];
+        let resultados = [];
+        const matchInterseccion = qRaw.match(/^(.+?)\s+(?:y|con|e|esquina|\/|&)\s+(.+)$/i);
+        const matchNumero = qRaw.match(/^(.+?)\s+(\d{1,5})$/i) || qRaw.match(/^(\d{1,5})\s+(.+)$/i);
 
-        // Si no arrojó resultados dentro del bbox, intentar ampliando con 'Chihuahua'
-        if (items.length === 0) {
-          url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q + ' Chihuahua')}&bbox=-106.18,28.52,-105.98,28.72&limit=15`;
-          res = await fetch(url);
-          data = await res.json();
-          items = (data && data.features) ? data.features : [];
+        if (matchInterseccion) {
+          // --- CASO 1: BÚSQUEDA DE ESQUINA / CRUCE ---
+          let pA = matchInterseccion[1].trim();
+          let pB = matchInterseccion[2].trim();
+          if (/^\d+$/.test(pA)) pA = "Calle " + pA;
+          if (/^\d+$/.test(pB)) pB = "Calle " + pB;
+
+          const [resA, resB] = await Promise.all([consultarPhoton(pA), consultarPhoton(pB)]);
+          let mejoresCruces = [];
+
+          resA.forEach(fa => {
+            const ca = fa.geometry && fa.geometry.coordinates;
+            if (!ca) return;
+            resB.forEach(fb => {
+              const cb = fb.geometry && fb.geometry.coordinates;
+              if (!cb) return;
+              const dKm = (typeof turf !== "undefined")
+                ? turf.distance(turf.point(ca), turf.point(cb))
+                : Math.hypot(ca[0]-cb[0], ca[1]-cb[1]) * 111;
+
+              if (dKm < 0.6) { // cruce cercano a menos de 600m
+                mejoresCruces.push({
+                  lat: (ca[1] + cb[1]) / 2,
+                  lon: (ca[0] + cb[0]) / 2,
+                  distancia: dKm,
+                  nombre: `${matchInterseccion[1].trim()} y ${matchInterseccion[2].trim()}`,
+                  subtexto: "Esquina / Cruce"
+                });
+              }
+            });
+          });
+
+          mejoresCruces.sort((a, b) => a.distancia - b.distancia);
+          resultados = mejoresCruces.slice(0, 3);
+        } else if (matchNumero) {
+          // --- CASO 2: CALLE CON NÚMERO DE CASA ---
+          const strCalle = matchNumero[1].trim();
+          const numInt = parseInt(matchNumero[2], 10);
+          const resCalle = await consultarPhoton(strCalle);
+
+          if (numInt >= 100) {
+            // Estimar calle transversal según la numeración de Chihuahua (centenas)
+            const numTransversal = Math.round(numInt / 100);
+            const calleTransversal = "Calle " + numTransversal;
+            const resCrucero = await consultarPhoton(calleTransversal);
+
+            if (resCrucero.length > 0 && resCalle.length > 0) {
+              let mejorPunto = null;
+              let minDist = 999;
+              resCalle.forEach(fc => {
+                const cc = fc.geometry && fc.geometry.coordinates;
+                if (!cc) return;
+                resCrucero.forEach(fx => {
+                  const cx = fx.geometry && fx.geometry.coordinates;
+                  if (!cx) return;
+                  const dKm = (typeof turf !== "undefined")
+                    ? turf.distance(turf.point(cc), turf.point(cx))
+                    : Math.hypot(cc[0]-cx[0], cc[1]-cx[1]) * 111;
+                  if (dKm < minDist) {
+                    minDist = dKm;
+                    mejorPunto = {
+                      lat: cc[1],
+                      lon: cc[0],
+                      distancia: dKm,
+                      nombre: `${strCalle} #${numInt}`,
+                      subtexto: `Aprox. cerca de ${calleTransversal}`
+                    };
+                  }
+                });
+              });
+              if (mejorPunto) {
+                resultados.push(mejorPunto);
+              }
+            }
+          }
+
+          // Añadir tramos directos encontrados de esa calle
+          resCalle.forEach(f => {
+            const c = f.geometry && f.geometry.coordinates;
+            if (!c) return;
+            const p = f.properties || {};
+            resultados.push({
+              lat: c[1],
+              lon: c[0],
+              nombre: `${p.name || strCalle} #${numInt}`,
+              subtexto: p.district || p.suburb || "Chihuahua"
+            });
+          });
+        } else {
+          // --- CASO 3: CALLE DIRECTA ---
+          const feats = await consultarPhoton(qRaw);
+          feats.forEach(f => {
+            const c = f.geometry && f.geometry.coordinates;
+            if (!c) return;
+            const p = f.properties || {};
+            resultados.push({
+              lat: c[1],
+              lon: c[0],
+              nombre: p.name || p.street || qRaw,
+              subtexto: p.district || p.suburb || "Chihuahua"
+            });
+          });
         }
 
         lista.innerHTML = "";
-        if (!items || items.length === 0) {
-          lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">No se encontraron calles con ese nombre en la zona.</div>';
+        if (!resultados || resultados.length === 0) {
+          lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">No se encontraron resultados para esa dirección en la zona.</div>';
           return;
         }
 
         let encontradas = 0;
         const vistos = new Set();
 
-        items.forEach(item => {
-          if (!item.geometry || !item.geometry.coordinates) return;
-          const lon = item.geometry.coordinates[0];
-          const lat = item.geometry.coordinates[1];
+        resultados.forEach(item => {
+          const lat = item.lat;
+          const lon = item.lon;
           if (isNaN(lat) || isNaN(lon)) return;
 
-          const p = item.properties || {};
-          const nombreCalle = p.name || p.street || q;
-          const claveUnica = `${nombreCalle.toLowerCase()}_${lat.toFixed(3)}_${lon.toFixed(3)}`;
+          const match = window.encontrarTerritorioDeCoordenada(lat, lon);
+          const tId = match ? match.territorioId : null;
+          const claveUnica = `${tId || 'sin_t'}_${lat.toFixed(3)}_${lon.toFixed(3)}`;
           if (vistos.has(claveUnica)) return;
           vistos.add(claveUnica);
 
-          const match = window.encontrarTerritorioDeCoordenada(lat, lon);
-          const subtexto = p.district || p.suburb || p.city || "Chihuahua";
+          const nombreVisible = item.nombre;
+          const subVisible = item.subtexto;
+          const cuadraTxt = (match && match.label) ? ` • Cuadra ${match.label}` : '';
 
           const card = document.createElement("div");
           card.className = "item-calle-resultado";
           card.innerHTML = `
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:800; font-size:13.5px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nombreCalle}</div>
-              <div style="font-size:11.5px; color:#64748b;">${subtexto}</div>
+              <div style="font-weight:800; font-size:13.5px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nombreVisible}</div>
+              <div style="font-size:11.5px; color:#64748b;">${subVisible}</div>
             </div>
-            ${match && match.territorioId ? `
+            ${tId ? `
               <span style="font-size:11.5px; font-weight:800; background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:6px; border:1px solid #bfdbfe; white-space:nowrap; flex-shrink:0;">
-                ${formatearNombreTerritorioCorto(match.territorioId)}
+                ${formatearNombreTerritorioCorto(tId)}${cuadraTxt}
               </span>
             ` : '<span style="font-size:11px; color:#94a3b8; flex-shrink:0;">Cerca de zona</span>'}
           `;
 
           card.onclick = () => {
             cerrar();
-            map.flyTo([lat, lon], 18, { duration: 0.8 });
-            if (match && match.territorioId && typeof window.seleccionarTerritorioDirecto === 'function') {
-              window.seleccionarTerritorioDirecto(match.territorioId);
+            if (typeof window.cerrarMenuHamburguesa === "function") window.cerrarMenuHamburguesa();
+
+            map.flyTo([lat, lon], 18.5, { duration: 0.8 });
+
+            if (tId && typeof window.seleccionarTerritorioDirecto === 'function') {
+              window.seleccionarTerritorioDirecto(tId, function () {
+                if (match && match.label && typeof enfocarCuadraEspecifica === 'function') {
+                  enfocarCuadraEspecifica(tId, match.label);
+                }
+              });
             }
+
             if (typeof window.mostrarToastDiscreto === "function") {
-              const terrTxt = match && match.territorioId ? ' en ' + formatearNombreTerritorioCorto(match.territorioId) : '';
-              window.mostrarToastDiscreto(`Mostrando ${nombreCalle}${terrTxt}`);
+              const terrTxt = tId ? ' en ' + formatearNombreTerritorioCorto(tId) + cuadraTxt : '';
+              window.mostrarToastDiscreto(`Mostrando ${nombreVisible}${terrTxt}`);
             }
           };
 
@@ -926,10 +1082,13 @@ window.abrirBuscadorCalle = function () {
           lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">No se encontraron resultados dentro del territorio.</div>';
         }
       } catch (err) {
-        lista.innerHTML = '<div style="text-align:center; color:#ef4444; font-size:12.5px; padding:20px 8px;">Error al conectar con el mapa de calles.</div>';
+        lista.innerHTML = '<div style="text-align:center; color:#ef4444; font-size:12.5px; padding:20px 8px;">Error al buscar la dirección.</div>';
       }
     }, 350);
   };
+
+  setTimeout(() => input.focus(), 80);
+};
 
   setTimeout(() => input.focus(), 80);
 };
@@ -1282,10 +1441,12 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
 
-    document.addEventListener('click', (e) => {
-      if (!menuPanel.contains(e.target) && e.target !== hamburgerBtn) {
-        cerrarMenu();
-      }
+    ["click", "pointerdown", "touchstart"].forEach(evt => {
+      document.addEventListener(evt, (e) => {
+        if (!menuPanel.contains(e.target) && !hamburgerBtn.contains(e.target)) {
+          cerrarMenu();
+        }
+      }, { passive: true });
     });
   }
 

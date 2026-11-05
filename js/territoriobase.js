@@ -3,27 +3,36 @@
 // =============================
 
 let _ultimoMenuAbierto = 0;
+let _ultimoToqueCuadraTimestamp = 0;
 
 function vincularMenuCuadra(pol, territorioId) {
   const tId = territorioId || pol._territorioId || "territorio";
   pol._territorioId = tId;
 
-  // 1. Clic para computadoras y ratón (Leaflet event en PC)
-  pol.off('click');
-  pol.on('click', function (e) {
-    if (e && e.originalEvent) {
-      e.originalEvent.stopPropagation();
+  // Manejador único unificado de toque/clic en la cuadra o territorio
+  const ejecutarAccionCuadra = (origenEvento) => {
+    const ahora = Date.now();
+    if (ahora - _ultimoToqueCuadraTimestamp < 450) {
+      return; // Prevenir doble ejecución (touch + click sintético)
     }
+    _ultimoToqueCuadraTimestamp = ahora;
+
+    if (typeof window.cerrarMenuHamburguesa === "function") {
+      window.cerrarMenuHamburguesa();
+    }
+
     if (window.filtroSemaforoActivo && typeof window.toggleTerritorioSeleccionadoHoy === 'function') {
       window.toggleTerritorioSeleccionadoHoy(tId);
       return;
     }
+
     const mostrarInfo = () => {
       if (typeof window.mostrarInfoCuadraCapitan === 'function') {
         window.mostrarInfoCuadraCapitan(pol, tId);
       }
     };
-    // Si no hay territorio enfocado o se hace clic en un territorio distinto, enfocar ese territorio
+
+    // Si no hay territorio enfocado o se toca un territorio distinto, enfocar ese territorio
     if (!window.territorioActivo || window.territorioActivo._id !== tId) {
       if (typeof window.seleccionarTerritorioDirecto === 'function') {
         window.seleccionarTerritorioDirecto(tId, mostrarInfo);
@@ -31,6 +40,15 @@ function vincularMenuCuadra(pol, territorioId) {
     } else {
       mostrarInfo();
     }
+  };
+
+  // 1. Clic para computadoras y ratón (Leaflet event en PC)
+  pol.off('click');
+  pol.on('click', function (e) {
+    if (e && e.originalEvent) {
+      e.originalEvent.stopPropagation();
+    }
+    ejecutarAccionCuadra('click');
   });
 
   // 2. Clic derecho en PC (Leaflet event) -> Abre el menú de la cuadra
@@ -92,23 +110,10 @@ function vincularMenuCuadra(pol, territorioId) {
       const touchDuration = Date.now() - startTime;
       // Si fue un toque rápido (menos de 600ms) sin arrastrar el mapa:
       if (!hasMoved && touchDuration < 600) {
-        if (window.filtroSemaforoActivo && typeof window.toggleTerritorioSeleccionadoHoy === 'function') {
-          window.toggleTerritorioSeleccionadoHoy(tId);
-          return;
+        if (e && e.cancelable) {
+          e.preventDefault();
         }
-        const mostrarInfo = () => {
-          if (typeof window.mostrarInfoCuadraCapitan === 'function') {
-            window.mostrarInfoCuadraCapitan(pol, tId);
-          }
-        };
-        // Si no hay territorio activo o tocamos un territorio distinto, cambiar y enfocarlo de una
-        if (!window.territorioActivo || window.territorioActivo._id !== tId) {
-          if (typeof window.seleccionarTerritorioDirecto === 'function') {
-            window.seleccionarTerritorioDirecto(tId, mostrarInfo);
-          }
-        } else {
-          mostrarInfo();
-        }
+        ejecutarAccionCuadra('touch');
       }
     }
 
@@ -118,7 +123,7 @@ function vincularMenuCuadra(pol, territorioId) {
 
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove', onTouchMove, { passive: true });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: false });
     el.addEventListener('touchcancel', onTouchCancel, { passive: true });
 
     el._touchCleanup = function () {
