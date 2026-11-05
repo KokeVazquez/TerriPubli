@@ -648,6 +648,43 @@ window.obtenerUbicacionEnTerritorios = function (lat, lon) {
   return null;
 };
 
+// Buscar territorio correspondiente (exacto o el más cercano dentro de 350m para calles/intersecciones)
+window.encontrarTerritorioDeCoordenada = function (lat, lon) {
+  const exacto = window.obtenerUbicacionEnTerritorios(lat, lon);
+  if (exacto) return exacto;
+
+  if (!window.todosLosTerritorios || !Array.isArray(window.todosLosTerritorios) || typeof turf === "undefined") return null;
+  let masCercano = null;
+  let minDist = 350; // metros
+
+  try {
+    const pt = turf.point([lon, lat]);
+    for (let i = 0; i < window.todosLosTerritorios.length; i++) {
+      const grupo = window.todosLosTerritorios[i];
+      grupo.eachLayer(pol => {
+        try {
+          if (!pol.getBounds) return;
+          const centro = pol.getBounds().getCenter();
+          const distKm = turf.distance(pt, turf.point([centro.lng, centro.lat]));
+          const distM = distKm * 1000;
+          if (distM < minDist) {
+            minDist = distM;
+            masCercano = {
+              territorioId: grupo._id,
+              cuadraId: pol._id,
+              label: pol._label || pol._id,
+              poligono: pol,
+              distanciaMetros: Math.round(distM)
+            };
+          }
+        } catch (e) {}
+      });
+    }
+  } catch (e) {}
+
+  return masCercano;
+};
+
 // Formateador amigable de nombres (ej: "Territorio 3 • Cuadra 1")
 function formatearUbicacionBanner(info) {
   if (!info) return "Estás fuera de los territorios";
@@ -808,8 +845,8 @@ window.abrirBuscadorCalle = function () {
   input.oninput = (e) => {
     clearTimeout(timerBusqueda);
     const q = e.target.value.trim();
-    if (q.length < 3) {
-      lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">Escribe al menos 3 letras...</div>';
+    if (q.length < 2) {
+      lista.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12.5px; padding:20px 8px;">Escribe al menos 2 caracteres...</div>';
       return;
     }
 
@@ -817,10 +854,19 @@ window.abrirBuscadorCalle = function () {
 
     timerBusqueda = setTimeout(async () => {
       try {
-        // Buscar en OpenStreetMap Nominatim con viewbox restringido al área de Congregación Rosario
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&viewbox=-99.23,19.54,-99.18,19.49&bounded=1&countrycodes=mx&addressdetails=1&limit=10`;
-        const res = await fetch(url, { headers: { "Accept-Language": "es" } });
-        const items = await res.json();
+        // Bounding box de Chihuahua que cubre completamente los territorios
+        let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&bbox=-106.14,28.57,-106.02,28.65&limit=15`;
+        let res = await fetch(url);
+        let data = await res.json();
+        let items = (data && data.features) ? data.features : [];
+
+        // Si no arrojó resultados dentro del bbox, intentar ampliando con 'Chihuahua'
+        if (items.length === 0) {
+          url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q + ' Chihuahua')}&bbox=-106.18,28.52,-105.98,28.72&limit=15`;
+          res = await fetch(url);
+          data = await res.json();
+          items = (data && data.features) ? data.features : [];
+        }
 
         lista.innerHTML = "";
         if (!items || items.length === 0) {
@@ -829,27 +875,35 @@ window.abrirBuscadorCalle = function () {
         }
 
         let encontradas = 0;
+        const vistos = new Set();
+
         items.forEach(item => {
-          const lat = parseFloat(item.lat);
-          const lon = parseFloat(item.lon);
+          if (!item.geometry || !item.geometry.coordinates) return;
+          const lon = item.geometry.coordinates[0];
+          const lat = item.geometry.coordinates[1];
           if (isNaN(lat) || isNaN(lon)) return;
 
-          const match = window.obtenerUbicacionEnTerritorios(lat, lon);
-          const nombreCalle = (item.address && (item.address.road || item.address.pedestrian || item.address.street)) || item.name || q;
-          const subtexto = (item.address && (item.address.suburb || item.address.neighbourhood)) || "";
+          const p = item.properties || {};
+          const nombreCalle = p.name || p.street || q;
+          const claveUnica = `${nombreCalle.toLowerCase()}_${lat.toFixed(3)}_${lon.toFixed(3)}`;
+          if (vistos.has(claveUnica)) return;
+          vistos.add(claveUnica);
+
+          const match = window.encontrarTerritorioDeCoordenada(lat, lon);
+          const subtexto = p.district || p.suburb || p.city || "Chihuahua";
 
           const card = document.createElement("div");
           card.className = "item-calle-resultado";
           card.innerHTML = `
-            <div>
-              <div style="font-weight:800; font-size:13.5px; color:#0f172a;">${nombreCalle}</div>
-              <div style="font-size:11.5px; color:#64748b;">${subtexto ? subtexto + ' • ' : ''}${lat.toFixed(4)}, ${lon.toFixed(4)}</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:800; font-size:13.5px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nombreCalle}</div>
+              <div style="font-size:11.5px; color:#64748b;">${subtexto}</div>
             </div>
             ${match && match.territorioId ? `
-              <span style="font-size:11.5px; font-weight:800; background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:6px; border:1px solid #bfdbfe; white-space:nowrap;">
+              <span style="font-size:11.5px; font-weight:800; background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:6px; border:1px solid #bfdbfe; white-space:nowrap; flex-shrink:0;">
                 ${formatearNombreTerritorioCorto(match.territorioId)}
               </span>
-            ` : '<span style="font-size:11px; color:#94a3b8;">Cerca de zona</span>'}
+            ` : '<span style="font-size:11px; color:#94a3b8; flex-shrink:0;">Cerca de zona</span>'}
           `;
 
           card.onclick = () => {

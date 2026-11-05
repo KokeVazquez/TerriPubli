@@ -107,7 +107,11 @@ textarea {
   margin: 0;
   padding: 0;
   z-index: 1;
-  touch-action: manipulation;
+  touch-action: none !important;
+}
+
+.leaflet-container {
+  touch-action: none !important;
 }
 
 /* Evitar que capas no interactivas como el fondo o área grande capturen toques en móvil */

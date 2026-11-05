@@ -3751,13 +3751,15 @@ ${lineas.join("\n")}`;
     const reportes = JSON.parse(localStorage.getItem("terrosa_reportes_pendientes") || "[]");
     const ahora = new Date();
     const mapaUltimaFecha = {};
+    const anio = (typeof anioFiltroActivo !== "undefined" && anioFiltroActivo) ? anioFiltroActivo : "2026";
 
     reportes.forEach(rep => {
       if (!rep || !rep.fecha || !perteneceAVersionActiva(rep)) return;
+      if (!perteneceAAnioServicio(rep.fecha, anio)) return;
       const tId = obtenerTerritorioIdLimpio(rep);
       if (!tId) return;
       const d = parsearFechaReporte(rep.fecha);
-      if (!d.valida) return;
+      if (!d || !d.fechaISO) return;
       const fechaObj = new Date(d.anio, parseInt(d.mes, 10) - 1, parseInt(d.dia, 10));
       if (!mapaUltimaFecha[tId] || fechaObj > mapaUltimaFecha[tId]) {
         mapaUltimaFecha[tId] = fechaObj;
@@ -3835,6 +3837,13 @@ ${lineas.join("\n")}`;
     const tagN = document.getElementById("tagConteoNaranja");
     const tagA = document.getElementById("tagConteoAmarillo");
     const tagV = document.getElementById("tagConteoVerde");
+
+    const tituloSpan = panel.querySelector(".semaforo-titulo span:not(.semaforo-dot-status)");
+    if (tituloSpan) {
+      const anio = (typeof anioFiltroActivo !== "undefined" && anioFiltroActivo) ? anioFiltroActivo : "2026";
+      const txtAnio = (anio === "todos") ? "Todos" : `Año ${anio}`;
+      tituloSpan.textContent = `Semáforo (${txtAnio})`;
+    }
 
     if (tagR) tagR.textContent = `Rojo: ${datos.conteos.rojo} (>6m)`;
     if (tagN) tagN.textContent = `Naranja: ${datos.conteos.naranja} (4-6m)`;
