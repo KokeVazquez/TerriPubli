@@ -4295,6 +4295,106 @@ ${lineas.join("\n")}`;
   // 17. GENERADOR VECTORIAL SVG Y MODAL DE TARJETA DE TERRITORIO OFICIAL S-12
   // ==========================================================================
 
+  const CUADRAS_MAP = {
+    "1": 3, "2": 3, "3": 5, "4": 7, "5": 6, "6": 4, "7": 4, "8": 4, "9": 6, "10": 4,
+    "11": 4, "12": 4, "13": 4, "14": 3, "15": 6, "16": 4, "17": 4, "18": 4, "19": 4, "20": 4,
+    "21": 4, "22": 4, "23": 4, "24": 3, "25": 4, "26": 4, "27": 4, "28": 4, "29": 3, "30": 4,
+    "31": 3, "32": 4, "33": 4, "34": 4, "35": 4, "36": 3, "37": 5, "38": 3, "39": 4, "40": 7,
+    "41": 6, "42": 4, "43": 4, "44": 5, "45": 5, "46": 4, "47": 3, "48": 5, "49": 5, "50": 7,
+    "51": 4, "52": 4, "53": 3, "54": 3, "55": 3, "56": 5, "57": 6, "58": 8, "59": 6, "60": 6,
+    "61": 5, "62": 6, "63": 6, "64": 4, "65": 4, "66": 5, "67": 4, "68": 4, "69": 4, "70": 4,
+    "71": 4, "72": 6, "73": 4, "74": 4, "75": 4, "76": 4, "77": 6, "78": 6, "79": 8, "80": 8,
+    "81": 6, "82": 7, "83": 8, "84": 8
+  };
+
+  function normalizarIdCuadraCorto(cId, numTerr) {
+    const raw = String(cId || "").trim();
+    if (!raw) return "";
+    const mCorto = raw.match(/^T(\d+)C(\d+)$/i);
+    if (mCorto) return `T${mCorto[1]}C${mCorto[2]}`;
+    const mLargo = raw.match(/^Cuadra(\d+)_Territorio(\d+)$/i);
+    if (mLargo) return `T${mLargo[2]}C${mLargo[1]}`;
+    if (/^\d+$/.test(raw) && numTerr) return `T${numTerr}C${raw}`;
+    return raw;
+  }
+
+  function calcularCiclosAsignacionS12(numTerr, reportes, totalPred) {
+    const numTStr = String(numTerr || "").trim();
+    const totRef = totalPred || (CUADRAS_MAP && CUADRAS_MAP[numTStr]) || 1;
+
+    const repsT = (reportes || []).filter(r => {
+      if (!perteneceAVersionActiva(r)) return false;
+      const numR = obtenerNumeroTerritorioLimpio(r.territorioId, r.territorioNumero);
+      return String(numR) === numTStr;
+    });
+
+    repsT.sort((a, b) => {
+      const pa = parsearFechaReporte(a.fecha);
+      const pb = parsearFechaReporte(b.fecha);
+      const fa = pa.fechaISO || String(a.fecha || "");
+      const fb = pb.fechaISO || String(b.fecha || "");
+      return fa.localeCompare(fb);
+    });
+
+    const ciclos = [];
+    let acc = {
+      cuadrasSet: new Set(),
+      fechaInicioISO: null,
+      fechaInicioDisp: null,
+      ultimoCapitan: ""
+    };
+
+    repsT.forEach(rep => {
+      const p = parsearFechaReporte(rep.fecha);
+      const fISO = p.fechaISO || rep.fecha;
+      const fDisp = p.fechaDisplay || rep.fecha;
+
+      if (!acc.fechaInicioISO) {
+        acc.fechaInicioISO = fISO;
+        acc.fechaInicioDisp = fDisp;
+      }
+      if (rep.capitan) {
+        acc.ultimoCapitan = String(rep.capitan).trim();
+      }
+
+      const rawCuadras = Array.isArray(rep.cuadras) ? rep.cuadras : (String(rep.cuadras || "").split(","));
+      rawCuadras.forEach(c => {
+        const norm = normalizarIdCuadraCorto(c, numTStr);
+        if (norm) acc.cuadrasSet.add(norm);
+      });
+
+      if (acc.cuadrasSet.size >= totRef) {
+        ciclos.push({
+          capitan: acc.ultimoCapitan || "Capitán",
+          fechaInicio: acc.fechaInicioDisp,
+          fechaFin: fDisp,
+          completo: true,
+          fechaInicioISO: acc.fechaInicioISO,
+          fechaFinISO: fISO
+        });
+        acc = {
+          cuadrasSet: new Set(),
+          fechaInicioISO: null,
+          fechaInicioDisp: null,
+          ultimoCapitan: ""
+        };
+      }
+    });
+
+    if (acc.cuadrasSet.size > 0 && acc.fechaInicioISO) {
+      ciclos.push({
+        capitan: acc.ultimoCapitan || "Capitán",
+        fechaInicio: acc.fechaInicioDisp,
+        fechaFin: "En progreso",
+        completo: false,
+        fechaInicioISO: acc.fechaInicioISO,
+        fechaFinISO: null
+      });
+    }
+
+    return ciclos;
+  }
+
   function obtenerPoligonosTerritorio(tId) {
     const s = String(tId || "").trim().toLowerCase();
     const esNeg = s.includes("negocios");
@@ -4739,28 +4839,28 @@ ${lineas.join("\n")}`;
         }
       }
 
+      // Calcular ciclos de asignación completos S-12 (idéntico a la hoja oficial S-13)
+      const ciclosS12 = calcularCiclosAsignacionS12(numTLimpio, reportes, totalPred);
+
       // Llenar tabla S-12
       const tbody = modal.querySelector("#s12TableBody");
       if (tbody) {
         let rowsHtml = "";
-        repsT.forEach(rep => {
-          const p = parsearFechaReporte(rep.fecha);
-          const fDisp = p.fechaDisplay || rep.fecha;
-          const cuadrasTrab = (Array.isArray(rep.cuadras) ? rep.cuadras.length : (rep.cuadrasTotal || 0));
-          const totRef = totalPred || rep.totalCuadrasTerritorio || cuadrasTrab;
-          const esComp = totRef > 0 && cuadrasTrab >= totRef;
+        // Mostrar del más reciente al más antiguo
+        const ciclosInvertidos = ciclosS12.slice().reverse();
 
+        ciclosInvertidos.forEach(ciclo => {
           rowsHtml += `
             <tr>
-              <td style="font-weight:700; color:#0f172a;">${escaparTextoSeguro(rep.capitan || "Capitán")}</td>
-              <td>${fDisp}</td>
-              <td>${esComp ? fDisp : "En progreso"}</td>
+              <td style="font-weight:700; color:#0f172a;">${escaparTextoSeguro(ciclo.capitan || "Capitán")}</td>
+              <td>${ciclo.fechaInicio}</td>
+              <td style="${ciclo.completo ? '' : 'color:#d97706; font-weight:700;'}">${ciclo.completo ? ciclo.fechaFin : "En progreso"}</td>
             </tr>
           `;
         });
 
         // Completar con renglones punteados en blanco para escritura manual cuando se imprima
-        const filasVacias = Math.max(3, 5 - repsT.length);
+        const filasVacias = Math.max(3, 6 - ciclosInvertidos.length);
         for (let i = 0; i < filasVacias; i++) {
           rowsHtml += `
             <tr class="s12-row-blank">
