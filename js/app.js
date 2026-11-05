@@ -1090,9 +1090,6 @@ window.abrirBuscadorCalle = function () {
   setTimeout(() => input.focus(), 80);
 };
 
-  setTimeout(() => input.focus(), 80);
-};
-
 function activarUbicacion() {
   const menuPanel = document.getElementById("menu-panel");
   const btnUbicacion = document.getElementById("btnUbicacion");
